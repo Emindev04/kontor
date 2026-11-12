@@ -3,7 +3,7 @@ import {
   ClipboardPaste, Columns3, Copy, DollarSign, Eraser, Grid3x3, Italic, ListIndentDecrease, ListIndentIncrease, PaintBucket, Paintbrush, Palette, Percent, Rows3,
   Scissors, ScanSearch, Sigma, Strikethrough, TableCellsMerge, TextAlignCenter, TextAlignEnd, TextAlignStart, TextWrap, Underline, RotateCw, Hash,
 } from 'lucide-react'
-import { classifyFormat, formatValue } from '../../model/numfmt'
+import { classifyFormat, formatDisplay } from '../../model/numfmt'
 import { DEFAULT_FONT, DEFAULT_SIZE } from '../../model/style'
 import { CELL_STYLES } from '../../model/cellStyles'
 import type { BorderMode } from '../../commands/doc'
@@ -103,7 +103,7 @@ export function HomeTab() {
 
   const numberPreview = (fmt: string) => {
     if (value === null || value === undefined) return ''
-    const t = formatValue(value, fmt).text
+    const t = formatDisplay(value, fmt).text
     return t.length > 24 ? t.slice(0, 24) + '…' : t
   }
 

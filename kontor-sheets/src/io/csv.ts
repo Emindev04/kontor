@@ -6,8 +6,13 @@ import { cellView } from '../commands/display'
 import type { Doc } from '../commands/doc'
 import { normalizeFormula } from '../commands/doc'
 import { parseInput } from '../model/parseInput'
+import { US_SYMBOLS } from '../model/numberLocale'
 
-/** Exports the active sheet as CSV using the displayed (formatted) values. */
+/**
+ * Exports the active sheet as CSV using the displayed (formatted) values. Numbers are always written
+ * with US separators (and read back the same way by importCsv), whatever the interface language, so a
+ * file reads the same everywhere.
+ */
 export function exportCsv(doc: Doc, sep = ','): Blob {
   const sheet = doc.sheet
   const used = sheet.used()
@@ -15,7 +20,7 @@ export function exportCsv(doc: Doc, sep = ','): Blob {
   for (let r = 0; r <= used.r; r++) {
     const cells: string[] = []
     for (let c = 0; c <= used.c; c++) {
-      const t = cellView(doc, sheet, r, c, doc.style(r, c)).text
+      const t = cellView(doc, sheet, r, c, doc.style(r, c), undefined, undefined, US_SYMBOLS).text
       cells.push(/["\n\r]/.test(t) || t.includes(sep) ? `"${t.replace(/"/g, '""')}"` : t)
     }
     lines.push(cells.join(sep).replace(new RegExp(`${sep === '|' ? '\\|' : sep}+$`), ''))

@@ -8,6 +8,7 @@ import {
 } from '../model/address'
 import { classifyFormat } from '../model/numfmt'
 import { parseInput } from '../model/parseInput'
+import { localizeNumberText, numberSymbols } from '../model/numberLocale'
 import type { CellData, RichRun, Sheet } from '../model/sheet'
 import { DEFAULT_FONT, DEFAULT_SIZE, type Style, type StylePatch } from '../model/style'
 import type { Scalar } from '../model/types'
@@ -500,10 +501,13 @@ export class Doc {
       const st = this.wb.styles.get(d.s)
       const kind = classifyFormat(st.fmt)
       if (kind === 'date' || kind === 'time') return this.dateInputText(v, kind === 'time')
-      if (kind === 'percentage') return `${Number((v * 100).toPrecision(15))}%`
-      return String(Number(v.toPrecision(15)))
+      // numbers in the edit box use the interface language's decimal separator (no grouping)
+      const sym = numberSymbols()
+      if (kind === 'percentage') return `${localizeNumberText(String(Number((v * 100).toPrecision(15))), sym)}%`
+      return localizeNumberText(String(Number(v.toPrecision(15))), sym)
     }
-    const looksNumeric = parseInput(v).kind !== 'value' || typeof (parseInput(v) as { v: Scalar }).v !== 'string'
+    const p = parseInput(v, numberSymbols())
+    const looksNumeric = p.kind !== 'value' || typeof p.v !== 'string'
     return looksNumeric ? "'" + v : v
   }
 
@@ -676,10 +680,11 @@ export class Doc {
 
   /**
    * Validates and normalizes typed input. Throws FormulaError for broken formulas. Formulas are typed
-   * in the interface language (function names, ';' and decimal commas) and stored in English.
+   * in the interface language (function names, ';' and decimal commas) and stored in English; so are
+   * plain numbers ("1.234,5" in German is stored as 1234.5).
    */
   prepareInput(text: string): { data: Pick<CellData, 'v' | 'f'>; fmt?: string } {
-    const p = parseInput(text)
+    const p = parseInput(text, numberSymbols())
     if (p.kind === 'formula') {
       const body = normalizeFormula(toCanonicalFormula(p.f))
       try {

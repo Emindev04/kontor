@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BUILTIN_FORMATS, CUSTOM_FORMATS, classifyFormat, formatValue } from '../../model/numfmt'
+import { BUILTIN_FORMATS, CUSTOM_FORMATS, classifyFormat, formatDisplay } from '../../model/numfmt'
 import { DEFAULT_FONT, DEFAULT_SIZE, type Border, type BorderStyle, type Style, type StylePatch } from '../../model/style'
 import { FontColorPalette } from '../palettes'
 import { DialogTabs, Modal, OkCancel, cls } from '../ui'
@@ -79,7 +79,7 @@ export function FormatCellsDialog({ initialTab, onClose }: { initialTab?: string
       case 'Custom': return custom
     }
   }, [cat, dec, sep, neg, sym, dateFmt, timeFmt, fracFmt, specialFmt, custom])
-  const sample = value === null ? '' : formatValue(value, code).text
+  const sample = value === null ? '' : formatDisplay(value, code).text
 
   // ----- alignment -----
   const [h, setH] = useState(st.h ?? 'general')
@@ -192,7 +192,7 @@ export function FormatCellsDialog({ initialTab, onClose }: { initialTab?: string
       <select size={4} value={neg} onChange={(e) => setNeg(Number(e.target.value))}>
         {[0, 1, 2, 3].map((n) => (
           <option key={n} value={n} style={{ color: n % 2 ? 'red' : undefined }}>
-            {formatValue(-1234.1, numberCode(dec, sep || cat === 'Currency', n, symCode)).text}
+            {formatDisplay(-1234.1, numberCode(dec, sep || cat === 'Currency', n, symCode)).text}
           </option>
         ))}
       </select>
@@ -273,7 +273,7 @@ export function FormatCellsDialog({ initialTab, onClose }: { initialTab?: string
                   <select size={8} value={cat === 'Date' ? dateFmt : timeFmt} onChange={(e) => (cat === 'Date' ? setDateFmt(e.target.value) : setTimeFmt(e.target.value))}>
                     {(cat === 'Date' ? DATE_FORMATS : TIME_FORMATS).map((f) => (
                       <option key={f} value={f}>
-                        {formatValue(cat === 'Date' ? 45351.5625 : 0.5625, f).text}
+                        {formatDisplay(cat === 'Date' ? 45351.5625 : 0.5625, f).text}
                       </option>
                     ))}
                   </select>

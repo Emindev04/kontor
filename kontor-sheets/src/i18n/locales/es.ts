@@ -2391,7 +2391,7 @@ const translations: Translations = {
   'Up to one digit (1/4)': 'De un dígito (1/4)',
   'Up to three digits (312/943)': 'De tres dígitos (312/943)',
   'Up to two digits (21/25)': 'De dos dígitos (21/25)',
-  'Use 1000 Separator (,)': 'Usar separador de miles (,)',
+  'Use 1000 Separator (,)': 'Usar separador de miles (.)',
   'Use ? to represent any single character. Use * to represent any series of characters.': 'Use ? para representar un solo carácter. Use * para representar cualquier serie de caracteres.',
   'Use AutoFilter': 'Usar autofiltro',
   'Use PivotTable & PivotChart': 'Usar tabla dinámica y gráfico dinámico',

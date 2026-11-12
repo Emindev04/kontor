@@ -1,8 +1,8 @@
 # Kontor Sheets – feature checklist
 
-Coverage: 845 done, 27 partial, 27 open of 899 (functions counted one by one; 95.5 % weighted)
+Coverage: 846 done, 27 partial, 27 open of 900 (functions counted one by one; 95.5 % weighted)
 
-Features without the function library: 345 done, 23 partial, 15 open of 383 (93.1 % weighted).
+Features without the function library: 346 done, 23 partial, 15 open of 384 (93.1 % weighted).
 
 Open items marked "out of scope" need a server, an online service or an AI model and are left out on purpose.
 
@@ -404,6 +404,7 @@ Open items marked "out of scope" need a server, an online service or an AI model
 - [x] Structured table references: Table1[Col], Table1[[#Headers],[A]:[B]], [@Col], #All/#Data/#Headers/#Totals, table names as references
 - [x] R1C1 notation: R1C1 reference style option (formula bar, typing formulas, column numbers in the headings, Name Box) and inside INDIRECT
 - [x] Localized function names and separators: with a German, French or Spanish interface, formulas are typed and shown with the local function names (=SUMME, =SVERWEIS, =WENN · =SOMME, =RECHERCHEV, =SI · =SUMA, =BUSCARV, =SI) for all functions, ';' between arguments and ',' as decimal separator (=SUMME(1,5;2)), WAHR/FALSCH, VRAI/FAUX, VERDADERO/FALSO, array constants {1.2;3.4} (Spanish {1\2;3\4}) and ';' inside structured references — in the formula bar, cell editor, Show Formulas, autocomplete, argument tooltips, Insert Function, Function Arguments, conditional formatting, data validation, Name Manager and calculated fields. English names are still accepted; text in quotes, sheet names and defined names are never changed. Workbooks, AutoSave and .xlsx/.ods files keep English formulas, so files work in every language (FORMULATEXT returns the English formula; error values stay in English)
+- [x] Regional number format follows the interface language, like the original follows the system locale: German and Spanish show and accept 1.234,56, French 1 234,56 (thousands = narrow no-break space U+202F as Intl uses; a space or U+00A0 is accepted on entry). Cells, General format, fixed decimals, #,##0.00, percent, scientific, currency, accounting, the status bar, charts, Number Format previews and the Format Cells samples use the local separators; typing 1,5 / 1.234,56 / 12,5 % / 1.234,50 € stores the number, and the edit box shows numbers with a decimal comma. Text that is not clearly a number stays text (German 1.5 is text, not a date). Format codes, the model, AutoSave, .xlsx/.ods and TEXT() results keep canonical US numbers; CSV export/import always uses US numbers. Dates keep their format codes (there is no locale short date)
 - [x] Iterative calculation
 - [ ] Links to other workbooks
 - [ ] Multi-threaded calculation (calculation runs on one thread; only dependent cells are recalculated)

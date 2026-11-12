@@ -10,6 +10,7 @@ import type { Sheet } from '../model/sheet'
 import type { Workbook } from '../model/workbook'
 import type { Engine } from '../engine/engine'
 import { makeReader, resolveRef } from '../charts/chartData'
+import { US_SYMBOLS } from '../model/numberLocale'
 import { fnLabel, groupFieldNames, type PivotSource } from '../commands/pivot'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -156,7 +157,7 @@ function buildCache(wb: Workbook, engine: Engine, p: PivotDef, id: number, slice
   const res = resolveRef(wb, p.source)
   if (!res) return null
   const { sheet, range } = res
-  const read = makeReader(wb, engine)
+  const read = makeReader(wb, engine, US_SYMBOLS)
   const r2 = Math.min(range.r2, Math.max(range.r1, sheet.used().r))
   const fields: CacheField[] = []
   for (let c = range.c1; c <= range.c2; c++) {

@@ -2391,7 +2391,7 @@ const translations: Translations = {
   'Up to one digit (1/4)': 'Un chiffre (1/4)',
   'Up to three digits (312/943)': 'Trois chiffres (312/943)',
   'Up to two digits (21/25)': 'Deux chiffres (21/25)',
-  'Use 1000 Separator (,)': 'Utiliser le séparateur de milliers (,)',
+  'Use 1000 Separator (,)': 'Utiliser le séparateur de milliers ( )',
   'Use ? to represent any single character. Use * to represent any series of characters.': 'Utilisez ? pour représenter un seul caractère. Utilisez * pour représenter une série de caractères.',
   'Use AutoFilter': 'Utiliser le filtre automatique',
   'Use PivotTable & PivotChart': 'Utiliser les tableaux et graphiques croisés dynamiques',

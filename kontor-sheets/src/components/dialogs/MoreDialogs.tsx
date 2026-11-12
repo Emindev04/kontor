@@ -13,6 +13,7 @@ import type { Scenario, SheetPermission, Sparkline } from '../../model/extras'
 import { CellError, type Scalar } from '../../model/types'
 import { Matrix } from '../../model/matrix'
 import { parseInput } from '../../model/parseInput'
+import { numberSymbols } from '../../model/numberLocale'
 import { resolveRef } from '../../charts/chartData'
 import { PERMISSIONS, protectSheet, protectWorkbook, setEditRanges, setNote, noteAt, unprotectSheet, unprotectWorkbook, unlockRange } from '../../commands/review'
 import { passwordHash } from '../../model/extras'
@@ -359,7 +360,7 @@ export function ScenarioDialog({ onClose }: P) {
           {cellsOf(editing).slice(0, 32).map((c, i) => (
             <label key={i}>{cellName(c.r, c.c)}: <input value={String(editing.values[i] ?? doc.value(c.r, c.c) ?? '')} onChange={(e) => {
               const values = cellsOf(editing).map((cc, j) => editing.values[j] ?? doc.value(cc.r, cc.c))
-              const p = parseInput(e.target.value)
+              const p = parseInput(e.target.value, numberSymbols())
               values[i] = p.kind === 'value' ? p.v : e.target.value
               setEditing({ ...editing, values })
             }} /></label>

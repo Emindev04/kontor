@@ -1,5 +1,9 @@
-// Turns what the user typed into a cell into a value plus an automatic number format (en-US rules).
+// Turns what the user typed into a cell into a value plus an automatic number format. Numbers follow
+// the separators passed in (`sym`, US by default; cell entry passes the interface language's): in
+// German "1.234,5" is a number and "1.5" is text, in English the other way round. Dates and times use
+// en-US rules in every language (there is no locale short date), so German "1.5" never becomes a date.
 import { MONTHS, partsToSerial, timeToFraction } from './dates'
+import { US_SYMBOLS, isUsSymbols, type NumberSymbols } from './numberLocale'
 import { errorFromCode, type Scalar } from './types'
 
 export type Parsed = { kind: 'formula'; f: string } | { kind: 'value'; v: Scalar; fmt?: string }
@@ -101,8 +105,15 @@ export function parseDateTime(text: string): { v: number; fmt: string } | null {
   return null
 }
 
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Thousands separators accepted on entry: any kind of space when the language groups with one. */
+function groupPattern(group: string) {
+  return /^[\s\u00A0\u202F]$/.test(group) ? '[ \u00A0\u202F]' : escapeRe(group)
+}
+
 /** Parses a number typed with optional currency, grouping, percent, parentheses or exponent. */
-export function parseNumber(text: string): { v: number; fmt?: string } | null {
+export function parseNumber(text: string, sym: NumberSymbols = US_SYMBOLS): { v: number; fmt?: string } | null {
   let t = text.trim()
   if (!t) return null
   let neg = false
@@ -124,6 +135,16 @@ export function parseNumber(text: string): { v: number; fmt?: string } | null {
       t = t.slice(1)
     }
   }
+  let suffix = false
+  if (!currency && !isUsSymbols(sym)) {
+    // "1.234,50 €" — the currency symbol after the number, as written in these languages
+    const sm = /\s*([$€£¥])$/.exec(t)
+    if (sm) {
+      currency = sm[1]
+      suffix = true
+      t = t.slice(0, -sm[0].length)
+    }
+  }
   let pct = false
   if (t.endsWith('%')) {
     pct = true
@@ -136,11 +157,14 @@ export function parseNumber(text: string): { v: number; fmt?: string } | null {
     const v = Number(frac[1]) + Number(frac[2]) / den
     return { v: neg ? -v : v, fmt: frac[3].length > 1 ? '# ??/??' : '# ?/?' }
   }
-  if (!/^(\d{1,3}(,\d{3})+|\d+)?(\.\d*)?([eE][-+]?\d+)?$/.test(t) || !/\d/.test(t)) return null
-  const grouped = t.includes(',')
-  const sci = /e/i.test(t)
-  const decimals = t.includes('.') && !sci ? (t.split('.')[1] ?? '').length : 0
-  let v = Number(t.replace(/,/g, ''))
+  const g = groupPattern(sym.group)
+  const d = escapeRe(sym.decimal)
+  if (!new RegExp(`^(\\d{1,3}(${g}\\d{3})+|\\d+)?(${d}\\d*)?([eE][-+]?\\d+)?$`).test(t) || !/\d/.test(t)) return null
+  const grouped = new RegExp(g).test(t)
+  const n = t.replace(new RegExp(g, 'g'), '').replace(sym.decimal, '.')
+  const sci = /e/i.test(n)
+  const decimals = n.includes('.') && !sci ? (n.split('.')[1] ?? '').length : 0
+  let v = Number(n)
   if (Number.isNaN(v)) return null
   if (neg) v = -v || 0
   let fmt: string | undefined
@@ -148,14 +172,15 @@ export function parseNumber(text: string): { v: number; fmt?: string } | null {
     v /= 100
     fmt = decimals ? `0.${'0'.repeat(decimals)}%` : '0%'
   } else if (currency) {
-    const sym = currency === '$' ? '"$"' : currency
-    fmt = decimals ? `${sym}#,##0.00` : `${sym}#,##0`
+    const cur = currency === '$' ? '"$"' : currency
+    const body = decimals ? '#,##0.00' : '#,##0'
+    fmt = suffix ? `${body} ${cur}` : `${cur}${body}`
   } else if (sci) fmt = '0.00E+00'
   else if (grouped) fmt = decimals ? '#,##0.00' : '#,##0'
   return { v, fmt }
 }
 
-export function parseInput(raw: string): Parsed {
+export function parseInput(raw: string, sym: NumberSymbols = US_SYMBOLS): Parsed {
   if (raw.length > 1 && raw.startsWith('=')) return { kind: 'formula', f: raw.slice(1) }
   if (raw.startsWith("'")) return { kind: 'value', v: raw.slice(1) }
   const text = raw
@@ -164,7 +189,7 @@ export function parseInput(raw: string): Parsed {
   if (/^(true|false)$/i.test(t)) return { kind: 'value', v: t.toLowerCase() === 'true' }
   const err = errorFromCode(t)
   if (err) return { kind: 'value', v: err }
-  const n = parseNumber(t)
+  const n = parseNumber(t, sym)
   if (n) return { kind: 'value', v: n.v, fmt: n.fmt }
   const dt = parseDateTime(t)
   if (dt) return { kind: 'value', v: dt.v, fmt: dt.fmt }

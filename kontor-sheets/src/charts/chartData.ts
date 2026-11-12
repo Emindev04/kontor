@@ -2,6 +2,7 @@
 import { colName, parseRange, quoteSheet, type Range } from '../model/address'
 import type { ChartDef, ChartSeries, SeriesType } from '../model/extras'
 import { formatValue } from '../model/numfmt'
+import { numberSymbols, type NumberSymbols } from '../model/numberLocale'
 import type { Sheet } from '../model/sheet'
 import { CellError, type Scalar } from '../model/types'
 import type { Workbook } from '../model/workbook'
@@ -44,7 +45,8 @@ export const absRef = (sheet: Sheet, rg: Range) =>
 
 type Reader = { value: (s: Sheet, r: number, c: number) => Scalar; text: (s: Sheet, r: number, c: number) => string; fmt: (s: Sheet, r: number, c: number) => string | undefined }
 
-export function makeReader(wb: Workbook, engine: Engine): Reader {
+/** Reads cells for charts. `sym` gives the number separators of `text` (the interface language's by default). */
+export function makeReader(wb: Workbook, engine: Engine, sym: NumberSymbols = numberSymbols()): Reader {
   const fmt = (s: Sheet, r: number, c: number) => wb.styles.get(s.styleId(r, c)).fmt
   return {
     value: (s, r, c) => engine.display(s, r, c),
@@ -53,7 +55,7 @@ export function makeReader(wb: Workbook, engine: Engine): Reader {
       const v = engine.display(s, r, c)
       if (v === null) return ''
       if (v instanceof CellError) return v.code
-      if (typeof v === 'number') return formatValue(v, fmt(s, r, c)).text
+      if (typeof v === 'number') return formatValue(v, fmt(s, r, c), 11, sym).text
       if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE'
       return String(v)
     },

@@ -3,6 +3,7 @@ import { FileSpreadsheet, LayoutPanelTop, Minus, Plus, SquareDashed } from 'luci
 import { cellName, keyCol, keyRow } from '../model/address'
 import { cellView } from '../commands/display'
 import { numberToText } from '../model/numfmt'
+import { localizeNumberText, numberSymbols } from '../model/numberLocale'
 import { Engine } from '../engine/engine'
 import { CellError } from '../model/types'
 import { cls, Popup } from './ui'
@@ -85,7 +86,7 @@ export function StatusBar({ zoom, setZoom }: { zoom: number; setZoom: (z: number
     const a = sel.active
     const st = doc.style(a.r, a.c)
     const t = cellView(doc, sheet, a.r, a.c, st, undefined, v).text
-    return t || numberToText(v)
+    return t || localizeNumberText(numberToText(v), numberSymbols())
   }
 
   const [locks, setLocks] = useState({ caps: false, num: false, scroll: false })

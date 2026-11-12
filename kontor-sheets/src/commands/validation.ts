@@ -3,6 +3,7 @@ import { type Range } from '../model/address'
 import type { CellOp, Validation } from '../model/extras'
 import { Matrix } from '../model/matrix'
 import { parseInput } from '../model/parseInput'
+import { numberSymbols } from '../model/numberLocale'
 import type { Sheet } from '../model/sheet'
 import { CellError, type Scalar } from '../model/types'
 import type { Doc } from './doc'
@@ -107,7 +108,8 @@ const DEFAULT_MESSAGE = tx('This value doesn’t match the data validation restr
 export function validateInput(doc: Doc, sheet: Sheet, r: number, c: number, text: string): ValidationFailure | null {
   const v = validationAt(sheet, r, c)
   if (!v || !v.showError || v.type === 'any') return null
-  const p = parseInput(text)
+  // typed like cell entry: numbers in the interface language's notation
+  const p = parseInput(text, numberSymbols())
   if (p.kind === 'formula') return null
   const value = p.v
   if (isValid(doc, sheet, v, r, c, value)) return null

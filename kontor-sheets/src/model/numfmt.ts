@@ -1,6 +1,7 @@
 // Number format codes ("#,##0.00", "m/d/yyyy", "[Red]0%;(0%)" …) with the same section,
 // placeholder, date and color rules the original spreadsheet program uses.
 import { DAYS, MONTHS, serialToParts } from './dates'
+import { US_SYMBOLS, localizeNumberText, numberSymbols, type NumberSymbols } from './numberLocale'
 import { CellError, type Scalar } from './types'
 
 export type Formatted = {
@@ -276,8 +277,12 @@ function formatText(sec: Section, s: string): Formatted {
   return finish(parts, fillAt, fillChar, sec.color)
 }
 
-/** Formats a value for display. `maxChars` limits the General format. */
-export function formatValue(value: Scalar, code?: string, maxChars = 11): Formatted {
+/**
+ * Formats a value. `maxChars` limits the General format. `sym` gives the decimal and thousands
+ * separators of the output; format codes are always written the canonical (US) way. The default is
+ * US, which formula results (TEXT) and file exports need; screen display uses formatDisplay.
+ */
+export function formatValue(value: Scalar, code?: string, maxChars = 11, sym: NumberSymbols = US_SYMBOLS): Formatted {
   if (value === null) return { text: '' }
   if (value instanceof CellError) return { text: value.code }
   if (typeof value === 'boolean') return { text: value ? 'TRUE' : 'FALSE' }
@@ -286,17 +291,27 @@ export function formatValue(value: Scalar, code?: string, maxChars = 11): Format
     if (fmt?.text) return formatText(fmt.text, value)
     return { text: value }
   }
-  if (!fmt) return { text: generalNumber(value, maxChars) }
+  if (!fmt) return { text: localizeNumberText(generalNumber(value, maxChars), sym) }
   const picked = pickSection(fmt, value)
-  if (!picked) return { text: generalNumber(value, maxChars) }
+  if (!picked) return { text: localizeNumberText(generalNumber(value, maxChars), sym) }
   const { sec, v } = picked
   const negSingle = fmt.sections.length === 1 || (fmt.sections.some((s) => s.cond) && v < 0)
-  if (sec.kind === 'date') return formatDate(sec, v)
-  if (sec.kind === 'text' && !sec.toks.some((t) => t.t === 'digit')) return formatText(sec, numberToText(v))
-  return formatNumber(sec, v, negSingle, maxChars)
+  if (sec.kind === 'date') return formatDate(sec, v, sym)
+  if (sec.kind === 'text' && !sec.toks.some((t) => t.t === 'digit')) return formatText(sec, localizeNumberText(numberToText(v), sym))
+  return formatNumber(sec, v, negSingle, maxChars, sym)
 }
 
-function formatNumber(sec: Section, value: number, negSingle: boolean, maxChars: number): Formatted {
+/** formatValue with the separators of the interface language, for everything shown on screen. */
+export function formatDisplay(value: Scalar, code?: string, maxChars = 11): Formatted {
+  return formatValue(value, code, maxChars, numberSymbols())
+}
+
+/** General-format number text with the separators of the interface language. */
+export function generalDisplay(v: number, maxChars = 11, sym: NumberSymbols = numberSymbols()): string {
+  return localizeNumberText(generalNumber(v, maxChars), sym)
+}
+
+function formatNumber(sec: Section, value: number, negSingle: boolean, maxChars: number, sym: NumberSymbols): Formatted {
   const toks = sec.toks
   let v = value
   const neg = v < 0 && negSingle
@@ -332,7 +347,7 @@ function formatNumber(sec: Section, value: number, negSingle: boolean, maxChars:
 
   const out = new Map<number, string>()
   const genIdx = toks.findIndex((t) => t.t === 'general')
-  if (genIdx >= 0 && digitIdx.length === 0) out.set(genIdx, generalNumber(v, maxChars))
+  if (genIdx >= 0 && digitIdx.length === 0) out.set(genIdx, localizeNumberText(generalNumber(v, maxChars), sym))
 
   if (slashIdx >= 0 && digitIdx.some((i) => i > slashIdx)) {
     formatFraction(toks, slashIdx, v, out)
@@ -362,8 +377,8 @@ function formatNumber(sec: Section, value: number, negSingle: boolean, maxChars:
     const r = roundTo(v, decIdx.length)
     const intPart = Math.floor(r)
     const intStr = intPart === 0 ? '' : intPart >= 1e21 ? BigInt(Math.round(intPart)).toString() : intPart.toFixed(0)
-    if (intDigitIdx.length === 0 && intStr && dotIdx >= 0) out.set(dotIdx, intStr + '.')
-    fillInt(toks, intDigitIdx, intStr, grouping, out)
+    if (intDigitIdx.length === 0 && intStr && dotIdx >= 0) out.set(dotIdx, intStr + sym.decimal)
+    fillInt(toks, intDigitIdx, intStr, grouping, out, sym.group)
     fillDec(toks, decIdx, decimals(r, decIdx.length), out)
   }
 
@@ -378,7 +393,7 @@ function formatNumber(sec: Section, value: number, negSingle: boolean, maxChars:
     }
     switch (t.t) {
       case 'lit': parts.push(t.v); break
-      case 'dot': parts.push('.'); break
+      case 'dot': parts.push(sym.decimal); break
       case 'comma': parts.push(','); break
       case 'pct': parts.push('%'); break
       case 'slash': parts.push('/'); break
@@ -402,13 +417,13 @@ function decimals(v: number, n: number): string {
   return i < 0 ? '0'.repeat(n) : s.slice(i + 1).padEnd(n, '0')
 }
 
-function fillInt(toks: Tok[], idx: number[], digits: string, grouping: boolean, out: Map<number, string>) {
+function fillInt(toks: Tok[], idx: number[], digits: string, grouping: boolean, out: Map<number, string>, group = ',') {
   if (idx.length === 0) return
   if (grouping) {
     const zeros = idx.filter((i) => (toks[i] as { v: string }).v !== '#').length
     let d = digits.padStart(zeros, '0')
     const q = idx.filter((i) => (toks[i] as { v: string }).v === '?').length
-    d = d.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    d = d.replace(/\B(?=(\d{3})+(?!\d))/g, group)
     if (!digits && q && zeros === q) d = ' '.repeat(q)
     idx.forEach((i, k) => out.set(i, k === 0 ? d : ''))
     return
@@ -503,7 +518,7 @@ function bestFraction(x: number, maxDen: number): [number, number] {
   return best
 }
 
-function formatDate(sec: Section, v: number): Formatted {
+function formatDate(sec: Section, v: number, sym: NumberSymbols): Formatted {
   if (v < 0 || v > 2958465.99999) return { text: '#'.repeat(10) }
   const sub = sec.toks.find((t) => t.t === 'subsec') as { n: number } | undefined
   const subDigits = sub?.n ?? 0
@@ -531,7 +546,7 @@ function formatDate(sec: Section, v: number): Formatted {
       case 'comma': parts.push(','); break
       case 'slash': parts.push('/'); break
       case 'pct': parts.push('%'); break
-      case 'subsec': parts.push('.' + pad(subVal, subDigits)); break
+      case 'subsec': parts.push(sym.decimal + pad(subVal, subDigits)); break
       case 'ampm': {
         const pm = h >= 12
         parts.push(t.v === 'AM/PM' ? (pm ? 'PM' : 'AM') : t.v === 'a/p' ? (pm ? 'p' : 'a') : pm ? 'P' : 'A')

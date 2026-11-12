@@ -2,7 +2,8 @@
 // printing and when a chart is exported as a picture.
 import { currentTheme } from '../model/theme'
 import type { ChartDef } from '../model/extras'
-import { formatValue } from '../model/numfmt'
+import { formatDisplay } from '../model/numfmt'
+import { localizeNumberText, numberSymbols } from '../model/numberLocale'
 import type { ChartData, SeriesData } from './chartData'
 import { t, tx } from '../i18n'
 
@@ -58,11 +59,12 @@ export function niceScale(min: number, max: number, ticks = 6): { min: number; m
 
 function fmtNum(v: number, fmt: string | undefined, percent = false) {
   if (percent) return `${Math.round(v * 100)}%`
-  if (fmt && fmt !== 'General') return formatValue(v, fmt).text
+  if (fmt && fmt !== 'General') return formatDisplay(v, fmt).text
+  const sym = numberSymbols()
   const a = Math.abs(v)
-  if (a >= 1e9) return `${+(v / 1e9).toFixed(1)}B`
-  if (a >= 1e6) return `${+(v / 1e6).toFixed(1)}M`
-  return (+v.toPrecision(10)).toLocaleString('en-US', { maximumFractionDigits: 6 })
+  if (a >= 1e9) return `${localizeNumberText(String(+(v / 1e9).toFixed(1)), sym)}B`
+  if (a >= 1e6) return `${localizeNumberText(String(+(v / 1e6).toFixed(1)), sym)}M`
+  return localizeNumberText((+v.toPrecision(10)).toLocaleString('en-US', { maximumFractionDigits: 6 }), sym)
 }
 
 type Box = { x: number; y: number; w: number; h: number }

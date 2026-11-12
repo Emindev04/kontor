@@ -132,8 +132,8 @@ describe('entering formulas in another interface language', () => {
   it('calculates =SUMME(A1;A2) typed in German and stores it in English', () => {
     setTranslationsForTest('de', {})
     const doc = new Doc()
-    // cell values (not formulas) keep their own number parsing
-    doc.setInput(0, 0, '1.5')
+    // plain numbers use the German decimal comma too
+    doc.setInput(0, 0, '1,5')
     doc.setInput(1, 0, '2')
     doc.setInput(2, 0, '=SUMME(A1;A2)')
     doc.setInput(3, 0, '=summe(A1;2,5)')
