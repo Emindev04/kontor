@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from 'react'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Contact, Eye, FileCheck2, FileOutput, Highlighter, ListChecks, Mail, MailOpen, Search, Shuffle, Tags, Users, FilePen } from 'lucide-react'
 import { MenuButton, RibbonButton, RibbonGroup } from '../ui'
-import { includedRows, loadRecipients, matchedColumn, mergeAll, mergeStore, missingFields, type MergeType } from '../../editor/MailMerge'
+import { fillInRules, includedRows, loadRecipients, matchedColumn, mergeAll, mergeStore, missingFields, type MergeType } from '../../editor/MailMerge'
+import { RULE_KINDS, pendingRule } from '../dialogs/MergeRuleDialog'
+import { t, tx } from '../../i18n'
 import { pickFile } from '../../editor/commands'
 import { downloadBlob, safeFilename } from '../../io/download'
 import type { TabProps } from './types'
@@ -10,12 +12,12 @@ import type { TabProps } from './types'
 const ADDRESS_FIELDS = [['Title', 'First Name', 'Last Name'], ['Company'], ['Address 1'], ['City', 'State', 'Postal Code'], ['Country']]
 
 const MERGE_TYPES: { id: MergeType; label: string }[] = [
-  { id: 'letters', label: 'Letters' },
-  { id: 'email', label: 'E-mail Messages' },
-  { id: 'envelopes', label: 'Envelopes…' },
-  { id: 'labels', label: 'Labels…' },
-  { id: 'directory', label: 'Directory' },
-  { id: 'normal', label: 'Normal Document' },
+  { id: 'letters', label: tx('Letters') },
+  { id: 'email', label: tx('E-mail Messages') },
+  { id: 'envelopes', label: tx('Envelopes…') },
+  { id: 'labels', label: tx('Labels…') },
+  { id: 'directory', label: tx('Directory') },
+  { id: 'normal', label: tx('Normal Document') },
 ]
 
 export function MailingsTab({ app }: TabProps) {
@@ -30,7 +32,7 @@ export function MailingsTab({ app }: TabProps) {
     try {
       loadRecipients(await file.text(), file.name)
     } catch (e) {
-      alert(`The recipient list could not be read: ${(e as Error).message}`)
+      alert(t('The recipient list could not be read: {error}', { error: (e as Error).message }))
     }
   }
 
@@ -40,81 +42,88 @@ export function MailingsTab({ app }: TabProps) {
       ...(i > 0 ? [{ type: 'hardBreak' }] : []),
       ...group.flatMap((f, j) => [...(j > 0 ? [{ type: 'text', text: ' ' }] : []), { type: 'mergeField', attrs: { name: f } }]),
     ])
-    if (!content.length) return alert('The recipient list has no address columns. Use Match Fields to choose them.')
+    if (!content.length) return alert(t('The recipient list has no address columns. Use Match Fields to choose them.'))
     chain().insertContent({ type: 'paragraph', content }).run()
   }
 
   const greeting = () => {
     const name = matchedColumn('First Name') ?? ['Name', 'Last Name'].find((c) => data.columns.includes(c)) ?? data.columns[0]
-    chain().insertContent([{ type: 'text', text: 'Dear ' }, { type: 'mergeField', attrs: { name } }, { type: 'text', text: ',' }]).run()
+    chain().insertContent([{ type: 'text', text: t('Dear') + ' ' }, { type: 'mergeField', attrs: { name } }, { type: 'text', text: ',' }]).run()
   }
 
   const go = (record: number) => mergeStore.set({ record: Math.max(0, Math.min(data.rows.length - 1, record)) })
   const rows = includedRows(data)
-  const merged = () => mergeAll(editor.getJSON(), rows, data.type)
+  const merged = () => {
+    const doc = editor.getJSON()
+    // Fill-in rules ask their question once for the whole merge.
+    const answers = Object.fromEntries(fillInRules(doc).map((r) => [r.id, prompt(r.prompt || t('Fill-in'), r.value) ?? r.value]))
+    return mergeAll(doc, rows, data.type, answers)
+  }
   const findRecipient = () => {
-    const q = prompt('Find recipient: text to look for in the recipient list')?.trim().toLowerCase()
+    const q = prompt(t('Find recipient: text to look for in the recipient list'))?.trim().toLowerCase()
     if (!q) return
     const start = data.record + 1
     const order = [...data.rows.keys()].map((k) => (k + start) % data.rows.length)
     const hit = order.find((k) => !data.excluded.includes(k) && Object.values(data.rows[k]).some((v) => v.toLowerCase().includes(q)))
-    if (hit == null) alert(`No recipient contains "${q}".`)
+    if (hit == null) alert(t('No recipient contains “{text}”.', { text: q }))
     else mergeStore.set({ preview: true, record: hit })
   }
   const checkErrors = () => {
     const missing = missingFields(editor.getJSON())
-    alert(missing.length ? `These merge fields have no column in the recipient list:\n\n${missing.join('\n')}\n\nUse Match Fields or edit the list.` : `No mail merge errors were found in ${data.rows.length ? `the ${rows.length} recipients` : 'the document'}.`)
+    alert(missing.length
+      ? t('These merge fields have no column in the recipient list:') + '\n\n' + missing.join('\n') + '\n\n' + t('Use Match Fields or edit the list.')
+      : data.rows.length ? t('No mail merge errors were found in the {n} recipients.', { n: rows.length }) : t('No mail merge errors were found in the document.'))
   }
 
   return (
     <>
-      <RibbonGroup label="Create" priority={1}>
-        <RibbonButton large icon={Mail} label="Envelopes" onClick={() => app.openDialog('envelopes')} />
-        <RibbonButton large icon={Tags} label="Labels" onClick={() => app.openDialog('labels')} />
+      <RibbonGroup label={t('Create')} priority={1}>
+        <RibbonButton large icon={Mail} label={t('Envelopes')} onClick={() => app.openDialog('envelopes')} />
+        <RibbonButton large icon={Tags} label={t('Labels')} onClick={() => app.openDialog('labels')} />
       </RibbonGroup>
-      <RibbonGroup label="Start Mail Merge" priority={3}>
+      <RibbonGroup label={t('Start Mail Merge')} priority={3}>
         <MenuButton
           large
           icon={FilePen}
-          label="Start Mail Merge"
-          items={MERGE_TYPES.map((t) => ({
-            label: t.label,
-            active: data.type === t.id,
+          label={t('Start Mail Merge')}
+          items={MERGE_TYPES.map((item) => ({
+            label: t(item.label),
+            active: data.type === item.id,
             onClick: () => {
-              mergeStore.set({ type: t.id })
-              if (t.id === 'envelopes') app.openDialog('envelopes')
-              if (t.id === 'labels') app.openDialog('labels')
-              if (t.id === 'normal') mergeStore.set({ preview: false })
+              mergeStore.set({ type: item.id })
+              if (item.id === 'envelopes') app.openDialog('envelopes')
+              if (item.id === 'labels') app.openDialog('labels')
+              if (item.id === 'normal') mergeStore.set({ preview: false })
             },
           }))}
         />
         <MenuButton
           large
           icon={Users}
-          label="Select Recipients"
+          label={t('Select Recipients')}
           items={[
-            { label: 'Type a New List…', onClick: () => app.openDialog('newList') },
-            { label: 'Use an Existing List…', detail: 'CSV file with a header row', onClick: selectRecipients },
-            { label: 'Clear Recipient List', disabled: !has, onClick: () => mergeStore.set({ columns: [], rows: [], preview: false, record: 0, source: '', excluded: [], fieldMap: {} }) },
+            { label: t('Type a New List…'), onClick: () => app.openDialog('newList') },
+            { label: t('Use an Existing List…'), detail: t('CSV file with a header row'), onClick: selectRecipients },
+            { label: t('Clear Recipient List'), disabled: !has, onClick: () => mergeStore.set({ columns: [], rows: [], preview: false, record: 0, source: '', excluded: [], fieldMap: {} }) },
           ]}
         />
         <RibbonButton
           large
           icon={Contact}
-          label="Edit Recipient List"
+          label={t('Edit Recipient List')}
           disabled={!has}
-          title={has ? `${rows.length} of ${data.rows.length} recipients from ${data.source}` : 'Select recipients first'}
+          title={has ? t('{n} of {total} recipients from {source}', { n: rows.length, total: data.rows.length, source: data.source }) : t('Select recipients first')}
           onClick={() => app.openDialog('editRecipients')}
         />
       </RibbonGroup>
-      <RibbonGroup label="Write & Insert Fields" priority={3}>
-        <RibbonButton large icon={Highlighter} label="Highlight Merge Fields" active={data.highlight} onClick={() => mergeStore.set({ highlight: !data.highlight })} />
+      <RibbonGroup label={t('Write & Insert Fields')} priority={3}>
+        <RibbonButton large icon={Highlighter} label={t('Highlight Merge Fields')} active={data.highlight} onClick={() => mergeStore.set({ highlight: !data.highlight })} />
         <div className="col">
-          <RibbonButton icon={MailOpen} label="Address Block" showLabel disabled={!has} onClick={insertAddressBlock} />
-          <RibbonButton icon={MailOpen} label="Greeting Line" showLabel disabled={!has} onClick={greeting} />
+          <RibbonButton icon={MailOpen} label={t('Address Block')} showLabel disabled={!has} onClick={insertAddressBlock} />
+          <RibbonButton icon={MailOpen} label={t('Greeting Line')} showLabel disabled={!has} onClick={greeting} />
           <MenuButton
             icon={MailOpen}
-            label="Insert Merge Field"
+            label={t('Insert Merge Field')}
             showLabel
             disabled={!has}
             items={data.columns.map((c) => ({ label: c, onClick: () => chain().insertMergeField(c).run() }))}
@@ -123,31 +132,39 @@ export function MailingsTab({ app }: TabProps) {
         <div className="col">
           <MenuButton
             icon={Shuffle}
-            label="Rules"
+            label={t('Rules')}
             showLabel
             disabled={!has}
             items={[
-              { label: 'Skip Record If… (exclude matching recipients)', onClick: () => {
-                const column = prompt(`Skip recipients whose column (${data.columns.join(', ')}) …`, data.columns[0])
+              { label: t('Skip Record If… (exclude matching recipients)'), onClick: () => {
+                const column = prompt(t('Skip recipients whose column ({columns}) …', { columns: data.columns.join(', ') }), data.columns[0])
                 if (!column || !data.columns.includes(column)) return
-                const value = prompt(`… equals:`) ?? ''
+                const value = prompt(t('… equals:')) ?? ''
                 mergeStore.set({ excluded: [...new Set([...data.excluded, ...data.rows.flatMap((r, i) => ((r[column] ?? '') === value ? [i] : []))])] })
               } },
-              { label: 'Include All Recipients Again', onClick: () => mergeStore.set({ excluded: [] }) },
+              { label: t('Include All Recipients Again'), onClick: () => mergeStore.set({ excluded: [] }) },
+              'separator',
+              ...RULE_KINDS.map((k) => ({
+                label: t(k.label),
+                onClick: () => {
+                  pendingRule.kind = k.id
+                  app.openDialog('mergeRule')
+                },
+              })),
             ]}
           />
-          <RibbonButton icon={ListChecks} label="Match Fields" showLabel disabled={!has} onClick={() => app.openDialog('matchFields')} />
+          <RibbonButton icon={ListChecks} label={t('Match Fields')} showLabel disabled={!has} onClick={() => app.openDialog('matchFields')} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Preview Results" priority={2}>
-        <RibbonButton large icon={Eye} label="Preview Results" active={data.preview} disabled={!has} onClick={() => mergeStore.set({ preview: !data.preview })} />
+      <RibbonGroup label={t('Preview Results')} priority={2}>
+        <RibbonButton large icon={Eye} label={t('Preview Results')} active={data.preview} disabled={!has} onClick={() => mergeStore.set({ preview: !data.preview })} />
         <div className="col">
           <div className="row">
-            <RibbonButton icon={ChevronsLeft} label="First Record" disabled={!data.preview || data.record === 0} onClick={() => go(0)} />
-            <RibbonButton icon={ChevronLeft} label="Previous Record" disabled={!data.preview || data.record === 0} onClick={() => go(data.record - 1)} />
+            <RibbonButton icon={ChevronsLeft} label={t('First Record')} disabled={!data.preview || data.record === 0} onClick={() => go(0)} />
+            <RibbonButton icon={ChevronLeft} label={t('Previous Record')} disabled={!data.preview || data.record === 0} onClick={() => go(data.record - 1)} />
             <input
               className="record-input"
-              aria-label="Record"
+              aria-label={t('Record')}
               value={has ? data.record + 1 : ''}
               disabled={!data.preview}
               onChange={(e) => {
@@ -155,35 +172,35 @@ export function MailingsTab({ app }: TabProps) {
                 if (Number.isInteger(n) && n >= 1) go(n - 1)
               }}
             />
-            <RibbonButton icon={ChevronRight} label="Next Record" disabled={!data.preview || data.record >= data.rows.length - 1} onClick={() => go(data.record + 1)} />
-            <RibbonButton icon={ChevronsRight} label="Last Record" disabled={!data.preview || data.record >= data.rows.length - 1} onClick={() => go(data.rows.length - 1)} />
+            <RibbonButton icon={ChevronRight} label={t('Next Record')} disabled={!data.preview || data.record >= data.rows.length - 1} onClick={() => go(data.record + 1)} />
+            <RibbonButton icon={ChevronsRight} label={t('Last Record')} disabled={!data.preview || data.record >= data.rows.length - 1} onClick={() => go(data.rows.length - 1)} />
           </div>
-          {has && <span className="record-hint">{rows.length} of {data.rows.length} recipients</span>}
+          {has && <span className="record-hint">{t('{n} of {total} recipients', { n: rows.length, total: data.rows.length })}</span>}
         </div>
         <div className="col">
-          <RibbonButton icon={Search} label="Find Recipient" showLabel disabled={!has} onClick={findRecipient} />
-          <RibbonButton icon={FileCheck2} label="Check for Errors" showLabel disabled={!has} onClick={checkErrors} />
+          <RibbonButton icon={Search} label={t('Find Recipient')} showLabel disabled={!has} onClick={findRecipient} />
+          <RibbonButton icon={FileCheck2} label={t('Check for Errors')} showLabel disabled={!has} onClick={checkErrors} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Finish" priority={4}>
+      <RibbonGroup label={t('Finish')} priority={4}>
         <MenuButton
           large
           icon={FileOutput}
-          label="Finish & Merge"
+          label={t('Finish & Merge')}
           disabled={!has}
           items={[
             {
-              label: 'Edit Individual Documents…',
-              detail: 'Replace this document with one copy per recipient (Ctrl+Z restores it)',
+              label: t('Edit Individual Documents…'),
+              detail: t('Replace this document with one copy per recipient (Ctrl+Z restores it)'),
               onClick: () => {
-                if (!confirm(`Create ${rows.length} merged copies in this document?`)) return
+                if (!confirm(t('Create {n} merged copies in this document?', { n: rows.length }))) return
                 mergeStore.set({ preview: false })
                 editor.chain().focus().setContent(merged(), { emitUpdate: true }).run()
               },
             },
             {
-              label: 'Merge to File (.docx)…',
-              detail: 'Download the merged letters as one document',
+              label: t('Merge to File (.docx)…'),
+              detail: t('Download the merged letters as one document'),
               onClick: async () => {
                 const { exportDocx } = await import('../../io/docxExport')
                 const blob = await exportDocx({ doc: merged(), setup: app.setup, design: app.design, headerFooter: app.headerFooter, title: app.title })
@@ -191,15 +208,15 @@ export function MailingsTab({ app }: TabProps) {
               },
             },
             {
-              label: 'Print Documents…',
-              detail: 'Merge into this document and print it (Ctrl+Z restores the original)',
+              label: t('Print Documents…'),
+              detail: t('Merge into this document and print it (Ctrl+Z restores the original)'),
               onClick: () => {
                 mergeStore.set({ preview: false })
                 editor.chain().focus().setContent(merged(), { emitUpdate: true }).run()
                 setTimeout(app.print, 400)
               },
             },
-            { label: 'Send E-mail Messages…', detail: 'One message per recipient, ready for your mail program', onClick: () => app.openDialog('emailMerge') },
+            { label: t('Send E-mail Messages…'), detail: t('One message per recipient, ready for your mail program'), onClick: () => app.openDialog('emailMerge') },
           ]}
         />
       </RibbonGroup>

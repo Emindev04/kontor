@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/core'
 import type { Mark, Node as PMNode } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
 import { insertPaste, type PasteMode } from './Paste'
+import { t } from '../i18n'
 
 export const FONT_SIZES = ['8', '9', '10', '10.5', '11', '12', '14', '16', '18', '20', '22', '24', '26', '28', '36', '48', '72']
 const SIZE_STEPS = FONT_SIZES.map(Number)
@@ -169,14 +170,14 @@ export async function pasteFromClipboard(editor: Editor, mode: PasteMode = 'keep
     if (!text && !clip.html) return
     insertPaste(editor.view, clip.html, text, mode)
   } catch {
-    alert('Your browser does not allow direct clipboard access. Please use Ctrl+V (⌘+V on a Mac).')
+    alert(t('Your browser does not allow direct clipboard access. Please use Ctrl+V (⌘+V on a Mac).'))
   }
 }
 
 export function clipboardCommand(editor: Editor, command: 'cut' | 'copy') {
   editor.view.focus()
   if (!document.execCommand(command)) {
-    alert(`Please use ${command === 'cut' ? 'Ctrl+X' : 'Ctrl+C'} (⌘ on a Mac).`)
+    alert(command === 'cut' ? t('Please use Ctrl+X (⌘ on a Mac).') : t('Please use Ctrl+C (⌘ on a Mac).'))
   }
 }
 

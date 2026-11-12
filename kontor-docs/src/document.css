@@ -458,6 +458,36 @@
   padding-left: 4px;
 }
 
+/* Tab leaders of the Table of Contents / Table of Figures dialogs. */
+.ProseMirror .toc-leader-dash .toc-entry .toc-text::after {
+  content: ' - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -';
+}
+
+.ProseMirror .toc-leader-underline .toc-entry .toc-text::after {
+  content: ' ________________________________________________________________________________________________________________________________________';
+}
+
+.ProseMirror .toc-leader-none .toc-entry .toc-text::after {
+  content: none;
+}
+
+/* Page numbers right after the text instead of at the right margin. */
+.ProseMirror .toc-inline-pages .toc-entry {
+  display: block;
+}
+
+.ProseMirror .toc-inline-pages .toc-entry .toc-text {
+  white-space: normal;
+}
+
+.ProseMirror .toc-inline-pages .toc-entry .toc-page {
+  padding-left: 0.5em;
+}
+
+.ProseMirror .toc-figures .toc-entry {
+  margin-bottom: 2pt;
+}
+
 .ProseMirror .toc-l2 { padding-left: 0.15in; }
 .ProseMirror .toc-l3 { padding-left: 0.3in; }
 .ProseMirror .toc-l4 { padding-left: 0.45in; }
@@ -478,7 +508,7 @@
 }
 
 .show-marks .ProseMirror .page-break::after {
-  content: 'Page Break';
+  content: var(--label-page-break, 'Page Break');
   position: absolute;
   left: 0;
   right: 0;
@@ -800,7 +830,7 @@
   background: #fff;
   color: #6c8ebf;
   font: 9pt/1 'Segoe UI', system-ui, sans-serif;
-  content: 'Column Break';
+  content: var(--label-column-break, 'Column Break');
 }
 
 .show-marks .ProseMirror .section-break::after {
@@ -1321,4 +1351,78 @@
 
 .pages[data-effects='glow'] :is(.shape-box .shape-svg, .diagram-box svg) {
   filter: drop-shadow(0 0 5px rgba(80, 140, 230, 0.6));
+}
+
+/* Select Text with Similar Formatting: the ranges besides the browser's own selection. */
+.ProseMirror .multi-range-selection {
+  background: rgba(0, 120, 215, 0.28);
+}
+
+/* Index with page numbers at the right margin (Index dialog). */
+.ProseMirror .index-line.index-right {
+  display: flex;
+  align-items: baseline;
+}
+
+.ProseMirror .index-right .toc-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ProseMirror .index-right .toc-page {
+  flex-shrink: 0;
+  padding-left: 4px;
+}
+
+.ProseMirror .index-leader-dot .toc-text::after,
+.ProseMirror .toa-entry .toc-text::after {
+  content: ' . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .';
+}
+
+.ProseMirror .index-leader-dash .toc-text::after {
+  content: ' - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -';
+}
+
+.ProseMirror .index-leader-underline .toc-text::after {
+  content: ' ________________________________________________________________________________________________________________________________________';
+}
+
+/* Table of Authorities */
+.ProseMirror .table-of-authorities {
+  margin: 0 0 var(--doc-space-after);
+  cursor: default;
+}
+
+.ProseMirror .table-of-authorities:hover {
+  background: #f3f6fb;
+}
+
+.ProseMirror .table-of-authorities.ProseMirror-selectednode {
+  background: #e6edf7;
+  outline: none;
+}
+
+.ProseMirror .toa-category {
+  margin: 12pt 0 4pt;
+  font-weight: bold;
+}
+
+.ProseMirror .toa-entry {
+  display: flex;
+  align-items: baseline;
+  margin: 0 0 4pt;
+}
+
+.ProseMirror .toa-entry .toc-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ProseMirror .toa-entry .toc-page {
+  flex-shrink: 0;
+  padding-left: 4px;
 }

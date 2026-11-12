@@ -1,14 +1,15 @@
 import { useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
-import { paperDims, type PageSetup } from '../pageSetup'
+import { effectiveMargins, paperDims, type PageSetup } from '../pageSetup'
 import { PX_PER_IN, formatLength, type Unit } from '../units'
 import type { TabAlign, TabStop } from '../editor/TabStops'
+import { t, tx } from '../i18n'
 
 type Marker = 'firstLine' | 'hanging' | 'left' | 'right' | 'marginLeft' | 'marginRight' | 'tab'
 type Drag = { marker: Marker; value: number; tab?: number; off?: boolean }
 
 const TAB_TYPES: TabAlign[] = ['left', 'center', 'right', 'decimal', 'bar']
-const TAB_LABEL: Record<TabAlign, string> = { left: 'Left Tab', center: 'Center Tab', right: 'Right Tab', decimal: 'Decimal Tab', bar: 'Bar Tab' }
+const TAB_LABEL: Record<TabAlign, string> = { left: tx('Left Tab'), center: tx('Center Tab'), right: tx('Right Tab'), decimal: tx('Decimal Tab'), bar: tx('Bar Tab') }
 
 /** Ruler glyph of a tab stop at x. */
 function tabGlyph(align: TabAlign, x: number) {
@@ -33,8 +34,8 @@ export function Ruler({ editor, setup, setSetup, zoom, unit }: { editor: Editor;
   const setStops = (next: TabStop[]) => editor.chain().focus().setParagraphFormat({ tabStops: next.length ? next.sort((a, b) => a.pos - b.pos) : null }).run()
   const { w } = paperDims(setup)
   const W = w * PX_PER_IN
-  const ml = setup.margins.left * PX_PER_IN
-  const mr = setup.margins.right * PX_PER_IN
+  const ml = effectiveMargins(setup).left * PX_PER_IN
+  const mr = effectiveMargins(setup).right * PX_PER_IN
   const para = editor.isActive('heading') ? editor.getAttributes('heading') : editor.getAttributes('paragraph')
   const L = ((para.indentLeft as number) ?? 0) * PX_PER_IN
   const F = ((para.indentFirstLine as number) ?? 0) * PX_PER_IN
@@ -131,7 +132,7 @@ export function Ruler({ editor, setup, setSetup, zoom, unit }: { editor: Editor;
         chain.setParagraphFormat({ indentRight: toIn(W - mr - v) }).run()
         break
       case 'marginLeft':
-        setSetup({ ...setup, margins: { ...setup.margins, left: toIn(v) } })
+        setSetup({ ...setup, margins: { ...setup.margins, left: toIn(v) - (setup.gutterPosition === 'top' ? 0 : (setup.gutter ?? 0)) } })
         break
       case 'marginRight':
         setSetup({ ...setup, margins: { ...setup.margins, right: toIn(W - v) } })
@@ -161,13 +162,13 @@ export function Ruler({ editor, setup, setSetup, zoom, unit }: { editor: Editor;
 
   const title = (marker: Marker) =>
     ({
-      firstLine: 'First Line Indent',
-      hanging: 'Hanging Indent',
-      left: 'Left Indent',
-      right: 'Right Indent',
-      marginLeft: 'Left Margin',
-      marginRight: 'Right Margin',
-      tab: 'Tab Stop',
+      firstLine: t('First Line Indent'),
+      hanging: t('Hanging Indent'),
+      left: t('Left Indent'),
+      right: t('Right Indent'),
+      marginLeft: t('Left Margin'),
+      marginRight: t('Right Margin'),
+      tab: t('Tab Stop'),
     })[marker]
 
   /** A click on the ruler's white area sets a tab stop of the selected type. */
@@ -185,8 +186,8 @@ export function Ruler({ editor, setup, setSetup, zoom, unit }: { editor: Editor;
       <button
         type="button"
         className="ruler-tab-type"
-        title={`${TAB_LABEL[tabType]} – click to change, then click the ruler to set a tab`}
-        aria-label={TAB_LABEL[tabType]}
+        title={t('{tab} – click to change, then click the ruler to set a tab', { tab: t(TAB_LABEL[tabType]) })}
+        aria-label={t(TAB_LABEL[tabType])}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setTabType(TAB_TYPES[(TAB_TYPES.indexOf(tabType) + 1) % TAB_TYPES.length])}
       >
@@ -217,11 +218,11 @@ export function Ruler({ editor, setup, setSetup, zoom, unit }: { editor: Editor;
         <path d={`M${pos.right - 4.5} 14 h9 l-4.5 -5.5 z`} className="ruler-marker" onPointerDown={start('right')}>
           <title>{title('right')}</title>
         </path>
-        {stops.map((t, i) => {
-          const x = drag?.marker === 'tab' && drag.tab === i ? drag.value : ml + t.pos * PX_PER_IN
+        {stops.map((stop, i) => {
+          const x = drag?.marker === 'tab' && drag.tab === i ? drag.value : ml + stop.pos * PX_PER_IN
           return (
             <g key={i} className={drag?.marker === 'tab' && drag.tab === i && drag.off ? 'ruler-tab-off' : undefined}>
-              <path d={tabGlyph(t.align, x)} className="ruler-tab" />
+              <path d={tabGlyph(stop.align, x)} className="ruler-tab" />
               <rect
                 x={x - 4}
                 y={7}
@@ -235,7 +236,7 @@ export function Ruler({ editor, setup, setSetup, zoom, unit }: { editor: Editor;
                 }}
                 onDoubleClick={() => window.dispatchEvent(new CustomEvent('kontor:open-dialog', { detail: 'tabs' }))}
               >
-                <title>{`${TAB_LABEL[t.align]} at ${formatLength(t.pos, unit)} – drag to move, drag off the ruler to remove`}</title>
+                <title>{t('{tab} at {pos} – drag to move, drag off the ruler to remove', { tab: t(TAB_LABEL[stop.align]), pos: formatLength(stop.pos, unit) })}</title>
               </rect>
             </g>
           )

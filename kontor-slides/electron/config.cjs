@@ -4,5 +4,5 @@ module.exports = {
   name: 'Kontor Slides',
   website: 'https://github.com/',
   // Files the app opens when the system hands them over (double-click, Open With).
-  extensions: ['pptx'],
+  extensions: ['pptx', 'ppsx', 'potx', 'odp'],
 }

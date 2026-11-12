@@ -2,6 +2,7 @@ import type { Node as PMNode } from '@tiptap/pm/model'
 import { NodeSelection } from '@tiptap/pm/state'
 import type { EditorView, NodeView } from '@tiptap/pm/view'
 import { toggleMultiSelect } from './DrawingSelection'
+import { tx } from '../i18n'
 
 // Shared behaviour of pictures, shapes, charts and other drawing objects: size, rotation, text
 // wrapping and position, with handles to resize and rotate them and dragging for floating ones.
@@ -10,13 +11,13 @@ export type WrapMode = 'inline' | 'square' | 'tight' | 'through' | 'topBottom' |
 export type DrawingAlign = 'left' | 'center' | 'right'
 
 export const WRAP_LABELS: Record<WrapMode, string> = {
-  inline: 'In Line with Text',
-  square: 'Square',
-  tight: 'Tight',
-  through: 'Through',
-  topBottom: 'Top and Bottom',
-  behind: 'Behind Text',
-  front: 'In Front of Text',
+  inline: tx('In Line with Text'),
+  square: tx('Square'),
+  tight: tx('Tight'),
+  through: tx('Through'),
+  topBottom: tx('Top and Bottom'),
+  behind: tx('Behind Text'),
+  front: tx('In Front of Text'),
 }
 
 export const isFloating = (wrap: WrapMode) => wrap === 'behind' || wrap === 'front'

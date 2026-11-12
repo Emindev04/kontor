@@ -2,9 +2,10 @@
 // then type the letters shown on a command to run it. Esc steps back.
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { t } from '../i18n'
 
 const TAB_KEYS: Record<string, string> = {
-  File: 'F', Home: 'H', Insert: 'N', Draw: 'JI', 'Page Layout': 'P', Formulas: 'M', Data: 'A', Review: 'R', View: 'W', Help: 'Y',
+  File: 'F', Home: 'H', 'Insert {tab}': 'N', Draw: 'JI', 'Page Layout': 'P', Formulas: 'M', Data: 'A', Review: 'R', View: 'W', Help: 'Y',
   'Table Design': 'JT', 'Chart Design': 'JC', Format: 'JA', 'Shape Format': 'JD', Slicer: 'JS', 'PivotTable Analyze': 'JP', Design: 'JY',
 }
 
@@ -16,10 +17,12 @@ const visible = (el: HTMLElement) => {
 }
 
 function tabTips(): Tip[] {
+  // The tabs show their names in the interface language.
+  const keys = new Map(Object.entries(TAB_KEYS).map(([name, code]) => [t(name, { tab: '' }).trim(), code]))
   const out: Tip[] = []
   for (const el of document.querySelectorAll<HTMLElement>('.tabs .tab')) {
     const label = el.textContent?.trim() ?? ''
-    const code = TAB_KEYS[label]
+    const code = keys.get(label)
     if (code && visible(el)) out.push({ el, code })
   }
   return out
@@ -29,7 +32,7 @@ function tabTips(): Tip[] {
 function commandTips(): Tip[] {
   const els = [...document.querySelectorAll<HTMLElement>('.ribbon button:not(:disabled), .ribbon select, .ribbon input')].filter(visible)
   const items = els
-    .map((el) => ({ el, label: (el.getAttribute('aria-label') ?? el.getAttribute('title') ?? el.textContent ?? '').replace(/[^A-Za-z0-9 ]/g, '').trim().toUpperCase() }))
+    .map((el) => ({ el, label: (el.getAttribute('aria-label') ?? el.getAttribute('title') ?? el.textContent ?? '').replace(/[^\p{L}\p{N} ]/gu, '').trim().toUpperCase() }))
     .filter((x) => x.label)
   const byInitial = new Map<string, typeof items>()
   for (const it of items) byInitial.set(it.label[0], [...(byInitial.get(it.label[0]) ?? []), it])

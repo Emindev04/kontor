@@ -8,6 +8,7 @@ import { addRule, clearRules, defaultThresholds } from '../commands/cf'
 import { absRef } from '../charts/chartData'
 import { colName, type Range } from '../model/address'
 import { cls, keepFocus } from '../components/ui'
+import { t, tx } from '../i18n'
 
 type Tab = 'formatting' | 'charts' | 'totals' | 'tables' | 'sparklines'
 
@@ -56,7 +57,7 @@ export function QuickAnalysis({ g }: { g: Geometry }) {
   const totals = (fn: 'SUM' | 'AVERAGE' | 'COUNT' | 'PCT' | 'RUNNING', right = false) =>
     run(() => {
       const sheet = doc.sheet
-      doc.transact('Quick Analysis Totals', () => {
+      doc.transact(tx('Quick Analysis Totals'), () => {
         if (right) {
           for (let r = body.r1; r <= rg.r2; r++) doc.write(sheet, r, rg.c2 + 1, { f: `SUM(${colName(rg.c1)}${r + 1}:${colName(rg.c2)}${r + 1})`, s: doc.wb.styles.intern({ bold: true }) })
           if (rg.r1 < body.r1) doc.write(sheet, rg.r1, rg.c2 + 1, { v: 'Total', s: doc.wb.styles.intern({ bold: true }) })
@@ -71,7 +72,7 @@ export function QuickAnalysis({ g }: { g: Geometry }) {
         }
       })
     })
-  const tabs: [Tab, string][] = [['formatting', 'Formatting'], ['charts', 'Charts'], ['totals', 'Totals'], ['tables', 'Tables'], ['sparklines', 'Sparklines']]
+  const tabs: [Tab, string][] = [['formatting', t('Formatting')], ['charts', t('Charts')], ['totals', t('Totals')], ['tables', t('Tables')], ['sparklines', t('Sparklines')]]
   const tile = (Icon: typeof Hash, label: string, onClick: () => void) => (
     <button key={label} type="button" className="qa-tile" onMouseDown={keepFocus} onClick={onClick}>
       <Icon size={22} strokeWidth={1.5} />
@@ -80,11 +81,11 @@ export function QuickAnalysis({ g }: { g: Geometry }) {
   )
   return (
     <div ref={ref} className="qa" style={{ left: x - 2, top: y - 2 }}>
-      <button type="button" className={cls('qa-btn', open && 'is-active')} title="Quick Analysis (Ctrl+Q)" aria-label="Quick Analysis" aria-expanded={open} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className={cls('qa-btn', open && 'is-active')} title={t('Quick Analysis (Ctrl+Q)')} aria-label={t('Quick Analysis')} aria-expanded={open} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <Zap size={13} />
       </button>
       {open && (
-        <div className="qa-panel" role="dialog" aria-label="Quick Analysis">
+        <div className="qa-panel" role="dialog" aria-label={t('Quick Analysis')}>
           <div className="qa-tabs" role="tablist">
             {tabs.map(([id, label]) => (
               <button key={id} type="button" role="tab" aria-selected={tab === id} className={cls('qa-tab', tab === id && 'is-active')} onMouseDown={keepFocus} onClick={() => setTab(id)}>
@@ -94,42 +95,42 @@ export function QuickAnalysis({ g }: { g: Geometry }) {
           </div>
           <div className="qa-tiles">
             {tab === 'formatting' && [
-              tile(BarChart3, 'Data Bars', () => run(() => addRule(doc, { type: 'dataBar', color: '#638EC6', gradient: true, min: { type: 'auto' }, max: { type: 'auto' }, showValue: true, ranges: [body], stop: false }))),
-              tile(Palette, 'Color Scale', () => run(() => addRule(doc, { type: 'colorScale', stops: [{ v: { type: 'min' }, color: '#F8696B' }, { v: { type: 'percentile', value: 50 }, color: '#FFEB84' }, { v: { type: 'max' }, color: '#63BE7B' }], ranges: [body], stop: false }))),
-              tile(TrendingUp, 'Icon Set', () => run(() => addRule(doc, { type: 'iconSet', set: '3Arrows', reverse: false, showValue: true, thresholds: defaultThresholds('3Arrows'), ranges: [body], stop: false }))),
-              tile(Hash, 'Greater Than', () => run(() => app.dialog({ kind: 'cfQuick', data: 'greaterThan' }))),
-              tile(Sigma, 'Top 10%', () => run(() => addRule(doc, { type: 'top', bottom: false, rank: 10, percent: true, ranges: [body], stop: false, style: { fill: '#FFC7CE', color: '#9C0006' } }))),
-              tile(Palette, 'Clear Format', () => run(() => clearRules(doc, [rg]))),
+              tile(BarChart3, t('Data Bars'), () => run(() => addRule(doc, { type: 'dataBar', color: '#638EC6', gradient: true, min: { type: 'auto' }, max: { type: 'auto' }, showValue: true, ranges: [body], stop: false }))),
+              tile(Palette, t('Color Scale'), () => run(() => addRule(doc, { type: 'colorScale', stops: [{ v: { type: 'min' }, color: '#F8696B' }, { v: { type: 'percentile', value: 50 }, color: '#FFEB84' }, { v: { type: 'max' }, color: '#63BE7B' }], ranges: [body], stop: false }))),
+              tile(TrendingUp, t('Icon Set'), () => run(() => addRule(doc, { type: 'iconSet', set: '3Arrows', reverse: false, showValue: true, thresholds: defaultThresholds('3Arrows'), ranges: [body], stop: false }))),
+              tile(Hash, t('Greater Than'), () => run(() => app.dialog({ kind: 'cfQuick', data: 'greaterThan' }))),
+              tile(Sigma, t('Top 10%'), () => run(() => addRule(doc, { type: 'top', bottom: false, rank: 10, percent: true, ranges: [body], stop: false, style: { fill: '#FFC7CE', color: '#9C0006' } }))),
+              tile(Palette, t('Clear Format'), () => run(() => clearRules(doc, [rg]))),
             ]}
             {tab === 'charts' && [
-              tile(ChartColumn, 'Clustered Column', () => chart('column')),
-              tile(BarChart3, 'Clustered Bar', () => chart('bar')),
-              tile(ChartLine, 'Line', () => chart('line')),
-              tile(ChartPie, 'Pie', () => chart('pie')),
-              tile(ChartScatter, 'Scatter', () => chart('scatter')),
-              tile(BarChart3, 'More Charts', () => run(() => app.dialog({ kind: 'insertChart', data: source }))),
+              tile(ChartColumn, t('Clustered Column'), () => chart('column')),
+              tile(BarChart3, t('Clustered Bar'), () => chart('bar')),
+              tile(ChartLine, t('Line'), () => chart('line')),
+              tile(ChartPie, t('Pie'), () => chart('pie')),
+              tile(ChartScatter, t('Scatter'), () => chart('scatter')),
+              tile(BarChart3, t('More Charts'), () => run(() => app.dialog({ kind: 'insertChart', data: source }))),
             ]}
             {tab === 'totals' && [
-              tile(Sigma, 'Sum', () => totals('SUM')),
-              tile(Sigma, 'Average', () => totals('AVERAGE')),
-              tile(Hash, 'Count', () => totals('COUNT')),
-              tile(Hash, '% Total', () => totals('PCT')),
-              tile(TrendingUp, 'Running Total', () => totals('RUNNING')),
-              tile(Sigma, 'Sum (right)', () => totals('SUM', true)),
+              tile(Sigma, t('Sum'), () => totals('SUM')),
+              tile(Sigma, t('Average'), () => totals('AVERAGE')),
+              tile(Hash, t('Count'), () => totals('COUNT')),
+              tile(Hash, t('% Total'), () => totals('PCT')),
+              tile(TrendingUp, t('Running Total'), () => totals('RUNNING')),
+              tile(Sigma, t('Sum (right)'), () => totals('SUM', true)),
             ]}
             {tab === 'tables' && [
-              tile(Table2, 'Table', () => run(() => app.dialog({ kind: 'createTable' }))),
-              tile(FileStack, 'PivotTable', () => run(() => app.dialog({ kind: 'createPivot', data: source }))),
-              tile(FileStack, 'Recommended', () => run(() => app.dialog({ kind: 'recommendedPivots' }))),
+              tile(Table2, t('Table'), () => run(() => app.dialog({ kind: 'createTable' }))),
+              tile(FileStack, t('PivotTable'), () => run(() => app.dialog({ kind: 'createPivot', data: source }))),
+              tile(FileStack, t('Recommended'), () => run(() => app.dialog({ kind: 'recommendedPivots' }))),
             ]}
             {tab === 'sparklines' && [
-              tile(TrendingUp, 'Line', () => run(() => app.dialog({ kind: 'sparklines', data: 'line' }))),
-              tile(ChartColumn, 'Column', () => run(() => app.dialog({ kind: 'sparklines', data: 'column' }))),
-              tile(Hash, 'Win/Loss', () => run(() => app.dialog({ kind: 'sparklines', data: 'winloss' }))),
+              tile(TrendingUp, t('Line'), () => run(() => app.dialog({ kind: 'sparklines', data: 'line' }))),
+              tile(ChartColumn, t('Column'), () => run(() => app.dialog({ kind: 'sparklines', data: 'column' }))),
+              tile(Hash, t('Win/Loss'), () => run(() => app.dialog({ kind: 'sparklines', data: 'winloss' }))),
             ]}
           </div>
           <div className="qa-hint">
-            {tab === 'formatting' ? 'Conditional formatting uses rules to highlight interesting data.' : tab === 'charts' ? 'Recommended charts help you visualize data.' : tab === 'totals' ? 'Formulas automatically calculate totals for you.' : tab === 'tables' ? 'Tables help you sort, filter, and summarize data.' : 'Sparklines are mini charts placed in single cells.'}
+            {tab === 'formatting' ? t('Conditional formatting uses rules to highlight interesting data.') : tab === 'charts' ? t('Recommended charts help you visualize data.') : tab === 'totals' ? t('Formulas automatically calculate totals for you.') : tab === 'tables' ? t('Tables help you sort, filter, and summarize data.') : t('Sparklines are mini charts placed in single cells.')}
           </div>
         </div>
       )}

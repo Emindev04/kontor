@@ -8,6 +8,7 @@ import { commit, currentSlide, store, useStore } from '../store/store'
 import * as A from '../store/actions'
 import { MenuButton, RibbonButton, RibbonGroup, cls } from './ui'
 import type { TabProps } from './tabs/types'
+import { t } from '../i18n'
 
 export function openMasterView(kind: 'master' | 'handoutMaster' | 'notesMaster') {
   A.exitEditing()
@@ -31,15 +32,15 @@ export function MasterPane() {
   const slideId = useStore((s) => s.slideId)
   const items: ('root' | LayoutId)[] = ['root', ...LAYOUTS.map((l) => l.id)]
   return (
-    <aside className="thumbs master-thumbs" aria-label="Slide master and layouts" style={{ width: 222 }}>
-      {items.map((t) => {
-        const id = masterIdFor(t)
+    <aside className="thumbs master-thumbs" aria-label={t('Slide master and layouts')} style={{ width: 222 }}>
+      {items.map((lt) => {
+        const id = masterIdFor(lt)
         const slide = masterSlide(pres, id)
-        const w = t === 'root' ? 168 : 140
+        const w = lt === 'root' ? 168 : 140
         const scale = w / pres.size.w
         return (
-          <div key={id} className={cls('thumb', t !== 'root' && 'is-layout', slideId === id && 'is-current')} title={t === 'root' ? 'Slide Master: used by all layouts' : `${layoutName(t)} Layout: used by ${pres.slides.filter((s) => s.layout === t).length} slide(s)`} onMouseDown={() => store.set({ slideId: id, selection: [], editingId: null })}>
-            <span className="thumb-num">{t === 'root' ? '1' : ''}</span>
+          <div key={id} className={cls('thumb', lt !== 'root' && 'is-layout', slideId === id && 'is-current')} title={lt === 'root' ? t('Slide Master: used by all layouts') : t('{name} Layout: used by {n} slide(s)', { name: t(layoutName(lt)), n: pres.slides.filter((s) => s.layout === lt).length })} onMouseDown={() => store.set({ slideId: id, selection: [], editingId: null })}>
+            <span className="thumb-num">{lt === 'root' ? '1' : ''}</span>
             <div className="thumb-col">
               <div className="thumb-slide" style={{ width: pres.size.w * scale, height: pres.size.h * scale }}>
                 <SlideView slide={slide} index={0} {...presProps(pres)} mode="thumb" style={{ transform: `scale(${scale})`, transformOrigin: '0 0' }} />
@@ -69,57 +70,57 @@ export function SlideMasterTab({ ui }: TabProps) {
   const set = (patch: Parameters<typeof setLayoutOption>[2]) => layout && commit((p) => setLayoutOption(p, layout, patch))
   return (
     <>
-      <RibbonGroup label="Edit Master">
+      <RibbonGroup label={t('Edit Master')}>
         <RibbonButton
           icon={Pencil}
-          label="Rename"
+          label={t('Rename')}
           large
           disabled={!layout}
           onClick={() => {
             if (!layout) return
-            const name = window.prompt('Layout name:', layoutName(layout))
+            const name = window.prompt(t('Layout name:'), t(layoutName(layout)))
             if (name?.trim()) set({ name: name.trim() })
           }}
         />
-        <RibbonButton icon={Pin} label="Preserve" large active={!!ov?.preserve} disabled={!layout} onClick={() => set({ preserve: !ov?.preserve })} />
+        <RibbonButton icon={Pin} label={t('Preserve')} large active={!!ov?.preserve} disabled={!layout} onClick={() => set({ preserve: !ov?.preserve })} />
       </RibbonGroup>
-      <RibbonGroup label="Master Layout">
+      <RibbonGroup label={t('Master Layout')}>
         <MenuButton
           icon={LayoutTemplate}
-          label="Insert Placeholder"
+          label={t('Insert Placeholder')}
           large
           disabled={!layout}
           items={[
-            { label: 'Content', icon: FileText, onClick: () => insertPlaceholder('body') },
-            { label: 'Text', icon: Type, onClick: () => insertPlaceholder('sectionText') },
-            { label: 'Picture', icon: ImagePlus, onClick: () => insertPlaceholder('pic') },
+            { label: t('Content'), icon: FileText, onClick: () => insertPlaceholder('body') },
+            { label: t('Text'), icon: Type, onClick: () => insertPlaceholder('sectionText') },
+            { label: t('Picture'), icon: ImagePlus, onClick: () => insertPlaceholder('pic') },
           ]}
         />
         <div className="col checks">
           <label>
-            <input type="checkbox" checked={!ov?.noTitle} disabled={!layout} onChange={(e) => set({ noTitle: !e.target.checked })} /> Title
+            <input type="checkbox" checked={!ov?.noTitle} disabled={!layout} onChange={(e) => set({ noTitle: !e.target.checked })} /> {t('Title')}
           </label>
           <label>
-            <input type="checkbox" checked={!ov?.noFooters} disabled={!layout} onChange={(e) => set({ noFooters: !e.target.checked })} /> Footers
+            <input type="checkbox" checked={!ov?.noFooters} disabled={!layout} onChange={(e) => set({ noFooters: !e.target.checked })} /> {t('Footers')}
           </label>
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Edit Theme">
-        <MenuButton icon={Palette} label="Themes" large items={THEMES.map((t) => ({ label: t.name, active: pres.themeId === t.id, onClick: () => A.setTheme(t.id) }))} />
+      <RibbonGroup label={t('Edit Theme')}>
+        <MenuButton icon={Palette} label={t('Themes')} large items={THEMES.map((t) => ({ label: t.name, active: pres.themeId === t.id, onClick: () => A.setTheme(t.id) }))} />
       </RibbonGroup>
-      <RibbonGroup label="Background">
-        <RibbonButton icon={Paintbrush} label="Background Styles" large onClick={() => ui.openPane('formatBackground')} />
+      <RibbonGroup label={t('Background')}>
+        <RibbonButton icon={Paintbrush} label={t('Background Styles')} large onClick={() => ui.openPane('formatBackground')} />
         <div className="col checks">
           <label>
-            <input type="checkbox" checked={!!ov?.hideMaster} disabled={!layout} onChange={(e) => set({ hideMaster: e.target.checked })} /> Hide Background Graphics
+            <input type="checkbox" checked={!!ov?.hideMaster} disabled={!layout} onChange={(e) => set({ hideMaster: e.target.checked })} /> {t('Hide Background Graphics')}
           </label>
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Size">
-        <RibbonButton icon={Ratio} label="Slide Size" large onClick={() => ui.openDialog('slideSize')} />
+      <RibbonGroup label={t('Size')}>
+        <RibbonButton icon={Ratio} label={t('Slide Size')} large onClick={() => ui.openDialog('slideSize')} />
       </RibbonGroup>
-      <RibbonGroup label="Close">
-        <RibbonButton icon={X} label="Close Master View" large onClick={closeMasterView} />
+      <RibbonGroup label={t('Close')}>
+        <RibbonButton icon={X} label={t('Close Master View')} large onClick={closeMasterView} />
       </RibbonGroup>
     </>
   )
@@ -141,9 +142,9 @@ function setNotesMaster(patch: Partial<NotesMasterSettings>) {
 function PageMarks({ s, page }: { s: { header: boolean; headerText: string; footer: boolean; footerText: string; date: boolean; pageNumber: boolean }; page: number }) {
   return (
     <>
-      {s.header && <span className="pm pm-tl">{s.headerText || 'Header'}</span>}
+      {s.header && <span className="pm pm-tl">{s.headerText || t('Header')}</span>}
       {s.date && <span className="pm pm-tr">{new Date().toLocaleDateString('en-US')}</span>}
-      {s.footer && <span className="pm pm-bl">{s.footerText || 'Footer'}</span>}
+      {s.footer && <span className="pm pm-bl">{s.footerText || t('Footer')}</span>}
       {s.pageNumber && <span className="pm pm-br">{page}</span>}
     </>
   )
@@ -186,9 +187,9 @@ export function NotesMasterView() {
         {n.slideImage && <div className="mp-notes-slide" style={{ aspectRatio: `${pres.size.w} / ${pres.size.h}` }} />}
         {n.body && (
           <div className="mp-notes-body">
-            <p>Click to edit Master text styles</p>
-            <p className="l2">Second level</p>
-            <p className="l3">Third level</p>
+            <p>{t('Click to edit Master text styles')}</p>
+            <p className="l2">{t('Second level')}</p>
+            <p className="l3">{t('Third level')}</p>
           </div>
         )}
       </div>
@@ -213,20 +214,20 @@ export function HandoutMasterTab() {
   const h = { ...DEFAULT_HANDOUT, ...pres.handout }
   return (
     <>
-      <RibbonGroup label="Page Setup">
-        <MenuButton icon={RectangleVertical} label="Handout Orientation" large items={(['portrait', 'landscape'] as const).map((o) => ({ label: o === 'portrait' ? 'Portrait' : 'Landscape', icon: o === 'portrait' ? RectangleVertical : RectangleHorizontal, active: h.orientation === o, onClick: () => setHandout({ orientation: o }) }))} />
-        <MenuButton icon={Columns3} label="Slides Per Page" large items={([1, 2, 3, 4, 6, 9] as const).map((n) => ({ label: `${n} Slide${n > 1 ? 's' : ''}`, active: h.perPage === n, onClick: () => setHandout({ perPage: n }) }))} />
+      <RibbonGroup label={t('Page Setup')}>
+        <MenuButton icon={RectangleVertical} label={t('Handout Orientation')} large items={(['portrait', 'landscape'] as const).map((o) => ({ label: o === 'portrait' ? t('Portrait') : t('Landscape'), icon: o === 'portrait' ? RectangleVertical : RectangleHorizontal, active: h.orientation === o, onClick: () => setHandout({ orientation: o }) }))} />
+        <MenuButton icon={Columns3} label={t('Slides Per Page')} large items={([1, 2, 3, 4, 6, 9] as const).map((n) => ({ label: n > 1 ? t('{n} Slides', { n }) : t('1 Slide'), active: h.perPage === n, onClick: () => setHandout({ perPage: n }) }))} />
       </RibbonGroup>
-      <RibbonGroup label="Placeholders">
-        <Checks value={h} set={setHandout} items={[['header', 'Header'], ['footer', 'Footer']]} />
-        <Checks value={h} set={setHandout} items={[['date', 'Date'], ['pageNumber', 'Page Number']]} />
+      <RibbonGroup label={t('Placeholders')}>
+        <Checks value={h} set={setHandout} items={[['header', t('Header')], ['footer', t('Footer')]]} />
+        <Checks value={h} set={setHandout} items={[['date', t('Date')], ['pageNumber', t('Page Number')]]} />
         <div className="col">
-          <input aria-label="Header text" placeholder="Header text" value={h.headerText} onChange={(e) => setHandout({ headerText: e.target.value })} style={{ width: 140 }} />
-          <input aria-label="Footer text" placeholder="Footer text" value={h.footerText} onChange={(e) => setHandout({ footerText: e.target.value })} style={{ width: 140 }} />
+          <input aria-label={t('Header text')} placeholder={t('Header text')} value={h.headerText} onChange={(e) => setHandout({ headerText: e.target.value })} style={{ width: 140 }} />
+          <input aria-label={t('Footer text')} placeholder={t('Footer text')} value={h.footerText} onChange={(e) => setHandout({ footerText: e.target.value })} style={{ width: 140 }} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Close">
-        <RibbonButton icon={X} label="Close Master View" large onClick={closeMasterView} />
+      <RibbonGroup label={t('Close')}>
+        <RibbonButton icon={X} label={t('Close Master View')} large onClick={closeMasterView} />
       </RibbonGroup>
     </>
   )
@@ -237,22 +238,22 @@ export function NotesMasterTab() {
   const n = { ...DEFAULT_NOTES_MASTER, ...pres.notesMaster }
   return (
     <>
-      <RibbonGroup label="Placeholders">
-        <Checks value={n} set={setNotesMaster} items={[['header', 'Header'], ['slideImage', 'Slide Image'], ['footer', 'Footer']]} />
-        <Checks value={n} set={setNotesMaster} items={[['date', 'Date'], ['body', 'Body'], ['pageNumber', 'Page Number']]} />
+      <RibbonGroup label={t('Placeholders')}>
+        <Checks value={n} set={setNotesMaster} items={[['header', t('Header')], ['slideImage', t('Slide Image')], ['footer', t('Footer')]]} />
+        <Checks value={n} set={setNotesMaster} items={[['date', t('Date')], ['body', t('Body')], ['pageNumber', t('Page Number')]]} />
         <div className="col">
-          <input aria-label="Header text" placeholder="Header text" value={n.headerText} onChange={(e) => setNotesMaster({ headerText: e.target.value })} style={{ width: 140 }} />
-          <input aria-label="Footer text" placeholder="Footer text" value={n.footerText} onChange={(e) => setNotesMaster({ footerText: e.target.value })} style={{ width: 140 }} />
+          <input aria-label={t('Header text')} placeholder={t('Header text')} value={n.headerText} onChange={(e) => setNotesMaster({ headerText: e.target.value })} style={{ width: 140 }} />
+          <input aria-label={t('Footer text')} placeholder={t('Footer text')} value={n.footerText} onChange={(e) => setNotesMaster({ footerText: e.target.value })} style={{ width: 140 }} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Close">
-        <RibbonButton icon={X} label="Close Master View" large onClick={closeMasterView} />
+      <RibbonGroup label={t('Close')}>
+        <RibbonButton icon={X} label={t('Close Master View')} large onClick={closeMasterView} />
       </RibbonGroup>
     </>
   )
 }
 
 export function masterViewLabel(pres: Presentation, slideId: string) {
-  return slideId === MASTER_ROOT ? 'Slide Master' : `${layoutName(masterTarget(slideId) as LayoutId)} Layout`
+  return slideId === MASTER_ROOT ? t('Slide Master') : t('{name} Layout', { name: t(layoutName(masterTarget(slideId) as LayoutId)) })
 }
 

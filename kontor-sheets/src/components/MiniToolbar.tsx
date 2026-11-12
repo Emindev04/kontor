@@ -4,6 +4,7 @@ import { DEFAULT_FONT, DEFAULT_SIZE } from '../model/style'
 import { FONTS, SIZES, activeStyle, changeDecimals, setFormat, stepFontSize, toggleStyle } from './tabs/actions'
 import { ComboBox, keepFocus } from './ui'
 import { useApp, useDocVersion } from './appContext'
+import { t, tx } from '../i18n'
 
 export function MiniToolbar({ onClose }: { onClose: () => void }) {
   const app = useApp()
@@ -16,26 +17,26 @@ export function MiniToolbar({ onClose }: { onClose: () => void }) {
     </button>
   )
   return (
-    <div className="mini-toolbar" role="toolbar" aria-label="Mini toolbar">
+    <div className="mini-toolbar" role="toolbar" aria-label={t('Mini toolbar')}>
       <div className="row">
-        <ComboBox value={st.font ?? DEFAULT_FONT} options={FONTS} width={110} title="Font" onCommit={(f) => f && doc.applyStyle({ font: f }, doc.sel.ranges, 'Font')} />
-        <ComboBox value={String(st.size ?? DEFAULT_SIZE)} options={SIZES} width={46} title="Font Size" onCommit={(v) => Number(v) >= 1 && doc.applyStyle({ size: Number(v) }, doc.sel.ranges, 'Font Size')} />
-        {b('Increase Font Size', <span className="mt-a">A↑</span>, () => stepFontSize(doc, 1))}
-        {b('Decrease Font Size', <span className="mt-a">A↓</span>, () => stepFontSize(doc, -1))}
-        {b('Accounting Number Format', <DollarSign size={15} />, () => setFormat(doc, '_($* #,##0.00_);_($* \\(#,##0.00\\);_($* "-"??_);_(@_)'))}
-        {b('Percent Style', <Percent size={15} />, () => setFormat(doc, '0%'))}
-        {b('Comma Style', <b className="mt-a">,</b>, () => setFormat(doc, '_(* #,##0.00_);_(* \\(#,##0.00\\);_(* "-"??_);_(@_)'))}
+        <ComboBox value={st.font ?? DEFAULT_FONT} options={FONTS} width={110} title={t('Font')} onCommit={(f) => f && doc.applyStyle({ font: f }, doc.sel.ranges, tx('Font'))} />
+        <ComboBox value={String(st.size ?? DEFAULT_SIZE)} options={SIZES} width={46} title={t('Font Size')} onCommit={(v) => Number(v) >= 1 && doc.applyStyle({ size: Number(v) }, doc.sel.ranges, tx('Font Size'))} />
+        {b(t('Increase Font Size'), <span className="mt-a">A↑</span>, () => stepFontSize(doc, 1))}
+        {b(t('Decrease Font Size'), <span className="mt-a">A↓</span>, () => stepFontSize(doc, -1))}
+        {b(t('Accounting Number Format'), <DollarSign size={15} />, () => setFormat(doc, '_($* #,##0.00_);_($* \\(#,##0.00\\);_($* "-"??_);_(@_)'))}
+        {b(t('Percent Style'), <Percent size={15} />, () => setFormat(doc, '0%'))}
+        {b(t('Comma Style'), <b className="mt-a">,</b>, () => setFormat(doc, '_(* #,##0.00_);_(* \\(#,##0.00\\);_(* "-"??_);_(@_)'))}
       </div>
       <div className="row">
-        {b('Bold', <Bold size={15} />, () => toggleStyle(doc, 'bold'), !!st.bold)}
-        {b('Italic', <Italic size={15} />, () => toggleStyle(doc, 'italic'), !!st.italic)}
-        {b('Fill Color (yellow)', <PaintBucket size={15} />, () => doc.applyStyle({ fill: '#FFFF00' }, doc.sel.ranges, 'Fill Color'))}
-        {b('Font Color (red)', <Baseline size={15} />, () => doc.applyStyle({ color: '#FF0000' }, doc.sel.ranges, 'Font Color'))}
-        {b('Bottom Border', <Grid3x3 size={15} />, () => doc.applyBorders('bottom', { style: 'thin', color: '#000000' }))}
-        {b('Merge & Center', <TableCellsMerge size={15} />, () => doc.merge('center'))}
-        {b('Increase Decimal', <small className="mt-a">.0→</small>, () => changeDecimals(doc, 1))}
-        {b('Decrease Decimal', <small className="mt-a">←.0</small>, () => changeDecimals(doc, -1))}
-        {b('Format Painter', <Paintbrush size={15} />, () => { onClose(); app.startPainter(false) })}
+        {b(t('Bold'), <Bold size={15} />, () => toggleStyle(doc, 'bold'), !!st.bold)}
+        {b(t('Italic'), <Italic size={15} />, () => toggleStyle(doc, 'italic'), !!st.italic)}
+        {b(t('Fill Color (yellow)'), <PaintBucket size={15} />, () => doc.applyStyle({ fill: '#FFFF00' }, doc.sel.ranges, tx('Fill Color')))}
+        {b(t('Font Color (red)'), <Baseline size={15} />, () => doc.applyStyle({ color: '#FF0000' }, doc.sel.ranges, tx('Font Color')))}
+        {b(t('Bottom Border'), <Grid3x3 size={15} />, () => doc.applyBorders('bottom', { style: 'thin', color: '#000000' }))}
+        {b(t('Merge & Center'), <TableCellsMerge size={15} />, () => doc.merge('center'))}
+        {b(t('Increase Decimal'), <small className="mt-a">.0→</small>, () => changeDecimals(doc, 1))}
+        {b(t('Decrease Decimal'), <small className="mt-a">←.0</small>, () => changeDecimals(doc, -1))}
+        {b(t('Format Painter'), <Paintbrush size={15} />, () => { onClose(); app.startPainter(false) })}
       </div>
     </div>
   )

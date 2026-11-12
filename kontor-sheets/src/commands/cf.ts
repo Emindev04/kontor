@@ -7,10 +7,11 @@ import { CellError, type Scalar } from '../model/types'
 import { shiftFormula } from '../engine/refs'
 import { periodBounds } from './filter'
 import type { Doc } from './doc'
+import { t, tx } from '../i18n'
 
 export type CFResult = {
   style?: CFStyle
-  bar?: { start: number; end: number; color: string; gradient: boolean; showValue: boolean; border: boolean; negative: boolean }
+  bar?: { start: number; end: number; color: string; gradient: boolean; showValue: boolean; border: boolean; negative: boolean; axis?: number; axisColor?: string }
   scale?: string
   icon?: { set: IconSetId; index: number; count: number; showValue: boolean }
 }
@@ -205,11 +206,17 @@ export function cfEvaluator(doc: Doc, sheet: Sheet) {
         const lo = cfNumber(doc, sheet, rule, rule.min, st, 'min', r, c)
         const hi = cfNumber(doc, sheet, rule, rule.max, st, 'max', r, c)
         const span = hi - lo || 1
-        // negative values grow left from an axis when the range spans zero
-        const axis = lo < 0 && hi > 0 ? -lo / span : 0
-        const pos = Math.max(0, Math.min(1, (x - lo) / span))
+        // negative values grow left from an axis: where zero falls (automatic), in the middle, or no axis at all
+        const mode = rule.axis ?? 'auto'
+        const half = Math.max(Math.abs(lo), Math.abs(hi)) || 1
+        const axis = mode === 'none' ? 0 : mode === 'middle' ? 0.5 : lo < 0 && hi > 0 ? -lo / span : 0
+        const pos = Math.max(0, Math.min(1, mode === 'middle' ? 0.5 + x / (2 * half) : (x - lo) / span))
+        const negative = x < 0 && mode !== 'none'
         res = res ?? {}
-        res.bar = { start: Math.min(axis, pos), end: Math.max(axis, pos === axis ? axis + 0.0001 : pos), color: x < 0 ? '#E04B3A' : rule.color, gradient: rule.gradient, showValue: rule.showValue, border: !!rule.border, negative: x < 0 }
+        res.bar = {
+          start: Math.min(axis, pos), end: Math.max(axis, pos === axis ? axis + 0.0001 : pos), color: negative ? rule.negColor ?? '#E04B3A' : rule.color, gradient: rule.gradient,
+          showValue: rule.showValue, border: !!rule.border, negative, axis: axis > 0 ? axis : undefined, axisColor: rule.axisColor ?? '#000000',
+        }
         if (!res.bar.end && !res.bar.start) res.bar.end = 0.02
       } else if (rule.type === 'colorScale') {
         const x = asNumber(v)
@@ -255,50 +262,50 @@ export function cfEvaluator(doc: Doc, sheet: Sheet) {
 // ---------- rule management ----------
 
 export const CF_PRESETS: { label: string; style: CFStyle }[] = [
-  { label: 'Light Red Fill with Dark Red Text', style: { fill: '#FFC7CE', color: '#9C0006' } },
-  { label: 'Yellow Fill with Dark Yellow Text', style: { fill: '#FFEB9C', color: '#9C5700' } },
-  { label: 'Green Fill with Dark Green Text', style: { fill: '#C6EFCE', color: '#006100' } },
-  { label: 'Light Red Fill', style: { fill: '#FFC7CE' } },
-  { label: 'Red Text', style: { color: '#9C0006' } },
-  { label: 'Red Border', style: { border: '#C00000' } },
+  { label: tx('Light Red Fill with Dark Red Text'), style: { fill: '#FFC7CE', color: '#9C0006' } },
+  { label: tx('Yellow Fill with Dark Yellow Text'), style: { fill: '#FFEB9C', color: '#9C5700' } },
+  { label: tx('Green Fill with Dark Green Text'), style: { fill: '#C6EFCE', color: '#006100' } },
+  { label: tx('Light Red Fill'), style: { fill: '#FFC7CE' } },
+  { label: tx('Red Text'), style: { color: '#9C0006' } },
+  { label: tx('Red Border'), style: { border: '#C00000' } },
 ]
 
 export const DATA_BAR_COLORS = ['#638EC6', '#63C384', '#FF555A', '#FFB628', '#008AEF', '#D6007B']
 
 export const COLOR_SCALES: { label: string; stops: string[] }[] = [
-  { label: 'Green - Yellow - Red', stops: ['#F8696B', '#FFEB84', '#63BE7B'] },
-  { label: 'Red - Yellow - Green', stops: ['#63BE7B', '#FFEB84', '#F8696B'] },
-  { label: 'Green - White - Red', stops: ['#F8696B', '#FCFCFF', '#63BE7B'] },
-  { label: 'Red - White - Green', stops: ['#63BE7B', '#FCFCFF', '#F8696B'] },
-  { label: 'Blue - White - Red', stops: ['#F8696B', '#FCFCFF', '#5A8AC6'] },
-  { label: 'Red - White - Blue', stops: ['#5A8AC6', '#FCFCFF', '#F8696B'] },
-  { label: 'White - Red', stops: ['#FCFCFF', '#F8696B'] },
-  { label: 'Red - White', stops: ['#F8696B', '#FCFCFF'] },
-  { label: 'Green - White', stops: ['#63BE7B', '#FCFCFF'] },
-  { label: 'White - Green', stops: ['#FCFCFF', '#63BE7B'] },
-  { label: 'Green - Yellow', stops: ['#63BE7B', '#FFEF9C'] },
-  { label: 'Yellow - Green', stops: ['#FFEF9C', '#63BE7B'] },
+  { label: tx('Green - Yellow - Red'), stops: ['#F8696B', '#FFEB84', '#63BE7B'] },
+  { label: tx('Red - Yellow - Green'), stops: ['#63BE7B', '#FFEB84', '#F8696B'] },
+  { label: tx('Green - White - Red'), stops: ['#F8696B', '#FCFCFF', '#63BE7B'] },
+  { label: tx('Red - White - Green'), stops: ['#63BE7B', '#FCFCFF', '#F8696B'] },
+  { label: tx('Blue - White - Red'), stops: ['#F8696B', '#FCFCFF', '#5A8AC6'] },
+  { label: tx('Red - White - Blue'), stops: ['#5A8AC6', '#FCFCFF', '#F8696B'] },
+  { label: tx('White - Red'), stops: ['#FCFCFF', '#F8696B'] },
+  { label: tx('Red - White'), stops: ['#F8696B', '#FCFCFF'] },
+  { label: tx('Green - White'), stops: ['#63BE7B', '#FCFCFF'] },
+  { label: tx('White - Green'), stops: ['#FCFCFF', '#63BE7B'] },
+  { label: tx('Green - Yellow'), stops: ['#63BE7B', '#FFEF9C'] },
+  { label: tx('Yellow - Green'), stops: ['#FFEF9C', '#63BE7B'] },
 ]
 
 export const ICON_SETS: { id: IconSetId; label: string; group: 'Directional' | 'Shapes' | 'Indicators' | 'Ratings' }[] = [
-  { id: '3Arrows', label: '3 Arrows (Colored)', group: 'Directional' },
-  { id: '3ArrowsGray', label: '3 Arrows (Gray)', group: 'Directional' },
-  { id: '3Triangles', label: '3 Triangles', group: 'Directional' },
-  { id: '4Arrows', label: '4 Arrows (Colored)', group: 'Directional' },
-  { id: '5Arrows', label: '5 Arrows (Colored)', group: 'Directional' },
-  { id: '3TrafficLights1', label: '3 Traffic Lights (Unrimmed)', group: 'Shapes' },
-  { id: '3TrafficLights2', label: '3 Traffic Lights (Rimmed)', group: 'Shapes' },
-  { id: '3Signs', label: '3 Signs', group: 'Shapes' },
-  { id: '4TrafficLights', label: '4 Traffic Lights', group: 'Shapes' },
-  { id: '4RedToBlack', label: 'Red To Black', group: 'Shapes' },
-  { id: '3Symbols', label: '3 Symbols (Circled)', group: 'Indicators' },
-  { id: '3Symbols2', label: '3 Symbols (Uncircled)', group: 'Indicators' },
-  { id: '3Flags', label: '3 Flags', group: 'Indicators' },
-  { id: '3Stars', label: '3 Stars', group: 'Ratings' },
-  { id: '4Rating', label: '4 Ratings', group: 'Ratings' },
-  { id: '5Rating', label: '5 Ratings', group: 'Ratings' },
-  { id: '5Quarters', label: '5 Quarters', group: 'Ratings' },
-  { id: '5Boxes', label: '5 Boxes', group: 'Ratings' },
+  { id: '3Arrows', label: tx('3 Arrows (Colored)'), group: 'Directional' },
+  { id: '3ArrowsGray', label: tx('3 Arrows (Gray)'), group: 'Directional' },
+  { id: '3Triangles', label: tx('3 Triangles'), group: 'Directional' },
+  { id: '4Arrows', label: tx('4 Arrows (Colored)'), group: 'Directional' },
+  { id: '5Arrows', label: tx('5 Arrows (Colored)'), group: 'Directional' },
+  { id: '3TrafficLights1', label: tx('3 Traffic Lights (Unrimmed)'), group: 'Shapes' },
+  { id: '3TrafficLights2', label: tx('3 Traffic Lights (Rimmed)'), group: 'Shapes' },
+  { id: '3Signs', label: tx('3 Signs'), group: 'Shapes' },
+  { id: '4TrafficLights', label: tx('4 Traffic Lights'), group: 'Shapes' },
+  { id: '4RedToBlack', label: tx('Red To Black'), group: 'Shapes' },
+  { id: '3Symbols', label: tx('3 Symbols (Circled)'), group: 'Indicators' },
+  { id: '3Symbols2', label: tx('3 Symbols (Uncircled)'), group: 'Indicators' },
+  { id: '3Flags', label: tx('3 Flags'), group: 'Indicators' },
+  { id: '3Stars', label: tx('3 Stars'), group: 'Ratings' },
+  { id: '4Rating', label: tx('4 Ratings'), group: 'Ratings' },
+  { id: '5Rating', label: tx('5 Ratings'), group: 'Ratings' },
+  { id: '5Quarters', label: tx('5 Quarters'), group: 'Ratings' },
+  { id: '5Boxes', label: tx('5 Boxes'), group: 'Ratings' },
 ]
 
 export function defaultThresholds(set: IconSetId): CFValue[] {
@@ -307,7 +314,7 @@ export function defaultThresholds(set: IconSetId): CFValue[] {
 }
 
 export function addRule(doc: Doc, rule: NewCFRule, sheet = doc.sheet) {
-  doc.transact('Conditional Formatting', () => {
+  doc.transact(tx('Conditional Formatting'), () => {
     doc.noteProps(sheet)
     // a new rule goes on top of the list
     const shifted = sheet.x.cf.map((r) => ({ ...r, priority: r.priority + 1 }))
@@ -316,14 +323,14 @@ export function addRule(doc: Doc, rule: NewCFRule, sheet = doc.sheet) {
 }
 
 export function setRules(doc: Doc, rules: CFRule[], sheet = doc.sheet) {
-  doc.transact('Manage Rules', () => {
+  doc.transact(tx('Manage Rules'), () => {
     doc.noteProps(sheet)
     sheet.x.cf = rules.map((r, i) => ({ ...r, priority: i + 1 }))
   })
 }
 
 export function clearRules(doc: Doc, ranges: Range[] | null, sheet = doc.sheet) {
-  doc.transact('Clear Rules', () => {
+  doc.transact(tx('Clear Rules'), () => {
     doc.noteProps(sheet)
     if (!ranges) sheet.x.cf = []
     else sheet.x.cf = sheet.x.cf.filter((r) => !r.ranges.some((a) => ranges.some((b) => a.r1 <= b.r2 && b.r1 <= a.r2 && a.c1 <= b.c2 && b.c1 <= a.c2)))
@@ -332,25 +339,32 @@ export function clearRules(doc: Doc, ranges: Range[] | null, sheet = doc.sheet) 
 
 export function describeRule(rule: CFRule): string {
   const ops: Record<string, string> = {
-    greaterThan: 'greater than', lessThan: 'less than', between: 'between', notBetween: 'not between', equal: 'equal to', notEqual: 'not equal to',
-    greaterThanOrEqual: 'greater than or equal to', lessThanOrEqual: 'less than or equal to',
+    greaterThan: t('greater than'), lessThan: t('less than'), between: t('between'), notBetween: t('not between'), equal: t('equal to'), notEqual: t('not equal to'),
+    greaterThanOrEqual: t('greater than or equal to'), lessThanOrEqual: t('less than or equal to'),
+  }
+  const periods: Record<string, string> = {
+    yesterday: t('yesterday'), today: t('today'), tomorrow: t('tomorrow'), last7Days: t('in the last 7 days'), lastWeek: t('last week'), thisWeek: t('this week'),
+    nextWeek: t('next week'), lastMonth: t('last month'), thisMonth: t('this month'), nextMonth: t('next month'),
   }
   switch (rule.type) {
-    case 'cellIs': return `Cell Value ${ops[rule.op]} ${rule.f1}${rule.f2 && (rule.op === 'between' || rule.op === 'notBetween') ? ` and ${rule.f2}` : ''}`
-    case 'text': return `Cell Value ${rule.op === 'contains' ? 'contains' : rule.op === 'notContains' ? 'does not contain' : rule.op === 'beginsWith' ? 'begins with' : 'ends with'} "${rule.text}"`
-    case 'date': return `A date occurring: ${rule.period.replace(/([A-Z0-9])/g, ' $1').toLowerCase()}`
-    case 'duplicate': return 'Duplicate Values'
-    case 'unique': return 'Unique Values'
-    case 'top': return `${rule.bottom ? 'Bottom' : 'Top'} ${rule.rank}${rule.percent ? '%' : ''}`
-    case 'average': return `${rule.above ? 'Above' : 'Below'}${rule.equal ? ' or Equal to' : ''} Average${rule.std ? ` (${rule.std} std dev)` : ''}`
-    case 'blanks': return 'Blanks'
-    case 'noBlanks': return 'No Blanks'
-    case 'errors': return 'Errors'
-    case 'noErrors': return 'No Errors'
-    case 'expression': return `Formula: =${rule.formula}`
-    case 'dataBar': return 'Data Bar'
-    case 'colorScale': return `${rule.stops.length}-Color Scale`
-    case 'iconSet': return `Icon Set: ${ICON_SETS.find((s) => s.id === rule.set)?.label ?? rule.set}`
+    case 'cellIs': return rule.f2 && (rule.op === 'between' || rule.op === 'notBetween') ? t('Cell Value {op} {value1} and {value2}', { op: ops[rule.op], value1: rule.f1, value2: rule.f2 }) : t('Cell Value {op} {value}', { op: ops[rule.op], value: rule.f1 })
+    case 'text': return t('Cell Value {op} "{text}"', { op: rule.op === 'contains' ? t('contains') : rule.op === 'notContains' ? t('does not contain') : rule.op === 'beginsWith' ? t('begins with') : t('ends with'), text: rule.text })
+    case 'date': return t('A date occurring: {period}', { period: periods[rule.period] ?? rule.period.replace(/([A-Z0-9])/g, ' $1').toLowerCase() })
+    case 'duplicate': return t('Duplicate Values')
+    case 'unique': return t('Unique Values')
+    case 'top': return (rule.bottom ? t('Bottom {n}', { n: rule.rank }) : t('Top {n}', { n: rule.rank })) + (rule.percent ? '%' : '')
+    case 'average': {
+      const base = rule.above ? (rule.equal ? t('Above or Equal to Average') : t('Above Average')) : rule.equal ? t('Below or Equal to Average') : t('Below Average')
+      return rule.std ? t('{rule} ({n} std dev)', { rule: base, n: rule.std }) : base
+    }
+    case 'blanks': return t('Blanks')
+    case 'noBlanks': return t('No Blanks')
+    case 'errors': return t('Errors')
+    case 'noErrors': return t('No Errors')
+    case 'expression': return t('Formula: ={formula}', { formula: rule.formula })
+    case 'dataBar': return t('Data Bar')
+    case 'colorScale': return rule.stops.length === 2 ? t('2-Color Scale') : t('3-Color Scale')
+    case 'iconSet': return t('Icon Set: {name}', { name: t(ICON_SETS.find((s) => s.id === rule.set)?.label ?? rule.set) })
   }
 }
 

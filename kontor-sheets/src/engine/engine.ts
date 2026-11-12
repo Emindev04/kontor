@@ -51,6 +51,14 @@ export class Engine implements EvalHost {
     return this.wb.sheets
   }
 
+  numFmt(sheet: Sheet, r: number, c: number) {
+    return this.wb.styles.get(sheet.styleId(r, c)).fmt
+  }
+
+  pivots() {
+    return this.wb.sheets.flatMap((sheet) => sheet.x.pivots.map((pivot) => ({ sheet, pivot })))
+  }
+
   formulaAt(sheet: Sheet, r: number, c: number) {
     const f = sheet.get(r, c)?.f
     return f === undefined ? undefined : '=' + f

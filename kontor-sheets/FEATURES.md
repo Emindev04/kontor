@@ -1,8 +1,10 @@
 # Kontor Sheets – feature checklist
 
-Coverage: 812 done, 41 partial, 39 open of 892 (functions counted one by one; 93 % weighted)
+Coverage: 844 done, 27 partial, 27 open of 898 (functions counted one by one; 95.5 % weighted)
 
-Features without the function library: 323 done, 32 partial, 20 open of 375 (90.4 % weighted).
+Features without the function library: 344 done, 23 partial, 15 open of 382 (93.1 % weighted).
+
+Open items marked "out of scope" need a server, an online service or an AI model and are left out on purpose.
 
 `[x]` done · `[~]` partial (what is missing is noted) · `[ ]` open
 
@@ -11,22 +13,24 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Home page with greeting and template tiles
 - [x] New blank workbook
 - [x] Templates: monthly budget, loan calculator, to-do list, simple invoice
-- [ ] Online template search
+- [ ] Online template search — out of scope: needs an online template service
 - [x] Open .xlsx / .xlsm
 - [x] Open .csv / .txt / .tsv (delimiter detection)
-- [~] Open .ods (values, formulas, merged cells, sizes, basic formatting) — no .xls (legacy binary) or .xlsb
+- [x] Open .ods (values, formulas, merged cells, sizes, basic formatting)
+- [~] Open .xls (97–2003) and .xlsb through the SheetJS reader: values, formulas, number formats, merged cells, column widths, row heights, hidden sheets, defined names and fill colors — fonts and borders of these files are not read
 - [x] Recent files list (reopens a copy kept in this browser)
 - [x] Save As .xlsx (download)
 - [x] Save As CSV
 - [x] Save As .ods / .html / .txt (tab-delimited)
+- [~] Save As .xls / .xlsb — values, formula results, number formats, merged cells and sizes (the SheetJS community writer stores no formulas or cell formatting)
 - [x] AutoSave to browser storage (restored on reload)
-- [~] Info: title, author, sheet/cell/formula/name counts — no protect workbook, inspect, versions
+- [~] Info: title, author, sheet/cell/formula/name counts, Protect Workbook / Protect Current Sheet, Inspect Workbook (comments and notes, personal information, hidden sheets, hidden rows and columns, ink, custom views — with Remove All), Check Accessibility — no version history
 - [x] Print: active sheet, entire workbook, selection
-- [~] Export to PDF — through the browser's print dialog ("Save as PDF")
+- [x] Export to PDF — the desktop app writes the PDF file directly (paper size, orientation, margins); in a browser through the print dialog ("Save as PDF")
 - [x] Export as .xlsx and CSV
-- [~] Options: calculation mode, iterative calculation, user name, Enter direction, AutoComplete, AutoCorrect, formula bar, zeros, gridlines, headings — no ribbon customization, add-ins or trust center
-- [ ] Share / co-authoring / comments sync
-- [ ] Account page
+- [~] Options: interface language, calculation mode, iterative calculation, R1C1 reference style, user name, Enter direction, AutoComplete, AutoCorrect (editable list), formula bar, zeros, gridlines, headings, Customize the Ribbon (show or hide main tabs) — no custom ribbon groups; add-ins and a trust center do not apply (no add-ins or macros run from files)
+- [ ] Share / co-authoring / comments sync — out of scope: needs a server
+- [ ] Account page — out of scope: there are no online accounts
 
 ## Title bar
 
@@ -51,7 +55,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Paste (Ctrl+V), with relative formula adjustment
 - [x] Paste menu: Formulas, Formulas & Number Formatting, No Borders, Keep Source Column Widths, Transpose, Values, Values & Number Formatting, Formatting, Paste Link
 - [x] Paste Special dialog: All, Formulas, Values, Formats, All except borders, Column widths, Formulas and number formats, Values and number formats; operations Add/Subtract/Multiply/Divide; Skip blanks; Transpose; Paste Link
-- [ ] Paste Special: comments, validation, merge conditional formats
+- [x] Paste Special: comments and notes, validation, all merging conditional formats (All also pastes validation, conditional formats and notes)
 - [x] Cut (Ctrl+X) with move semantics (references follow)
 - [x] Copy (Ctrl+C) to the system clipboard as text and HTML
 - [x] Copy as Picture (to the clipboard and for Paste > Picture)
@@ -129,7 +133,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Find (Ctrl+F), Replace (Ctrl+H), Go To (Ctrl+G / F5), Go To Special
 - [x] Select Formulas, Constants
 - [x] Select Notes, Conditional Formatting, Data Validation, Objects, Selection Pane
-- [ ] Analyze Data
+- [ ] Analyze Data — out of scope: needs an AI service
 
 ## Format Cells dialog (Ctrl+1)
 
@@ -137,7 +141,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Alignment tab: horizontal, vertical, indent, wrap, shrink, merge, orientation degrees, vertical text
 - [x] Font tab: font, style, size, underline types, color, strikethrough, superscript, subscript, preview
 - [x] Border tab: line styles, color, presets None/Outline/Inside, individual edges, inside lines, diagonals, preview
-- [~] Fill tab: background color — no pattern fills or gradients
+- [x] Fill tab: background color, Pattern Color and Pattern Style (17 patterns), Fill Effects with two-color gradients (horizontal, vertical, diagonal, from center); drawn on screen, printed and saved in .xlsx
 - [x] Protection tab: Locked / Hidden, honoured when the sheet is protected
 
 ## Insert tab
@@ -152,7 +156,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Charts: column/bar (clustered, stacked, 100%), line (incl. stacked), area, pie, doughnut, scatter, radar, histogram, waterfall, combo
 - [x] Recommended Charts dialog with live preview, All Charts tab
 - [~] PivotChart — a chart of the PivotTable's output range (not linked to the PivotTable's fields)
-- [~] Funnel, Treemap, Box & Whisker charts (saved to .xlsx as the closest classic chart) — no Maps or Sunburst
+- [~] Funnel, Treemap, Box & Whisker charts (saved to .xlsx as the closest classic chart) — no Sunburst; Maps are out of scope (need an online map service)
 - [x] Sparklines: Line, Column, Win/Loss (data range → location range)
 - [x] Slicer for tables and PivotTables (multi-select, clear filter, columns, styles, calendar order for months), saved to and read from .xlsx
 - [~] Timeline for PivotTables (years, quarters, months, days; click, Shift+click or drag to select) — kept by AutoSave, not saved in .xlsx
@@ -185,9 +189,9 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Background picture (tiled behind the cells, saved in .xlsx)
 - [x] Print Titles (rows to repeat at top)
 - [x] Print Titles: columns to repeat at left (wide sheets print page by page)
-- [~] Scale to Fit: fit sheet to one page wide, scale % — no separate width/height page counts
+- [x] Scale to Fit: Width and Height page counts (Automatic, 1–9 pages; any count in Page Setup), scale %; saved in .xlsx
 - [x] Sheet Options: gridlines view/print, headings view/print
-- [~] Arrange: Bring Forward, Send Backward, Selection Pane — no align/group of several objects
+- [~] Arrange: Bring Forward, Send Backward, Selection Pane, Ctrl/Shift+click to select several objects, Align (left, center, right, top, middle, bottom), Distribute Horizontally/Vertically, Group/Ungroup — groups are kept by AutoSave; in .xlsx the objects are saved separately
 - [x] Page Setup dialog: Page, Margins, Header/Footer, Sheet
 - [x] Header/Footer codes (&P, &N, &D, &T, &F, &A) expanded in Page Layout view and when printing
 
@@ -215,17 +219,17 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] From Text/CSV, From Workbook
 - [~] Refresh All — recalculates and refreshes PivotTables
 - [~] Get Data from Text/CSV, JSON, XML and saved web pages (.html) with a Navigator preview, From Table/Range — no live web queries, Power Query editor or Queries & Connections pane
-- [ ] Stocks / Geography data types
+- [ ] Stocks / Geography data types — out of scope: need an online data service
 - [x] Sort A to Z, Sort Z to A
 - [x] Sort dialog: levels (add, delete, copy), sort on values / cell color / font color, order, headers, case sensitive, left to right
 - [x] Custom lists in Sort (weekdays and months, both directions)
 - [x] Filter: value checklist with search, (Blanks), sort A–Z/Z–A, sort/filter by color, text/number/date filters, custom AutoFilter (and/or, wildcards), Top 10, above/below average, clear
 - [x] Advanced Filter: criteria range (AND per row, OR between rows, operators, wildcards), filter in place or copy to, unique records only
-- [~] Text to Columns — delimited and fixed width; no per-column data formats
+- [x] Text to Columns — delimited and fixed width, column data formats (General, Text, Date in six orders, skip column) and destination
 - [x] Flash Fill
 - [x] Remove Duplicates
 - [x] Data Validation: any, whole number, decimal, list (in-cell drop-down, Alt+Down), date, time, text length, custom formula; ignore blank; input message; Stop/Warning/Information alerts; Circle Invalid Data; Clear Validation Circles
-- [~] Consolidate (11 functions, several references, labels in top row / left column) — no links to source data, Relationships or Data Model
+- [~] Consolidate (11 functions, several references, labels in top row / left column, Create links to source data as formulas) — no Relationships or Data Model
 - [x] What-If Analysis → Goal Seek
 - [x] Scenario Manager: add, edit, delete, show, summary sheet
 - [~] Data Table: one- and two-variable tables, filled in as values (not a live TABLE formula)
@@ -237,7 +241,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 
 - [~] Spelling (F7) with the browser's dictionary and suggestions — no Thesaurus
 - [x] Workbook Statistics
-- [~] Check Accessibility (alternative text, table headers, merged cells, contrast, sheet names) — no Smart Lookup or Translate
+- [x] Check Accessibility (alternative text, table headers, merged cells, contrast, sheet names); Smart Lookup and Translate are out of scope (online services)
 - [x] Comments (threaded): new, reply, resolve/reopen, delete, previous/next, Comments pane, author name, purple indicator, hover card
 - [x] Notes: new/edit (Shift+F2), delete, previous/next, show/hide, show all, convert to comments, red indicator, hover popup
 - [x] Protect Sheet (password, 15 allowed actions), Unprotect Sheet; locked cells, formatting, inserting/deleting rows/columns, sorting and objects are blocked
@@ -250,7 +254,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Normal view
 - [x] Page Break Preview: printed range outlined, gray outside, page labels, automatic (dashed) and manual (solid) breaks, drag breaks to move them
 - [~] Page Layout view: every page drawn as a sheet with margins, gaps, rulers and header/footer text; editable — header/footer edited through the dialog
-- [~] Custom Views (zoom, selection, frozen panes, gridlines, headings, hidden rows/columns) — no Sheet Views
+- [x] Custom Views (zoom, selection, frozen panes, gridlines, headings, hidden rows/columns); Sheet Views are out of scope (a co-authoring feature)
 - [x] Show: Formula Bar, Gridlines, Headings (plus Zero Values and Formulas)
 - [x] Ruler (inches, margins shaded, in Page Layout view)
 - [x] Zoom dialog, 100%, Zoom to Selection
@@ -259,8 +263,8 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Freeze Panes, Freeze Top Row, Freeze First Column, Unfreeze Panes
 - [x] Split (two panes with their own scroll position)
 - [x] Watch Window
-- [ ] Hide / Unhide window
-- [ ] Macros
+- [x] Hide / Unhide window
+- [~] Macros: Record Macro (with Use Relative References), Stop Recording, View Macros (run, delete) — records and replays the cell changes of the program's own commands, kept with the workbook by AutoSave (not in .xlsx); VBA code is out of scope
 - [x] Full Screen
 
 ## Help tab
@@ -268,7 +272,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Function reference (Insert Function)
 - [x] Keyboard shortcuts overview
 - [x] About
-- [ ] Online help, training, feedback
+- [ ] Online help, training, feedback — out of scope: online services
 
 ## Charts
 
@@ -280,7 +284,10 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Axis options: minimum, maximum, major unit, logarithmic scale, values in reverse order, number format (saved to and read from .xlsx)
 - [x] Error bars: standard error, percentage, standard deviation, fixed value (saved to and read from .xlsx)
 - [x] Secondary axis for line/area series and in combo charts
-- [ ] Chart data tables, 3-D charts, chart templates, individual data point formatting
+- [x] Chart data table (Add Chart Element > Data Table, saved in .xlsx)
+- [x] Chart templates (Save as Template, apply and delete; kept in this browser / on this computer)
+- [x] Format Data Point: fill color of single bars, slices and markers (saved in .xlsx)
+- [ ] 3-D charts
 
 - [x] Charts, pictures, shapes and slicers move and size with their cells when columns/rows are resized, hidden or AutoFit
 
@@ -293,7 +300,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Rename, Resize Table, Convert to Range (keeps the look, rewrites references), Remove Duplicates, Summarize with PivotTable
 - [x] Insert/delete table rows from the context menu
 - [x] Slicers for tables (Insert > Slicer, Table Design > Insert Slicer)
-- [~] Table styles of your own (New Table Style) — saved to .xlsx as a built-in style
+- [x] Table styles of your own (New Table Style), saved in .xlsx as real table styles and read back
 
 ## PivotTables
 
@@ -316,7 +323,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Data bars (gradient/solid, negative values, show bar only), 2- and 3-color scales, 18 icon sets (own drawings, reverse, show icon only)
 - [x] Format picker: fill, font color, bold, italic, underline, strikethrough, border, number format
 - [x] Rules Manager: current selection / whole sheet, edit, delete, priority order, Applies To, Stop If True
-- [ ] Custom icon thresholds per icon, data bar axis settings
+- [x] Custom icon thresholds per icon (number, percent, percentile, formula), data bar minimum/maximum types, axis position (automatic, cell midpoint, none), negative bar color and axis color (saved in .xlsx)
 
 ## Grid and selection
 
@@ -371,7 +378,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Automatic percent entry in percentage cells
 - [x] AutoComplete of text from the same column
 - [x] Pick From Drop-down List (Alt+Down) for list validation
-- [~] AutoCorrect: common misspellings and symbols as you type — the list cannot be edited
+- [x] AutoCorrect: common misspellings and symbols as you type; entries can be added, changed and deleted in Options
 - [x] In-cell rich text formatting: select characters while editing and use Ctrl+B/I/U/5 or the ribbon font, size, color, bold, italic, underline, strikethrough buttons
 
 ## Calculation engine
@@ -395,32 +402,33 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Functions that are not implemented keep the cached result from imported files
 - [x] 3-D references (Sheet1:Sheet3!A1) in SUM, AVERAGE, COUNT, MAX, MIN and other aggregates; follow sheet renames; #REF! when an end sheet is deleted
 - [x] Structured table references: Table1[Col], Table1[[#Headers],[A]:[B]], [@Col], #All/#Data/#Headers/#Totals, table names as references
-- [~] R1C1 notation — only inside INDIRECT
+- [x] R1C1 notation: R1C1 reference style option (formula bar, typing formulas, column numbers in the headings, Name Box) and inside INDIRECT
 - [x] Iterative calculation
 - [ ] Links to other workbooks
-- [ ] Multi-threaded calculation
+- [ ] Multi-threaded calculation (calculation runs on one thread; only dependent cells are recalculated)
 
-## Function library (487 functions including compatibility aliases)
+## Function library (494 functions including compatibility aliases)
 
 ### Math & Trig
 - [x] ABS, ACOS, ACOSH, ACOT, ACOTH, AGGREGATE, ARABIC, ASIN, ASINH, ATAN, ATAN2, ATANH, BASE, CEILING, CEILING.MATH, CEILING.PRECISE, COMBIN, COMBINA, COS, COSH, COT, COTH, CSC, CSCH, DECIMAL, DEGREES, EVEN, EXP, FACT, FACTDOUBLE, FLOOR, FLOOR.MATH, FLOOR.PRECISE, GCD, INT, ISO.CEILING, LCM, LN, LOG, LOG10, MDETERM, MINVERSE, MMULT, MOD, MROUND, MULTINOMIAL, MUNIT, ODD, PI, POWER, PRODUCT, QUOTIENT, RADIANS, RAND, RANDARRAY, RANDBETWEEN, ROMAN, ROUND, ROUNDDOWN, ROUNDUP, SEC, SECH, SEQUENCE, SERIESSUM, SIGN, SIN, SINH, SQRT, SQRTPI, SUBTOTAL, SUM, SUMIF, SUMIFS, SUMPRODUCT, SUMSQ, SUMX2MY2, SUMX2PY2, SUMXMY2, TAN, TANH, TRUNC
-- [~] ROMAN — classic form only (the "form" argument is ignored)
 
 ### Statistical
 - [x] AVEDEV, AVERAGE, AVERAGEA, AVERAGEIF, AVERAGEIFS, BETA.DIST, BETA.INV, BINOM.DIST, BINOM.DIST.RANGE, BINOM.INV, CHISQ.DIST, CHISQ.DIST.RT, CHISQ.INV, CHISQ.INV.RT, CHISQ.TEST, CONFIDENCE.NORM, CONFIDENCE.T, CORREL, COUNT, COUNTA, COUNTBLANK, COUNTIF, COUNTIFS, COVARIANCE.P, COVARIANCE.S, DEVSQ, EXPON.DIST, F.DIST, F.DIST.RT, F.INV, F.INV.RT, F.TEST, FISHER, FISHERINV, FORECAST.LINEAR, FREQUENCY, GAMMA, GAMMA.DIST, GAMMA.INV, GAMMALN, GAMMALN.PRECISE, GAUSS, GEOMEAN, GROWTH, HARMEAN, HYPGEOM.DIST, INTERCEPT, KURT, LARGE, LOGNORM.DIST, LOGNORM.INV, MAX, MAXA, MAXIFS, MEDIAN, MIN, MINA, MINIFS, MODE.MULT, MODE.SNGL, NEGBINOM.DIST, NORM.DIST, NORM.INV, NORM.S.DIST, NORM.S.INV, PEARSON, PERCENTILE.EXC, PERCENTILE.INC, PERCENTRANK.EXC, PERCENTRANK.INC, PERMUT, PERMUTATIONA, PHI, POISSON.DIST, PROB, QUARTILE.EXC, QUARTILE.INC, RANK.AVG, RANK.EQ, RSQ, SKEW, SKEW.P, SLOPE, SMALL, STANDARDIZE, STDEV.P, STDEV.S, STDEVA, STDEVPA, STEYX, T.DIST, T.DIST.2T, T.DIST.RT, T.INV, T.INV.2T, T.TEST, TREND, TRIMMEAN, VAR.P, VAR.S, VARA, VARPA, WEIBULL.DIST, Z.TEST
-- [~] LINEST, LOGEST — one x variable, coefficients only (no statistics block)
+- [x] LINEST, LOGEST — several x variables, const argument and the statistics block
 - [~] FORECAST.ETS, FORECAST.ETS.CONFINT, FORECAST.ETS.SEASONALITY, FORECAST.ETS.STAT — exponential triple smoothing with season detection; results differ slightly from the original's
 
 ### Text
 - [x] ARRAYTOTEXT, ASC, CHAR, CLEAN, CODE, CONCAT, CONCATENATE, DBCS, DOLLAR, EXACT, FIND, FINDB, FIXED, LEFT, LEFTB, LEN, LENB, LOWER, MID, MIDB, NUMBERVALUE, PROPER, REGEXEXTRACT, REGEXREPLACE, REGEXTEST, REPLACE, REPLACEB, REPT, RIGHT, RIGHTB, SEARCH, SEARCHB, SUBSTITUTE, T, TEXT, TEXTAFTER, TEXTBEFORE, TEXTJOIN, TEXTSPLIT, TRIM, UNICHAR, UNICODE, UPPER, VALUE, VALUETOTEXT
-- [ ] BAHTTEXT, PHONETIC, TRANSLATE, DETECTLANGUAGE
+- [x] BAHTTEXT, PHONETIC (returns the text; phonetic guides are not stored)
+- [ ] TRANSLATE, DETECTLANGUAGE — out of scope: need an online translation service
 
 ### Logical
 - [x] AND, BYCOL, BYROW, FALSE, IF, IFERROR, IFNA, IFS, LAMBDA, LET, MAKEARRAY, MAP, NOT, OR, REDUCE, SCAN, SWITCH, TRUE, XOR
 
 ### Lookup & Reference
 - [x] ADDRESS, AREAS, CHOOSE, CHOOSECOLS, CHOOSEROWS, COLUMN, COLUMNS, DROP, EXPAND, FILTER, FORMULATEXT, HLOOKUP, HSTACK, HYPERLINK, INDEX, INDIRECT, LOOKUP, MATCH, OFFSET, ROW, ROWS, SORT, SORTBY, TAKE, TOCOL, TOROW, TRANSPOSE, UNIQUE, VLOOKUP, VSTACK, WRAPCOLS, WRAPROWS, XLOOKUP, XMATCH
-- [ ] GETPIVOTDATA, GROUPBY, PIVOTBY, TRIMRANGE, RTD, IMAGE
+- [x] GETPIVOTDATA, GROUPBY, PIVOTBY, TRIMRANGE (function names such as SUM can be passed as eta-reduced LAMBDAs, saved as _xlfn._xleta.)
+- [ ] RTD, IMAGE — out of scope: need a real-time data server or pictures from the web
 
 ### Date & Time
 - [x] DATE, DATEDIF, DATEVALUE, DAY, DAYS, DAYS360, EDATE, EOMONTH, HOUR, ISOWEEKNUM, MINUTE, MONTH, NETWORKDAYS, NETWORKDAYS.INTL, NOW, SECOND, TIME, TIMEVALUE, TODAY, WEEKDAY, WEEKNUM, WORKDAY, WORKDAY.INTL, YEAR, YEARFRAC
@@ -432,11 +440,11 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 
 ### Information
 - [x] ERROR.TYPE, INFO, ISBLANK, ISERR, ISERROR, ISEVEN, ISFORMULA, ISLOGICAL, ISNA, ISNONTEXT, ISNUMBER, ISODD, ISOMITTED, ISREF, ISTEXT, N, NA, SHEET, SHEETS, TYPE
-- [~] CELL — address, col, row, contents, type, filename, width, prefix, protect; "format" is approximate
+- [x] CELL — address, col, row, contents, type, filename, width, prefix, protect, format (G, F0, ,2, C2-, P0, S2, D1–D9 …), color, parentheses
 
 ### Engineering
 - [x] BIN2DEC, BIN2HEX, BIN2OCT, BITAND, BITLSHIFT, BITOR, BITRSHIFT, BITXOR, DEC2BIN, DEC2HEX, DEC2OCT, DELTA, ERF, ERF.PRECISE, ERFC, ERFC.PRECISE, GESTEP, HEX2BIN, HEX2DEC, HEX2OCT, OCT2BIN, OCT2DEC, OCT2HEX
-- [~] CONVERT — common units of length, mass, time, pressure, force, energy, power, magnetism, temperature, volume, area, speed, information
+- [x] CONVERT — units of length, mass, time, pressure, force, energy, power, magnetism, temperature, volume, area, speed and information, with decimal and binary prefixes
 - [x] BESSELI, BESSELJ, BESSELK, BESSELY (series and Hankel expansions, accurate to about 14 digits; the original's own results differ from the exact values in the 7th digit)
 - [x] COMPLEX, IMABS, IMAGINARY, IMARGUMENT, IMCONJUGATE, IMCOS, IMCOSH, IMCOT, IMCSC, IMCSCH, IMDIV, IMEXP, IMLN, IMLOG10, IMLOG2, IMPOWER, IMPRODUCT, IMREAL, IMSEC, IMSECH, IMSIN, IMSINH, IMSQRT, IMSUB, IMSUM, IMTAN
 
@@ -448,8 +456,9 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 
 ### Web and Cube
 - [x] ENCODEURL
-- [ ] WEBSERVICE, FILTERXML
-- [ ] CUBEKPIMEMBER, CUBEMEMBER, CUBEMEMBERPROPERTY, CUBERANKEDMEMBER, CUBESET, CUBESETCOUNT, CUBEVALUE
+- [x] FILTERXML
+- [ ] WEBSERVICE — out of scope: needs web access
+- [ ] CUBEKPIMEMBER, CUBEMEMBER, CUBEMEMBERPROPERTY, CUBERANKEDMEMBER, CUBESET, CUBESETCOUNT, CUBEVALUE — out of scope: need an OLAP / data model server
 
 ## Context menus
 
@@ -460,7 +469,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Status bar: choose Average / Count / Numerical Count / Minimum / Maximum / Sum
 - [x] Cell menu: Filter by value/color, Clear Filter, table rows insert/delete, Totals Row, Convert to Range, New/Edit/Delete Note, New Comment, Pick From Drop-down List
 - [x] Object menu: Change Chart Type, Select Data, Move Chart, Bring to Front, Send to Back, Duplicate, Delete, Format…, Alt Text
-- [~] Show Changes: the edits of this session (action, sheet and cell) — no author, time or old values
+- [x] Show Changes: author, date and time, action, and old and new content of each changed cell; filter to the selection; kept with the workbook (the last 500 edits)
 - [x] Mini toolbar on right-click
 
 ## Keyboard shortcuts
@@ -492,7 +501,7 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] Average, Count, Numerical Count, Minimum, Maximum, Sum of the selection
 - [x] View buttons Normal / Page Layout / Page Break Preview
 - [x] Zoom slider, ± buttons, zoom percentage opens the Zoom dialog
-- [~] Caps Lock and Scroll Lock indicators, Page Layout mode — no accessibility status or page number
+- [x] Caps Lock and Scroll Lock indicators, Page Layout mode with "Page n of m", accessibility status, macro recording indicator
 
 ## Sheet tabs
 
@@ -519,9 +528,11 @@ Features without the function library: 323 done, 32 partial, 20 open of 375 (90.
 - [x] .xlsx import: theme colors read from the file's theme with tints applied on luminance, locale short-date formats, cached values of array formulas, rich text runs
 - [x] .xlsx: PivotTables with pivot caches (the original program refreshes them on open), slicers for tables and PivotTables
 - [~] .xlsx: histogram, waterfall, box & whisker, funnel and treemap charts are saved as classic charts; timelines are not saved
-- [ ] .xlsx: themes
+- [x] .xlsx: themes (colors, fonts and name written to the theme part and read back)
 - [x] CSV import (comma, semicolon, tab, pipe detection) and export (displayed values, UTF-8 with BOM)
-- [~] .ods import and export, .html and tab-delimited .txt export — no .xls or .xlsb
+- [x] .ods import and export, .html and tab-delimited .txt export
+- [~] .xls and .xlsb import (SheetJS: values, formulas, number formats, merges, sizes, names, fill colors) and export (values and number formats only)
+- [x] .xlsx: pattern and gradient fills, custom table styles, data bar axis settings, chart data points and data tables
 
 ## Undo / Redo
 

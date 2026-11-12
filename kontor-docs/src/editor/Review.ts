@@ -3,6 +3,7 @@ import type { Mark as PMMark, Node as PMNode, Schema } from '@tiptap/pm/model'
 import { Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from '@tiptap/pm/state'
 import { AddMarkStep, Mapping, RemoveMarkStep, ReplaceStep } from '@tiptap/pm/transform'
 import { isHistoryTransaction } from '@tiptap/pm/history'
+import { t, tx } from '../i18n'
 
 // Review features: comment anchors and tracked changes (insertions and deletions).
 //
@@ -27,7 +28,7 @@ const formatMarks = (marks: readonly PMMark[]) => marks.filter((m) => !NON_FORMA
 const marksJson = (marks: readonly PMMark[]) => JSON.stringify(formatMarks(marks).map((m) => m.toJSON()))
 
 const MARK_LABELS: Record<string, string> = {
-  bold: 'Bold', italic: 'Italic', underline: 'Underline', strike: 'Strikethrough', subscript: 'Subscript', superscript: 'Superscript', highlight: 'Highlight', code: 'Code',
+  bold: tx('Bold'), italic: tx('Italic'), underline: tx('Underline'), strike: tx('Strikethrough'), subscript: tx('Subscript'), superscript: tx('Superscript'), highlight: tx('Highlight'), code: tx('Code'),
 }
 
 /** "Formatted: Bold, Not Italic, Font color" for a formatting change, from the old and the current marks. */
@@ -40,23 +41,23 @@ export function describeFormat(old: string | undefined, current: readonly PMMark
   }
   const now = formatMarks(current).map((m) => m.toJSON() as { type: string; attrs?: Record<string, unknown> })
   const parts: string[] = []
-  const label = (t: string) => MARK_LABELS[t] ?? t.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase())
+  const label = (type: string) => (MARK_LABELS[type] ? t(MARK_LABELS[type]) : type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase()))
   for (const m of now) {
     const prev = before.find((b) => b.type === m.type)
     if (!prev) parts.push(m.type === 'textStyle' ? styleText(m.attrs) : label(m.type))
     else if (JSON.stringify(prev.attrs ?? {}) !== JSON.stringify(m.attrs ?? {})) parts.push(m.type === 'textStyle' ? styleText(m.attrs, prev.attrs) : label(m.type))
   }
-  for (const b of before) if (!now.some((m) => m.type === b.type)) parts.push(b.type === 'textStyle' ? 'Font: Default' : `Not ${label(b.type)}`)
-  return `Formatted: ${parts.filter(Boolean).join(', ') || 'Font'}`
+  for (const b of before) if (!now.some((m) => m.type === b.type)) parts.push(b.type === 'textStyle' ? t('Font: Default') : t('Not {format}', { format: label(b.type) }))
+  return t('Formatted: {formats}', { formats: parts.filter(Boolean).join(', ') || t('Font') })
 }
 
 function styleText(attrs: Record<string, unknown> = {}, prev: Record<string, unknown> = {}) {
   const out: string[] = []
-  if (attrs.fontFamily && attrs.fontFamily !== prev.fontFamily) out.push(`Font: ${String(attrs.fontFamily).split(',')[0].replace(/['"]/g, '')}`)
-  if (attrs.fontSize && attrs.fontSize !== prev.fontSize) out.push(`Font size: ${String(attrs.fontSize).replace('pt', ' pt')}`)
-  if (attrs.color && attrs.color !== prev.color) out.push('Font color')
-  if (attrs.backgroundColor && attrs.backgroundColor !== prev.backgroundColor) out.push('Shading')
-  return out.join(', ') || 'Font'
+  if (attrs.fontFamily && attrs.fontFamily !== prev.fontFamily) out.push(t('Font: {name}', { name: String(attrs.fontFamily).split(',')[0].replace(/['"]/g, '') }))
+  if (attrs.fontSize && attrs.fontSize !== prev.fontSize) out.push(t('Font size: {size}', { size: String(attrs.fontSize).replace('pt', ' pt') }))
+  if (attrs.color && attrs.color !== prev.color) out.push(t('Font color'))
+  if (attrs.backgroundColor && attrs.backgroundColor !== prev.backgroundColor) out.push(t('Shading'))
+  return out.join(', ') || t('Font')
 }
 
 /** Skip meta: transactions that must not be tracked (accept/reject, loading documents). */
@@ -364,7 +365,7 @@ export const Review = Extension.create<{ getAuthor: () => string }>({
   name: 'review',
 
   addOptions() {
-    return { getAuthor: () => 'Author' }
+    return { getAuthor: () => t('Author') }
   },
 
   addExtensions() {

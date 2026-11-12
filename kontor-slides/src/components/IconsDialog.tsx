@@ -3,6 +3,7 @@ import * as Icons from 'lucide-react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import * as A from '../store/actions'
 import { Modal } from './ui'
+import { t } from '../i18n'
 
 // Loaded on demand: the full icon set is large.
 const ICON_NAMES = [
@@ -30,19 +31,19 @@ export default function IconsDialog({ onClose }: { onClose: () => void }) {
   }
   return (
     <Modal
-      title="Insert Icons"
+      title={t('Insert Icons')}
       width={620}
       onClose={onClose}
       footer={
         <>
           <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </button>
         </>
       }
     >
-      <input className="icon-search" autoFocus placeholder="Search icons" aria-label="Search icons" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input className="icon-search" autoFocus placeholder={t('Search icons')} aria-label={t('Search icons')} value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="icon-grid">
         {names.map((n) => {
           const Icon = lib[n]!

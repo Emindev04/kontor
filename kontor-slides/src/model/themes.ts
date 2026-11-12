@@ -1,5 +1,6 @@
 import type { ColorRef, Fill, ShapeElement } from './types'
 import type { ThemeColors } from './color'
+import { tx } from '../i18n'
 
 export type ThemeVariant = { name: string; colors: ThemeColors; background: Fill; titleBackground?: Fill }
 
@@ -57,7 +58,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#FFFFFF', tx1: '#000000', bg2: '#E8E6E3', tx2: '#2E3A4B', accents: ['#2F6FC4', '#E3742F', '#9E9E9E', '#F2B705', '#4FA3D9', '#5FA84B'], hlink: '#2F6FC4' },
       ['#C8553D', '#F28F3B', '#588B8B', '#2D3047', '#93B7BE', '#E0A458'],
-      ['Default', 'Shifted', 'Warm', 'Dark'],
+      [tx('Default'), tx('Shifted'), tx('Warm'), tx('Dark')],
     ),
     deco: none,
   },
@@ -70,7 +71,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#F6F2EC', tx1: '#2B2622', bg2: '#E6DCCD', tx2: '#4A3F35', accents: ['#B5523B', '#D9A441', '#6B8F71', '#3F5E7A', '#8C6A5D', '#C9B79C'] },
       ['#6B8F71', '#3F5E7A', '#B5523B', '#D9A441', '#9A8C98', '#4A4E69'],
-      ['Clay', 'Ochre', 'Sage', 'Ink'],
+      [tx('Clay'), tx('Ochre'), tx('Sage'), tx('Ink')],
     ),
     deco: (kind, w, h) =>
       kind === 'content'
@@ -86,7 +87,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#121A2E', tx1: '#FFFFFF', bg2: '#1E2A47', tx2: '#C9D3E8', accents: ['#F5B700', '#2EC4B6', '#E4572E', '#A0C4FF', '#FF7AA2', '#7BD389'] },
       ['#2EC4B6', '#A0C4FF', '#F5B700', '#FF7AA2', '#E4572E', '#7BD389'],
-      ['Gold', 'Teal', 'Arctic', 'Daylight'],
+      [tx('Gold'), tx('Teal'), tx('Arctic'), tx('Daylight')],
     ),
     deco: (kind, w, h) =>
       kind === 'content'
@@ -105,7 +106,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#FFFFFF', tx1: '#1F2D1F', bg2: '#EAF2E3', tx2: '#2F4F2F', accents: ['#4C8C4A', '#A3C45A', '#2F6F73', '#E0A526', '#8A5A44', '#5E7CE2'] },
       ['#2F6F73', '#5E7CE2', '#4C8C4A', '#A3C45A', '#E0A526', '#8A5A44'],
-      ['Spring', 'Field', 'Lake', 'Night'],
+      [tx('Spring'), tx('Field'), tx('Lake'), tx('Night')],
     ),
     deco: (kind, w, h) =>
       kind === 'content'
@@ -122,7 +123,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#FFFFFF', tx1: '#3A2E39', bg2: '#FDE8E1', tx2: '#5C3D46', accents: ['#F25F5C', '#FFB563', '#247BA0', '#70C1B3', '#50514F', '#B370B0'] },
       ['#247BA0', '#70C1B3', '#F25F5C', '#FFB563', '#B370B0', '#50514F'],
-      ['Coral', 'Apricot', 'Lagoon', 'Dusk'],
+      [tx('Coral'), tx('Apricot'), tx('Lagoon'), tx('Dusk')],
       BG,
       { type: 'gradient', kind: 'linear', angle: 135, stops: [{ pos: 0, color: 'theme:accent1' }, { pos: 1, color: 'theme:accent2' }] },
     ),
@@ -137,7 +138,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#262626', tx1: '#F2F2F2', bg2: '#3A3A3A', tx2: '#D0D0D0', accents: ['#FF8C42', '#FFD166', '#06D6A0', '#118AB2', '#EF476F', '#8D99AE'] },
       ['#06D6A0', '#118AB2', '#FF8C42', '#FFD166', '#EF476F', '#8D99AE'],
-      ['Ember', 'Amber', 'Mint', 'Chalk'],
+      [tx('Ember'), tx('Amber'), tx('Mint'), tx('Chalk')],
     ),
     deco: (kind, w, h) =>
       kind === 'content'
@@ -153,7 +154,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#1C4E80', tx1: '#FFFFFF', bg2: '#163E66', tx2: '#D6E6F5', accents: ['#7FDBFF', '#FFDC00', '#FF851B', '#2ECC40', '#F012BE', '#B9D8F2'] },
       ['#FFDC00', '#FF851B', '#7FDBFF', '#2ECC40', '#B9D8F2', '#F012BE'],
-      ['Cyan', 'Signal', 'Warm', 'Paper'],
+      [tx('Cyan'), tx('Signal'), tx('Warm'), tx('Paper')],
       { type: 'gradient', kind: 'linear', angle: 90, stops: [{ pos: 0, color: 'theme:bg1' }, { pos: 1, color: 'theme:bg2' }] },
     ),
     deco: (kind, w, h) => {
@@ -177,7 +178,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#FFFFFF', tx1: '#2D2A32', bg2: '#FFF6DD', tx2: '#4D4A52', accents: ['#F2C14E', '#F78154', '#4D9078', '#B4436C', '#5FAD56', '#3C6E71'] },
       ['#4D9078', '#5FAD56', '#F2C14E', '#F78154', '#3C6E71', '#B4436C'],
-      ['Lemon', 'Tangerine', 'Lime', 'Night'],
+      [tx('Lemon'), tx('Tangerine'), tx('Lime'), tx('Night')],
     ),
     deco: (kind, w, h) =>
       kind === 'content'
@@ -193,7 +194,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#FBF8F1', tx1: '#3B3024', bg2: '#EFE7D6', tx2: '#5A4A38', accents: ['#8C5E3C', '#A3B18A', '#588157', '#BC6C25', '#6D597A', '#355070'] },
       ['#355070', '#6D597A', '#8C5E3C', '#BC6C25', '#588157', '#A3B18A'],
-      ['Sepia', 'Olive', 'Indigo', 'Ink'],
+      [tx('Sepia'), tx('Olive'), tx('Indigo'), tx('Ink')],
     ),
     deco: (_kind, w, h) => {
       const line = { color: 'theme:tx2', width: 1, dash: 'solid' as const, alpha: 0.6 }
@@ -209,7 +210,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#1B1036', tx1: '#FFFFFF', bg2: '#33206B', tx2: '#E0D7FF', accents: ['#A06CD5', '#47E5BC', '#FFD166', '#FF6B6B', '#4CC9F0', '#F72585'] },
       ['#47E5BC', '#4CC9F0', '#A06CD5', '#F72585', '#FFD166', '#FF6B6B'],
-      ['Violet', 'Glacier', 'Borealis', 'Dawn'],
+      [tx('Violet'), tx('Glacier'), tx('Borealis'), tx('Dawn')],
       { type: 'gradient', kind: 'radial', angle: 0, stops: [{ pos: 0, color: 'theme:bg2' }, { pos: 1, color: 'theme:bg1' }] },
     ),
     deco: none,
@@ -223,7 +224,7 @@ export const THEMES: Theme[] = [
     variants: variants(
       { bg1: '#E9EDF2', tx1: '#1F2933', bg2: '#CBD2D9', tx2: '#323F4B', accents: ['#3E7CB1', '#F17300', '#81A4CD', '#054A91', '#7A8B99', '#2A9D8F'] },
       ['#2A9D8F', '#054A91', '#3E7CB1', '#F17300', '#81A4CD', '#7A8B99'],
-      ['Steel', 'Signal', 'Harbor', 'Charcoal'],
+      [tx('Steel'), tx('Signal'), tx('Harbor'), tx('Charcoal')],
     ),
     deco: (kind, w, h) => (kind === 'content' ? [shape('rect', w - 24, 0, 24, h, solid('theme:accent1'))] : [shape('rect', w * 0.92, 0, w * 0.08, h, solid('theme:accent1')), shape('rect', w * 0.9, 0, w * 0.012, h, solid('theme:accent2'))]),
   },

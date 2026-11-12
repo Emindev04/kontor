@@ -2,6 +2,7 @@ import { Extension, Node, mergeAttributes } from '@tiptap/core'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { refPage } from './Objects'
+import { t, tx } from '../i18n'
 
 // References > Citations & Bibliography and Index.
 //
@@ -30,16 +31,16 @@ export type Sources = Record<string, Source>
 export type CitationStyle = 'apa' | 'mla' | 'chicago'
 
 export const CITATION_STYLES: { id: CitationStyle; label: string; heading: string }[] = [
-  { id: 'apa', label: 'APA', heading: 'References' },
-  { id: 'mla', label: 'MLA', heading: 'Works Cited' },
-  { id: 'chicago', label: 'Chicago', heading: 'Bibliography' },
+  { id: 'apa', label: tx('APA'), heading: tx('References') },
+  { id: 'mla', label: tx('MLA'), heading: tx('Works Cited') },
+  { id: 'chicago', label: tx('Chicago'), heading: tx('Bibliography') },
 ]
 
 export const SOURCE_TYPES: { id: SourceType; label: string }[] = [
-  { id: 'book', label: 'Book' },
-  { id: 'article', label: 'Journal Article' },
-  { id: 'website', label: 'Web Site' },
-  { id: 'report', label: 'Report' },
+  { id: 'book', label: tx('Book') },
+  { id: 'article', label: tx('Journal Article') },
+  { id: 'website', label: tx('Web Site') },
+  { id: 'report', label: tx('Report') },
 ]
 
 export const EMPTY_SOURCE: Omit<Source, 'id'> = { type: 'book', author: '', title: '', year: '', publisher: '', city: '', volume: '', pages: '', url: '', accessed: '' }
@@ -168,14 +169,36 @@ export function indexLines(doc: PMNode) {
   return lines
 }
 
-function indexHtml(doc: PMNode) {
+/** Formats of the Index dialog, stored on the index. */
+export type IndexOptions = { columns: number; rightAlign: boolean; leader: 'dot' | 'dash' | 'underline' | 'none'; headings: boolean; runIn: boolean }
+export const DEFAULT_INDEX_OPTIONS: IndexOptions = { columns: 2, rightAlign: false, leader: 'dot', headings: true, runIn: false }
+
+export function indexHtml(doc: PMNode, opts: Partial<IndexOptions> = {}) {
+  const o = { ...DEFAULT_INDEX_OPTIONS, ...opts }
   const lines = indexLines(doc)
-  if (!lines.length) return '<p class="index-line">No index entries found.</p>'
+  if (!lines.length) return `<p class="index-line">${esc(t('No index entries found.'))}</p>`
   let letter = ''
+  const line = (text: string, pages: string, level: number) =>
+    o.rightAlign && pages
+      ? `<p class="index-line index-level-${level} index-right index-leader-${o.leader}"><span class="toc-text">${esc(text)}</span><span class="toc-page">${esc(pages)}</span></p>`
+      : `<p class="index-line index-level-${level}">${esc(text)}${pages ? `, ${esc(pages)}` : ''}</p>`
+  if (o.runIn) {
+    // Run-in: the subentries follow their main entry on the same line, separated by semicolons.
+    const out: string[] = []
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i]
+      if (l.level !== 0) continue
+      const head = o.headings && l.letter !== letter ? ((letter = l.letter), `<p class="index-letter">${esc(l.letter)}</p>`) : ''
+      const subs: string[] = []
+      for (let k = i + 1; k < lines.length && lines[k].level === 1; k++) subs.push(`${lines[k].text}, ${lines[k].pages}`)
+      out.push(`${head}<p class="index-line index-level-0">${esc(l.text)}${l.pages ? `, ${esc(l.pages)}` : ''}${subs.length ? `: ${esc(subs.join('; '))}` : ''}</p>`)
+    }
+    return out.join('')
+  }
   return lines
     .map((l) => {
-      const head = l.level === 0 && l.letter !== letter ? ((letter = l.letter), `<p class="index-letter">${esc(l.letter)}</p>`) : ''
-      return `${head}<p class="index-line index-level-${l.level}">${esc(l.text)}${l.pages ? `, ${esc(l.pages)}` : ''}</p>`
+      const head = o.headings && l.level === 0 && l.letter !== letter ? ((letter = l.letter), `<p class="index-letter">${esc(l.letter)}</p>`) : ''
+      return `${head}${line(l.text, l.pages, l.level)}`
     })
     .join('')
 }
@@ -186,7 +209,7 @@ declare module '@tiptap/core' {
       insertCitation: (sourceId: string, pages?: string) => ReturnType
       insertBibliography: (heading?: string | null) => ReturnType
       markIndexEntry: (term: string, sub?: string) => ReturnType
-      insertIndex: () => ReturnType
+      insertIndex: (options?: Partial<IndexOptions>) => ReturnType
     }
   }
 }
@@ -260,7 +283,18 @@ export const IndexNode = Node.create({
   atom: true,
   selectable: true,
   addAttributes() {
-    return { columns: { default: 2, parseHTML: (el) => Number(el.getAttribute('data-columns') ?? 2), renderHTML: (a) => ({ 'data-columns': a.columns }) } }
+    const flag = (key: 'rightAlign' | 'headings' | 'runIn', data: string) => ({
+      default: DEFAULT_INDEX_OPTIONS[key],
+      parseHTML: (el: HTMLElement) => (el.hasAttribute(data) ? el.getAttribute(data) === 'true' : DEFAULT_INDEX_OPTIONS[key]),
+      renderHTML: (a: Record<string, unknown>) => (a[key] === DEFAULT_INDEX_OPTIONS[key] ? {} : { [data]: String(a[key]) }),
+    })
+    return {
+      columns: { default: 2, parseHTML: (el) => Number(el.getAttribute('data-columns') ?? 2), renderHTML: (a) => ({ 'data-columns': a.columns, style: `column-count: ${Math.max(1, Math.min(4, Number(a.columns) || 1))}` }) },
+      rightAlign: flag('rightAlign', 'data-right-align'),
+      headings: flag('headings', 'data-headings'),
+      runIn: flag('runIn', 'data-run-in'),
+      leader: { default: 'dot', parseHTML: (el) => el.getAttribute('data-leader') ?? 'dot', renderHTML: (a) => (a.leader === 'dot' ? {} : { 'data-leader': a.leader }) },
+    }
   },
   parseHTML() {
     return [{ tag: 'div[data-document-index]' }]
@@ -296,9 +330,9 @@ export const Citations = Extension.create({
           return true
         },
       insertIndex:
-        () =>
+        (options = {}) =>
         ({ commands }) =>
-          commands.insertContent({ type: 'documentIndex' }),
+          commands.insertContent({ type: 'documentIndex', attrs: options }),
     }
   },
 
@@ -324,7 +358,8 @@ export const Citations = Extension.create({
               }
             })
             view.dom.querySelectorAll<HTMLElement>('[data-document-index]').forEach((dom) => {
-              const html = indexHtml(doc)
+              const node = view.state.doc.nodeAt(view.posAtDOM(dom, 0))
+              const html = indexHtml(doc, (node?.attrs ?? {}) as Partial<IndexOptions>)
               if (dom.dataset.html !== html) {
                 dom.innerHTML = html
                 dom.dataset.html = html

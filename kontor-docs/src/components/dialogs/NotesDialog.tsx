@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { formatNoteNumber, type NoteFormat, type NoteKind } from '../../editor/Notes'
 import { Modal, OkCancel } from '../ui'
 import type { AppApi } from '../tabs/types'
+import { t } from '../../i18n'
 
 const FORMATS: NoteFormat[] = ['decimal', 'lowerLetter', 'upperLetter', 'lowerRoman', 'upperRoman', 'symbol']
 
@@ -19,12 +20,12 @@ export function NotesDialog({ app, onClose }: { app: AppApi; onClose: () => void
     )
   return (
     <Modal
-      title="Footnote and Endnote"
+      title={t('Footnote and Endnote')}
       onClose={onClose}
       width={400}
       footer={
         <OkCancel
-          okLabel="Insert"
+          okLabel={t('Insert')}
           onOk={() => {
             app.setNoteSettings(s)
             onClose()
@@ -40,27 +41,25 @@ export function NotesDialog({ app, onClose }: { app: AppApi; onClose: () => void
                 onClose()
               }}
             >
-              Apply
-            </button>
+              {t('Apply')}</button>
           }
         />
       }
     >
       <div className="dlg-stack">
         <fieldset className="dlg-fieldset">
-          <legend>Location</legend>
+          <legend>{t('Location')}</legend>
           <label className="dlg-inline">
-            <input type="radio" checked={kind === 'footnote'} onChange={() => setKind('footnote')} /> Footnotes: <span className="dlg-hint">Bottom of page</span>
+            <input type="radio" checked={kind === 'footnote'} onChange={() => setKind('footnote')} /> {t('Footnotes:')}{' '}<span className="dlg-hint">{t('Bottom of page')}</span>
           </label>
           <label className="dlg-inline">
-            <input type="radio" checked={kind === 'endnote'} onChange={() => setKind('endnote')} /> Endnotes: <span className="dlg-hint">End of document</span>
+            <input type="radio" checked={kind === 'endnote'} onChange={() => setKind('endnote')} /> {t('Endnotes:')}{' '}<span className="dlg-hint">{t('End of document')}</span>
           </label>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Format</legend>
+          <legend>{t('Format')}</legend>
           <label className="dlg-inline">
-            Number format:
-            <select value={format} onChange={(e) => set({ format: e.target.value as NoteFormat })}>
+            {t('Number format:')}<select value={format} onChange={(e) => set({ format: e.target.value as NoteFormat })}>
               {FORMATS.map((f) => (
                 <option key={f} value={f}>
                   {[1, 2, 3].map((n) => formatNoteNumber(n, f)).join(', ')}, …
@@ -69,7 +68,7 @@ export function NotesDialog({ app, onClose }: { app: AppApi; onClose: () => void
             </select>
           </label>
           <label className="dlg-inline">
-            Start at: <input type="number" min={1} max={999} value={start} onChange={(e) => set({ start: Math.max(1, Number(e.target.value) || 1) })} />
+            {t('Start at:')}{' '}<input type="number" min={1} max={999} value={start} onChange={(e) => set({ start: Math.max(1, Number(e.target.value) || 1) })} />
           </label>
         </fieldset>
       </div>

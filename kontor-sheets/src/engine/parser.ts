@@ -1,6 +1,7 @@
 import { MAX_COLS, MAX_ROWS } from '../model/address'
 import type { ErrorCode } from '../model/types'
 import { tokenize, type RefParts, type Token } from './tokenizer'
+import { t } from '../i18n'
 
 export type Area = { r1: number; c1: number; r2: number; c2: number }
 
@@ -70,8 +71,8 @@ class Parser {
 
   parse(): Node {
     const n = this.expr(0)
-    const t = this.peek()
-    if (t) throw new ParseError(`Unexpected "${t.text}"`)
+    const tok = this.peek()
+    if (tok) throw new ParseError(t('Unexpected "{text}"', { text: tok.text }))
     return n
   }
 
@@ -83,41 +84,41 @@ class Parser {
     let left = this.prefix()
     for (;;) {
       const hadWs = this.wsAhead()
-      const t = this.peek()
-      if (!t) break
-      if (t.type === 'op' && t.text === '%' && PREC_PCT >= min) {
+      const tok = this.peek()
+      if (!tok) break
+      if (tok.type === 'op' && tok.text === '%' && PREC_PCT >= min) {
         this.next()
         left = { k: 'pct', a: left }
         continue
       }
-      if (t.type === 'op' && t.text === ':' && PREC_RANGE >= min) {
+      if (tok.type === 'op' && tok.text === ':' && PREC_RANGE >= min) {
         this.next()
         const right = this.prefixRangeOperand()
         left = { k: 'bin', op: ':', a: left, b: right }
         continue
       }
-      if (t.type === 'spill') {
+      if (tok.type === 'spill') {
         this.next()
         left = { k: 'spill', a: left }
         continue
       }
-      if (t.type === 'lparen' && !hadWs && (left.k === 'fn' || left.k === 'call' || left.k === 'name')) {
+      if (tok.type === 'lparen' && !hadWs && (left.k === 'fn' || left.k === 'call' || left.k === 'name')) {
         // LAMBDA(...)(args) or name(args) invocation
         this.next()
         left = { k: 'call', callee: left, args: this.args() }
         continue
       }
-      if (hadWs && this.canStartOperand(t) && PREC_ISECT >= min && isRefLike(left)) {
+      if (hadWs && this.canStartOperand(tok) && PREC_ISECT >= min && isRefLike(left)) {
         const right = this.expr(PREC_ISECT + 1)
         left = { k: 'bin', op: ' ', a: left, b: right }
         continue
       }
-      if (t.type === 'op' && BIN_PREC[t.text] !== undefined) {
-        const p = BIN_PREC[t.text]
+      if (tok.type === 'op' && BIN_PREC[tok.text] !== undefined) {
+        const p = BIN_PREC[tok.text]
         if (p < min) break
         this.next()
         const right = this.expr(p + 1)
-        left = { k: 'bin', op: t.text, a: left, b: right }
+        left = { k: 'bin', op: tok.text, a: left, b: right }
         continue
       }
       break
@@ -126,9 +127,9 @@ class Parser {
   }
 
   private prefixRangeOperand(): Node {
-    const t = this.peek()
-    if (t?.type === 'ref' || t?.type === 'name' || t?.type === 'func' || t?.type === 'lparen' || t?.type === 'struct') return this.prefix()
-    throw new ParseError('Expected a reference after ":"')
+    const tok = this.peek()
+    if (tok?.type === 'ref' || tok?.type === 'name' || tok?.type === 'func' || tok?.type === 'lparen' || tok?.type === 'struct') return this.prefix()
+    throw new ParseError(t('Expected a reference after ":"'))
   }
 
   private args(): Node[] {
@@ -138,37 +139,37 @@ class Parser {
       return args
     }
     for (;;) {
-      const t = this.peek()
-      if (!t) throw new ParseError('Missing ")"')
-      args.push(t.type === 'comma' || t.type === 'rparen' ? { k: 'empty' } : this.expr(0))
+      const tok = this.peek()
+      if (!tok) throw new ParseError(t('Missing ")"'))
+      args.push(tok.type === 'comma' || tok.type === 'rparen' ? { k: 'empty' } : this.expr(0))
       const sep = this.next()
-      if (!sep) throw new ParseError('Missing ")"')
+      if (!sep) throw new ParseError(t('Missing ")"'))
       if (sep.type === 'rparen') return args
-      if (sep.type !== 'comma') throw new ParseError(`Unexpected "${sep.text}"`)
+      if (sep.type !== 'comma') throw new ParseError(t('Unexpected "{text}"', { text: sep.text }))
     }
   }
 
   private prefix(): Node {
-    const t = this.next()
-    if (!t) throw new ParseError('Formula is incomplete')
-    switch (t.type) {
-      case 'num': return { k: 'num', v: t.num! }
-      case 'str': return { k: 'str', v: t.str! }
-      case 'bool': return { k: 'bool', v: t.bool! }
-      case 'err': return { k: 'err', v: t.err! }
-      case 'ref': return { k: 'ref', sheet: t.ref!.sheet, sheet2: t.ref!.sheet2, area: refArea(t.ref!) }
-      case 'name': return { k: 'name', name: t.id!, sheet: t.sheet }
-      case 'struct': return { k: 'struct', table: t.table ?? '', spec: t.spec ?? '[]' }
+    const tok = this.next()
+    if (!tok) throw new ParseError(t('Formula is incomplete'))
+    switch (tok.type) {
+      case 'num': return { k: 'num', v: tok.num! }
+      case 'str': return { k: 'str', v: tok.str! }
+      case 'bool': return { k: 'bool', v: tok.bool! }
+      case 'err': return { k: 'err', v: tok.err! }
+      case 'ref': return { k: 'ref', sheet: tok.ref!.sheet, sheet2: tok.ref!.sheet2, area: refArea(tok.ref!) }
+      case 'name': return { k: 'name', name: tok.id!, sheet: tok.sheet }
+      case 'struct': return { k: 'struct', table: tok.table ?? '', spec: tok.spec ?? '[]' }
       case 'func': {
         const open = this.toks[this.i]
-        if (open?.type !== 'lparen') throw new ParseError('Expected "("')
+        if (open?.type !== 'lparen') throw new ParseError(t('Expected "("'))
         this.i++
-        return { k: 'fn', name: t.id!, args: this.args() }
+        return { k: 'fn', name: tok.id!, args: this.args() }
       }
       case 'at': return { k: 'at', a: this.expr(PREC_UNARY) }
       case 'op':
-        if (t.text === '-' || t.text === '+') return { k: 'un', op: t.text, a: this.expr(PREC_UNARY) }
-        throw new ParseError(`Unexpected "${t.text}"`)
+        if (tok.text === '-' || tok.text === '+') return { k: 'un', op: tok.text, a: this.expr(PREC_UNARY) }
+        throw new ParseError(t('Unexpected "{text}"', { text: tok.text }))
       case 'lparen': {
         const first = this.expr(0)
         const items = [first]
@@ -177,40 +178,40 @@ class Parser {
           items.push(this.expr(0))
         }
         const close = this.next()
-        if (close?.type !== 'rparen') throw new ParseError('Missing ")"')
+        if (close?.type !== 'rparen') throw new ParseError(t('Missing ")"'))
         return items.length > 1 ? { k: 'union', items } : first
       }
       case 'lbrace': return this.array()
       default:
-        throw new ParseError(`Unexpected "${t.text}"`)
+        throw new ParseError(t('Unexpected "{text}"', { text: tok.text }))
     }
   }
 
   private array(): Node {
     const rows: Node[][] = [[]]
     for (;;) {
-      const t = this.next()
-      if (!t) throw new ParseError('Missing "}"')
-      if (t.type === 'rbrace') break
-      if (t.type === 'comma') continue
-      if (t.type === 'semi') {
+      const tok = this.next()
+      if (!tok) throw new ParseError(t('Missing "}"'))
+      if (tok.type === 'rbrace') break
+      if (tok.type === 'comma') continue
+      if (tok.type === 'semi') {
         rows.push([])
         continue
       }
       let node: Node
-      if (t.type === 'op' && (t.text === '-' || t.text === '+')) {
+      if (tok.type === 'op' && (tok.text === '-' || tok.text === '+')) {
         const n = this.next()
-        if (n?.type !== 'num') throw new ParseError('Array constants may only contain values')
-        node = { k: 'num', v: t.text === '-' ? -n.num! : n.num! }
-      } else if (t.type === 'num') node = { k: 'num', v: t.num! }
-      else if (t.type === 'str') node = { k: 'str', v: t.str! }
-      else if (t.type === 'bool') node = { k: 'bool', v: t.bool! }
-      else if (t.type === 'err') node = { k: 'err', v: t.err! }
-      else throw new ParseError('Array constants may only contain values')
+        if (n?.type !== 'num') throw new ParseError(t('Array constants may only contain values'))
+        node = { k: 'num', v: tok.text === '-' ? -n.num! : n.num! }
+      } else if (tok.type === 'num') node = { k: 'num', v: tok.num! }
+      else if (tok.type === 'str') node = { k: 'str', v: tok.str! }
+      else if (tok.type === 'bool') node = { k: 'bool', v: tok.bool! }
+      else if (tok.type === 'err') node = { k: 'err', v: tok.err! }
+      else throw new ParseError(t('Array constants may only contain values'))
       rows[rows.length - 1].push(node)
     }
     const w = rows[0].length
-    if (rows.some((r) => r.length !== w)) throw new ParseError('Array rows must have the same length')
+    if (rows.some((r) => r.length !== w)) throw new ParseError(t('Array rows must have the same length'))
     return { k: 'arr', rows }
   }
 }

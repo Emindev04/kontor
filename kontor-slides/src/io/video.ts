@@ -3,12 +3,13 @@
 // are shown in their final state.
 import type { Presentation, TransitionName } from '../model/types'
 import { slideImage } from './slideImages'
+import { tx, t } from '../i18n'
 
 export type VideoQuality = { label: string; width: number }
 export const VIDEO_QUALITIES: VideoQuality[] = [
-  { label: 'Full HD (1080p)', width: 1920 },
-  { label: 'HD (720p)', width: 1280 },
-  { label: 'Standard (480p)', width: 852 },
+  { label: tx('Full HD (1080p)'), width: 1920 },
+  { label: tx('HD (720p)'), width: 1280 },
+  { label: tx('Standard (480p)'), width: 852 },
 ]
 
 export type VideoOptions = {
@@ -111,11 +112,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 /** Records the presentation as a video file. */
 export async function slidesVideo(pres: Presentation, opts: VideoOptions): Promise<{ blob: Blob; ext: string }> {
   const fmt = videoMime()
-  if (!fmt) throw new Error('This browser cannot record video.')
+  if (!fmt) throw new Error(t('This browser cannot record video.'))
   const w = even(opts.width)
   const h = even((opts.width * pres.size.h) / pres.size.w)
   const frames = await renderFrames(pres, w, opts)
-  if (!frames.length) throw new Error('There are no slides to show.')
+  if (!frames.length) throw new Error(t('There are no slides to show.'))
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h

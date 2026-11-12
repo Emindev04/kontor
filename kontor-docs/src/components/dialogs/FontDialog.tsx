@@ -4,25 +4,29 @@ import { DialogTabs, Modal, OkCancel } from '../ui'
 import { FONTS } from '../tabs/HomeTab'
 import { FONT_SIZES, currentFont, currentFontSize, formatSize, parseSize } from '../../editor/commands'
 import type { UnderlineStyle } from '../../editor/TextEffects'
+import { t, tx } from '../../i18n'
+import { queryAllFonts, useFontList } from '../../editor/installedFonts'
 
 type Style = 'Regular' | 'Italic' | 'Bold' | 'Bold Italic'
+const STYLE_LABELS: Record<Style, string> = { Regular: tx('Regular'), Italic: tx('Italic'), Bold: tx('Bold'), 'Bold Italic': tx('Bold Italic') }
 type Tab = 'font' | 'advanced'
 
 const UNDERLINES: { id: UnderlineStyle | 'none'; label: string }[] = [
-  { id: 'none', label: '(none)' },
-  { id: 'single', label: 'Single' },
-  { id: 'words', label: 'Words only' },
-  { id: 'double', label: 'Double' },
-  { id: 'thick', label: 'Thick' },
-  { id: 'dotted', label: 'Dotted' },
-  { id: 'dashed', label: 'Dashed' },
-  { id: 'wavy', label: 'Wave' },
+  { id: 'none', label: tx('(none)') },
+  { id: 'single', label: tx('Single') },
+  { id: 'words', label: tx('Words only') },
+  { id: 'double', label: tx('Double') },
+  { id: 'thick', label: tx('Thick') },
+  { id: 'dotted', label: tx('Dotted') },
+  { id: 'dashed', label: tx('Dashed') },
+  { id: 'wavy', label: tx('Wave') },
 ]
 
 /** Font dialog (Ctrl+D) with the Font and Advanced tabs. */
 export function FontDialog({ editor, onClose, onSetDefault }: { editor: Editor; onClose: () => void; onSetDefault?: (font: string, size: number) => void }) {
   const ts = editor.getAttributes('textStyle')
   const u = editor.getAttributes('underline')
+  const fontList = useFontList(FONTS)
   const [tab, setTab] = useState<Tab>('font')
   const [font, setFont] = useState(currentFont(editor))
   const [style, setStyle] = useState<Style>(
@@ -115,7 +119,7 @@ export function FontDialog({ editor, onClose, onSetDefault }: { editor: Editor; 
 
   return (
     <Modal
-      title="Font"
+      title={t('Font')}
       onClose={onClose}
       width={520}
       footer={
@@ -123,28 +127,39 @@ export function FontDialog({ editor, onClose, onSetDefault }: { editor: Editor; 
           onOk={apply}
           onCancel={onClose}
           extra={
-            onSetDefault && (
+            <>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                apply()
+                window.dispatchEvent(new CustomEvent('kontor:open-dialog', { detail: 'textEffects' }))
+              }}
+            >
+              {t('Text Effects…')}
+            </button>
+            {onSetDefault && (
               <button
                 type="button"
                 className="btn"
-                title="Use this font and size for the Normal style of new documents"
+                title={t('Use this font and size for the Normal style of new documents')}
                 onClick={() => {
-                  if (!confirm(`Set ${font}, ${size} pt as the default font for new documents?`)) return
+                  if (!confirm(t('Set {font}, {size} pt as the default font for new documents?', { font, size }))) return
                   onSetDefault(font, parseSize(size) || 11)
                   apply()
                 }}
               >
-                Set As Default
-              </button>
-            )
+                {t('Set As Default')}</button>
+            )}
+            </>
           }
         />
       }
     >
       <DialogTabs
         tabs={[
-          { id: 'font', label: 'Font' },
-          { id: 'advanced', label: 'Advanced' },
+          { id: 'font', label: t('Font') },
+          { id: 'advanced', label: t('Advanced') },
         ]}
         active={tab}
         onChange={setTab}
@@ -152,28 +167,30 @@ export function FontDialog({ editor, onClose, onSetDefault }: { editor: Editor; 
       {tab === 'font' ? (
         <div className="dlg-grid font-grid">
           <label>
-            Font:
-            <input value={font} onChange={(e) => setFont(e.target.value)} />
+            {t('Font:')}<input value={font} onChange={(e) => setFont(e.target.value)} />
             <select size={6} value={font} onChange={(e) => setFont(e.target.value)}>
-              {FONTS.map((f) => (
+              {fontList.map((f) => (
                 <option key={f} value={f}>
                   {f}
                 </option>
               ))}
             </select>
+            {'queryLocalFonts' in window && (
+              <button type="button" className="link-btn" onClick={() => void queryAllFonts()}>
+                {t('Show all installed fonts')}
+              </button>
+            )}
           </label>
           <label>
-            Font style:
-            <input value={style} readOnly />
+            {t('Font style:')}<input value={t(STYLE_LABELS[style])} readOnly />
             <select size={6} value={style} onChange={(e) => setStyle(e.target.value as Style)}>
               {(['Regular', 'Italic', 'Bold', 'Bold Italic'] as Style[]).map((s) => (
-                <option key={s}>{s}</option>
+                <option key={s} value={s}>{t(STYLE_LABELS[s])}</option>
               ))}
             </select>
           </label>
           <label>
-            Size:
-            <input value={size} onChange={(e) => setSize(e.target.value)} />
+            {t('Size:')}<input value={size} onChange={(e) => setSize(e.target.value)} />
             <select size={6} value={size} onChange={(e) => setSize(e.target.value)}>
               {FONT_SIZES.map((s) => (
                 <option key={s}>{s}</option>
@@ -181,53 +198,47 @@ export function FontDialog({ editor, onClose, onSetDefault }: { editor: Editor; 
             </select>
           </label>
           <label>
-            Font color:
-            <span className="color-field">
+            {t('Font color:')}<span className="color-field">
               <input type="color" value={color || '#000000'} onChange={(e) => setColor(e.target.value.toUpperCase())} />
               <button type="button" className="link-btn" onClick={() => setColor('')}>
-                Automatic
-              </button>
+                {t('Automatic')}</button>
             </span>
           </label>
           <label>
-            Underline style:
-            <select value={underline} onChange={(e) => setUnderline(e.target.value as UnderlineStyle | 'none')}>
+            {t('Underline style:')}<select value={underline} onChange={(e) => setUnderline(e.target.value as UnderlineStyle | 'none')}>
               {UNDERLINES.map((x) => (
                 <option key={x.id} value={x.id}>
-                  {x.label}
+                  {t(x.label)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Underline color:
-            <span className="color-field">
+            {t('Underline color:')}<span className="color-field">
               <input type="color" value={underlineColor || '#000000'} disabled={underline === 'none'} onChange={(e) => setUnderlineColor(e.target.value.toUpperCase())} />
               <button type="button" className="link-btn" disabled={underline === 'none'} onClick={() => setUnderlineColor('')}>
-                Automatic
-              </button>
+                {t('Automatic')}</button>
             </span>
           </label>
           <fieldset className="dlg-fieldset span-3">
-            <legend>Effects</legend>
+            <legend>{t('Effects')}</legend>
             <div className="effects-grid">
-              <label><input type="checkbox" checked={fx.strike} onChange={toggle('strike')} /> Strikethrough</label>
-              <label><input type="checkbox" checked={fx.smallCaps} onChange={toggle('smallCaps')} /> Small caps</label>
-              <label><input type="checkbox" checked={fx.doubleStrike} onChange={toggle('doubleStrike')} /> Double strikethrough</label>
-              <label><input type="checkbox" checked={fx.allCaps} onChange={toggle('allCaps')} /> All caps</label>
-              <label><input type="checkbox" checked={fx.superscript} onChange={toggle('superscript')} /> Superscript</label>
-              <label><input type="checkbox" checked={fx.hidden} onChange={toggle('hidden')} /> Hidden</label>
-              <label><input type="checkbox" checked={fx.subscript} onChange={toggle('subscript')} /> Subscript</label>
+              <label><input type="checkbox" checked={fx.strike} onChange={toggle('strike')} /> {t('Strikethrough')}</label>
+              <label><input type="checkbox" checked={fx.smallCaps} onChange={toggle('smallCaps')} /> {t('Small caps')}</label>
+              <label><input type="checkbox" checked={fx.doubleStrike} onChange={toggle('doubleStrike')} /> {t('Double strikethrough')}</label>
+              <label><input type="checkbox" checked={fx.allCaps} onChange={toggle('allCaps')} /> {t('All caps')}</label>
+              <label><input type="checkbox" checked={fx.superscript} onChange={toggle('superscript')} /> {t('Superscript')}</label>
+              <label><input type="checkbox" checked={fx.hidden} onChange={toggle('hidden')} /> {t('Hidden')}</label>
+              <label><input type="checkbox" checked={fx.subscript} onChange={toggle('subscript')} /> {t('Subscript')}</label>
             </div>
           </fieldset>
         </div>
       ) : (
         <div className="dlg-grid advanced-grid">
           <fieldset className="dlg-fieldset">
-            <legend>Character Spacing</legend>
+            <legend>{t('Character Spacing')}</legend>
             <label className="dlg-inline">
-              Scale:
-              <select value={scale} onChange={(e) => setScale(Number(e.target.value))}>
+              {t('Scale:')}<select value={scale} onChange={(e) => setScale(Number(e.target.value))}>
                 {[200, 150, 100, 90, 80, 66, 50, 33].map((s) => (
                   <option key={s} value={s}>
                     {s}%
@@ -236,63 +247,52 @@ export function FontDialog({ editor, onClose, onSetDefault }: { editor: Editor; 
               </select>
             </label>
             <label className="dlg-inline">
-              Spacing:
-              <select value={spacing === 0 ? 'normal' : spacing > 0 ? 'expanded' : 'condensed'} onChange={(e) => setSpacing(e.target.value === 'normal' ? 0 : e.target.value === 'expanded' ? Math.abs(spacing) || 1 : -(Math.abs(spacing) || 1))}>
-                <option value="normal">Normal</option>
-                <option value="expanded">Expanded</option>
-                <option value="condensed">Condensed</option>
+              {t('Spacing:')}<select value={spacing === 0 ? 'normal' : spacing > 0 ? 'expanded' : 'condensed'} onChange={(e) => setSpacing(e.target.value === 'normal' ? 0 : e.target.value === 'expanded' ? Math.abs(spacing) || 1 : -(Math.abs(spacing) || 1))}>
+                <option value="normal">{t('Normal')}</option>
+                <option value="expanded">{t('Expanded')}</option>
+                <option value="condensed">{t('Condensed')}</option>
               </select>
-              By:
-              <input type="number" step={0.1} min={0} value={Math.abs(spacing)} onChange={(e) => setSpacing(Math.sign(spacing || 1) * Number(e.target.value))} /> pt
-            </label>
+              {t('By:')}<input type="number" step={0.1} min={0} value={Math.abs(spacing)} onChange={(e) => setSpacing(Math.sign(spacing || 1) * Number(e.target.value))} /> {t('pt')}</label>
             <label className="dlg-inline">
-              Position:
-              <select value={position === 0 ? 'normal' : position > 0 ? 'raised' : 'lowered'} onChange={(e) => setPosition(e.target.value === 'normal' ? 0 : e.target.value === 'raised' ? Math.abs(position) || 3 : -(Math.abs(position) || 3))}>
-                <option value="normal">Normal</option>
-                <option value="raised">Raised</option>
-                <option value="lowered">Lowered</option>
+              {t('Position:')}<select value={position === 0 ? 'normal' : position > 0 ? 'raised' : 'lowered'} onChange={(e) => setPosition(e.target.value === 'normal' ? 0 : e.target.value === 'raised' ? Math.abs(position) || 3 : -(Math.abs(position) || 3))}>
+                <option value="normal">{t('Normal')}</option>
+                <option value="raised">{t('Raised')}</option>
+                <option value="lowered">{t('Lowered')}</option>
               </select>
-              By:
-              <input type="number" step={0.5} min={0} value={Math.abs(position)} onChange={(e) => setPosition(Math.sign(position || 1) * Number(e.target.value))} /> pt
-            </label>
+              {t('By:')}<input type="number" step={0.5} min={0} value={Math.abs(position)} onChange={(e) => setPosition(Math.sign(position || 1) * Number(e.target.value))} /> {t('pt')}</label>
             <label className="dlg-inline">
-              <input type="checkbox" checked={kerning != null} onChange={(e) => setKerning(e.target.checked ? 14 : null)} /> Kerning for fonts:
-              <input type="number" min={1} step={0.5} value={kerning ?? 14} disabled={kerning == null} onChange={(e) => setKerning(Number(e.target.value) || 1)} /> Points and above
-            </label>
+              <input type="checkbox" checked={kerning != null} onChange={(e) => setKerning(e.target.checked ? 14 : null)} /> {t('Kerning for fonts:')}<input type="number" min={1} step={0.5} value={kerning ?? 14} disabled={kerning == null} onChange={(e) => setKerning(Number(e.target.value) || 1)} /> {t('Points and above')}</label>
           </fieldset>
           <fieldset className="dlg-fieldset">
-            <legend>OpenType Features</legend>
+            <legend>{t('OpenType Features')}</legend>
             <label className="dlg-inline">
-              Ligatures:
-              <select value={ligatures} onChange={(e) => setLigatures(e.target.value)}>
-                <option value="none">None</option>
-                <option value="standard">Standard Only</option>
-                <option value="contextual">Standard and Contextual</option>
-                <option value="historical">Historical and Discretionary</option>
-                <option value="all">All</option>
+              {t('Ligatures:')}<select value={ligatures} onChange={(e) => setLigatures(e.target.value)}>
+                <option value="none">{t('None')}</option>
+                <option value="standard">{t('Standard Only')}</option>
+                <option value="contextual">{t('Standard and Contextual')}</option>
+                <option value="historical">{t('Historical and Discretionary')}</option>
+                <option value="all">{t('All')}</option>
               </select>
             </label>
             <label className="dlg-inline">
-              Number spacing:
-              <select value={numSpacing} onChange={(e) => setNumSpacing(e.target.value)}>
-                <option value="default">Default</option>
-                <option value="proportional">Proportional</option>
-                <option value="tabular">Tabular</option>
+              {t('Number spacing:')}<select value={numSpacing} onChange={(e) => setNumSpacing(e.target.value)}>
+                <option value="default">{t('Default')}</option>
+                <option value="proportional">{t('Proportional')}</option>
+                <option value="tabular">{t('Tabular')}</option>
               </select>
             </label>
             <label className="dlg-inline">
-              Number forms:
-              <select value={numForms} onChange={(e) => setNumForms(e.target.value)}>
-                <option value="default">Default</option>
-                <option value="lining">Lining</option>
-                <option value="oldstyle">Old-style</option>
+              {t('Number forms:')}<select value={numForms} onChange={(e) => setNumForms(e.target.value)}>
+                <option value="default">{t('Default')}</option>
+                <option value="lining">{t('Lining')}</option>
+                <option value="oldstyle">{t('Old-style')}</option>
               </select>
             </label>
           </fieldset>
         </div>
       )}
       <fieldset className="dlg-fieldset">
-        <legend>Preview</legend>
+        <legend>{t('Preview')}</legend>
         <div className="font-preview">
           <span style={previewStyle}>{editor.state.selection.empty ? font : editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ').slice(0, 40) || font}</span>
         </div>

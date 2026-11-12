@@ -4,6 +4,7 @@ import { DialogTabs, Modal, OkCancel, cls } from '../ui'
 import { WRAP_LABELS, isFloating, type DrawingAlign, type WrapMode } from '../../editor/Drawing'
 import { selectedDrawing, updateDrawing } from '../tabs/DrawingGroups'
 import { formatLength, parseLength, PX_PER_IN, type Unit } from '../../units'
+import { t } from '../../i18n'
 
 const WRAPS: WrapMode[] = ['inline', 'square', 'tight', 'through', 'topBottom', 'behind', 'front']
 
@@ -46,12 +47,12 @@ export function LayoutOptionsDialog({ editor, unit, onClose }: { editor: Editor;
     onClose()
   }
   return (
-    <Modal title="Layout" onClose={onClose} width={480} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Layout')} onClose={onClose} width={480} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <DialogTabs
         tabs={[
-          { id: 'position', label: 'Position' },
-          { id: 'wrap', label: 'Text Wrapping' },
-          { id: 'size', label: 'Size' },
+          { id: 'position', label: t('Position') },
+          { id: 'wrap', label: t('Text Wrapping') },
+          { id: 'size', label: t('Size') },
         ]}
         active={tab}
         onChange={setTab}
@@ -59,47 +60,45 @@ export function LayoutOptionsDialog({ editor, unit, onClose }: { editor: Editor;
       {tab === 'wrap' && (
         <div className="dlg-stack">
           <fieldset className="dlg-fieldset">
-            <legend>Wrapping style</legend>
+            <legend>{t('Wrapping style')}</legend>
             <div className="wrap-grid">
               {WRAPS.map((m) => (
                 <button key={m} type="button" className={cls('wrap-tile', wrap === m && 'is-active')} onClick={() => setWrap(m)}>
                   <span className={`wrap-icon wrap-${m}`} />
-                  {WRAP_LABELS[m]}
+                  {t(WRAP_LABELS[m])}
                 </button>
               ))}
             </div>
           </fieldset>
           <fieldset className="dlg-fieldset" disabled={wrap === 'inline' || isFloating(wrap)}>
-            <legend>Wrap text</legend>
-            <label><input type="radio" checked={align === 'right'} onChange={() => setAlign('right')} /> Left only (picture on the right)</label>
-            <label><input type="radio" checked={align === 'left'} onChange={() => setAlign('left')} /> Right only (picture on the left)</label>
-            <label><input type="radio" checked={align === 'center'} disabled={wrap !== 'topBottom'} onChange={() => setAlign('center')} /> Centered (top and bottom)</label>
+            <legend>{t('Wrap text')}</legend>
+            <label><input type="radio" checked={align === 'right'} onChange={() => setAlign('right')} /> {t('Left only (picture on the right)')}</label>
+            <label><input type="radio" checked={align === 'left'} onChange={() => setAlign('left')} /> {t('Right only (picture on the left)')}</label>
+            <label><input type="radio" checked={align === 'center'} disabled={wrap !== 'topBottom'} onChange={() => setAlign('center')} /> {t('Centered (top and bottom)')}</label>
           </fieldset>
         </div>
       )}
       {tab === 'position' && (
         <div className="dlg-stack">
-          <p className="dlg-hint">{isFloating(wrap) ? 'Offsets from the paragraph the object is anchored to.' : 'Choose “Behind Text” or “In Front of Text” to place the object freely.'}</p>
+          <p className="dlg-hint">{isFloating(wrap) ? t('Offsets from the paragraph the object is anchored to.') : t('Choose “Behind Text” or “In Front of Text” to place the object freely.')}</p>
           <fieldset className="dlg-fieldset" disabled={!isFloating(wrap)}>
-            <legend>Horizontal</legend>
+            <legend>{t('Horizontal')}</legend>
             <label className="dlg-inline">
-              Absolute position: <input value={x} onChange={(e) => setX(e.target.value)} /> to the right of the anchor
-            </label>
+              {t('Absolute position:')}{' '}<input value={x} onChange={(e) => setX(e.target.value)} /> {t('to the right of the anchor')}</label>
           </fieldset>
           <fieldset className="dlg-fieldset" disabled={!isFloating(wrap)}>
-            <legend>Vertical</legend>
+            <legend>{t('Vertical')}</legend>
             <label className="dlg-inline">
-              Absolute position: <input value={y} onChange={(e) => setY(e.target.value)} /> below the anchor
-            </label>
+              {t('Absolute position:')}{' '}<input value={y} onChange={(e) => setY(e.target.value)} /> {t('below the anchor')}</label>
           </fieldset>
         </div>
       )}
       {tab === 'size' && (
         <div className="dlg-stack">
           <fieldset className="dlg-fieldset dlg-two">
-            <legend>Size</legend>
+            <legend>{t('Size')}</legend>
             <label className="dlg-inline">
-              Height:{' '}
+              {t('Height:')}{' '}
               <input
                 value={h}
                 onChange={(e) => {
@@ -110,7 +109,7 @@ export function LayoutOptionsDialog({ editor, unit, onClose }: { editor: Editor;
               />
             </label>
             <label className="dlg-inline">
-              Width:{' '}
+              {t('Width:')}{' '}
               <input
                 value={w}
                 onChange={(e) => {
@@ -121,11 +120,10 @@ export function LayoutOptionsDialog({ editor, unit, onClose }: { editor: Editor;
               />
             </label>
             <label className="dlg-inline">
-              Rotation: <input type="number" value={rotation} onChange={(e) => setRotation(e.target.value)} /> °
+              {t('Rotation:')}{' '}<input type="number" value={rotation} onChange={(e) => setRotation(e.target.value)} /> °
             </label>
             <label>
-              <input type="checkbox" checked={lock} onChange={(e) => setLock(e.target.checked)} /> Lock aspect ratio
-            </label>
+              <input type="checkbox" checked={lock} onChange={(e) => setLock(e.target.checked)} /> {t('Lock aspect ratio')}</label>
           </fieldset>
         </div>
       )}
@@ -152,17 +150,17 @@ export function CropDialog({ editor, onClose }: { editor: Editor; onClose: () =>
   }
   const field = (k: keyof typeof c, label: string) => (
     <label className="dlg-inline">
-      {label}: <input type="number" min={0} max={90} value={c[k]} onChange={(e) => setC({ ...c, [k]: Number(e.target.value) || 0 })} /> %
+      {label} <input type="number" min={0} max={90} value={c[k]} onChange={(e) => setC({ ...c, [k]: Number(e.target.value) || 0 })} /> %
     </label>
   )
   return (
-    <Modal title="Crop" onClose={onClose} width={340} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Crop')} onClose={onClose} width={340} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <fieldset className="dlg-fieldset dlg-two">
-        <legend>Crop from</legend>
-        {field('top', 'Top')}
-        {field('bottom', 'Bottom')}
-        {field('left', 'Left')}
-        {field('right', 'Right')}
+        <legend>{t('Crop from')}</legend>
+        {field('top', t('Top:'))}
+        {field('bottom', t('Bottom:'))}
+        {field('left', t('Left:'))}
+        {field('right', t('Right:'))}
       </fieldset>
     </Modal>
   )

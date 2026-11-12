@@ -40,3 +40,32 @@ export function hyphenateManually(editor: Editor) {
   if (words) editor.view.dispatch(tr)
   return words
 }
+
+/** Syllable breaks of a word for Read Mode › Syllables (shorter words too; English rules). */
+export function syllablePoints(word: string): number[] {
+  if (word.length < 4 || !/^[A-Za-z]+$/.test(word)) return []
+  const points: number[] = []
+  for (let i = 1; i <= word.length - 2; i++) {
+    const [a, b, c] = [word[i - 1], word[i], word[i + 1]]
+    if (!c) break
+    const vccv = VOWEL.test(word[i - 2] ?? '') && !VOWEL.test(a) && !VOWEL.test(b) && VOWEL.test(c) && !/^(ch|sh|th|ph|wh|ck|ng)$/i.test(a + b)
+    const vcv = VOWEL.test(a) && !VOWEL.test(b) && VOWEL.test(c) && !(c === 'e' && i + 2 === word.length)
+    if ((vccv || vcv) && (!points.length || i - points[points.length - 1] >= 2)) points.push(i)
+  }
+  return points
+}
+
+/** A text with syllables separated by middle dots ("syl·la·bles"). */
+export function withSyllables(text: string): string {
+  return text.replace(/[A-Za-z]{4,}/g, (w) => {
+    const points = syllablePoints(w)
+    if (!points.length) return w
+    let out = ''
+    let last = 0
+    for (const p of points) {
+      out += `${w.slice(last, p)}·`
+      last = p
+    }
+    return out + w.slice(last)
+  })
+}

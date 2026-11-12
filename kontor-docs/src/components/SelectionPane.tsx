@@ -4,6 +4,7 @@ import type { Editor } from '@tiptap/react'
 import { NodeSelection } from '@tiptap/pm/state'
 import { getMultiSelection, listDrawings, setMultiSelection } from '../editor/DrawingSelection'
 import { cls, keepFocus } from './ui'
+import { t } from '../i18n'
 
 /** Selection Pane: every drawing object, front to back, to select, rename, hide and reorder. */
 export function SelectionPane({ editor, onClose }: { editor: Editor; onClose: () => void }) {
@@ -43,33 +44,31 @@ export function SelectionPane({ editor, onClose }: { editor: Editor; onClose: ()
   const current = ordered.find((d) => selected(d.pos))
 
   return (
-    <aside className="styles-pane selection-pane" aria-label="Selection">
+    <aside className="styles-pane selection-pane" aria-label={t('Selection')}>
       <div className="nav-head">
-        <strong>Selection</strong>
-        <button type="button" className="sb-btn" aria-label="Close Selection Pane" onClick={onClose}>
+        <strong>{t('Selection')}</strong>
+        <button type="button" className="sb-btn" aria-label={t('Close Selection Pane')} onClick={onClose}>
           <X size={14} />
         </button>
       </div>
       <div className="selection-pane-tools">
         <button type="button" className="btn" onClick={() => setAll(false)}>
-          Show All
-        </button>
+          {t('Show All')}</button>
         <button type="button" className="btn" onClick={() => setAll(true)}>
-          Hide All
-        </button>
+          {t('Hide All')}</button>
         <span className="spacer" />
-        <button type="button" className="sb-btn" title="Bring Forward" aria-label="Bring Forward" disabled={!current} onClick={() => current && move(current.pos, 1)}>
+        <button type="button" className="sb-btn" title={t('Bring Forward')} aria-label={t('Bring Forward')} disabled={!current} onClick={() => current && move(current.pos, 1)}>
           <ChevronUp size={14} />
         </button>
-        <button type="button" className="sb-btn" title="Send Backward" aria-label="Send Backward" disabled={!current} onClick={() => current && move(current.pos, -1)}>
+        <button type="button" className="sb-btn" title={t('Send Backward')} aria-label={t('Send Backward')} disabled={!current} onClick={() => current && move(current.pos, -1)}>
           <ChevronDown size={14} />
         </button>
       </div>
       <div className="nav-list" role="listbox" aria-multiselectable="true">
-        {ordered.length === 0 && <p className="dlg-hint selection-empty">There are no shapes, pictures, charts or text boxes in this document.</p>}
+        {ordered.length === 0 && <p className="dlg-hint selection-empty">{t('There are no shapes, pictures, charts or text boxes in this document.')}</p>}
         {ordered.map((d) => (
           <div key={d.pos} role="option" aria-selected={selected(d.pos)} className={cls('selection-row', selected(d.pos) && 'is-active', !!d.node.attrs.hidden && 'is-hidden')}>
-            {d.node.attrs.groupId && <Group size={12} className="selection-group" aria-label="Grouped" />}
+            {d.node.attrs.groupId && <Group size={12} className="selection-group" aria-label={t('Grouped')} />}
             {renaming === d.pos ? (
               <input
                 className="selection-name-input"
@@ -85,11 +84,11 @@ export function SelectionPane({ editor, onClose }: { editor: Editor; onClose: ()
                 }}
               />
             ) : (
-              <button type="button" className="selection-name" title="Click to select, Ctrl/Shift+click to add, double-click to rename" onMouseDown={keepFocus} onClick={(e) => select(d.pos, e.shiftKey || e.ctrlKey || e.metaKey)} onDoubleClick={() => setRenaming(d.pos)}>
+              <button type="button" className="selection-name" title={t('Click to select, Ctrl/Shift+click to add, double-click to rename')} onMouseDown={keepFocus} onClick={(e) => select(d.pos, e.shiftKey || e.ctrlKey || e.metaKey)} onDoubleClick={() => setRenaming(d.pos)}>
                 {d.name}
               </button>
             )}
-            <button type="button" className="sb-btn" aria-label={d.node.attrs.hidden ? `Show ${d.name}` : `Hide ${d.name}`} title={d.node.attrs.hidden ? 'Show' : 'Hide'} onClick={() => patch(d.pos, { hidden: !d.node.attrs.hidden })}>
+            <button type="button" className="sb-btn" aria-label={d.node.attrs.hidden ? t('Show {name}', { name: d.name }) : t('Hide {name}', { name: d.name })} title={d.node.attrs.hidden ? t('Show') : t('Hide')} onClick={() => patch(d.pos, { hidden: !d.node.attrs.hidden })}>
               {d.node.attrs.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           </div>

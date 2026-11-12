@@ -5,12 +5,13 @@ import type { Anchor, ChartDef, ShapeObj, SheetObject, SlicerObj } from '../mode
 import { FilterX, ListChecks } from 'lucide-react'
 import { clearSlicer, clickSlicerItem, setTimelineLevel, setTimelineRange, slicerItems, timelineSpan } from '../commands/slicers'
 import type { Doc } from '../commands/doc'
-import { selectObject, updateObject } from '../commands/objects'
+import { selectObject, updateObject, moveEach, selectedIds } from '../commands/objects'
 import { chartData } from '../charts/chartData'
 import { renderChartSVG } from '../charts/renderChart'
 import { shapeSVG } from '../charts/shapes'
 import type { Geometry } from './geometry'
 import { sheetToCanvas } from './render'
+import { formatDate, t, tx } from '../i18n'
 
 type Drag = { id: number; mode: 'move' | 'resize' | 'rotate'; handle?: string; x0: number; y0: number; orig: Anchor; rot0: number; moved: boolean }
 
@@ -64,7 +65,7 @@ function ShapeView({ o, w, h, editing, onDone }: { o: ShapeObj; w: number; h: nu
   )
 }
 
-const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MON3 = Array.from({ length: 12 }, (_, m) => formatDate(new Date(Date.UTC(2000, m, 1)), { month: 'short', timeZone: 'UTC' }))
 const toDate = (serial: number) => new Date(Math.round((serial - 25569) * 86400000))
 const toSerial = (y: number, m: number, d: number) => Date.UTC(y, m, d) / 86400000 + 25569
 
@@ -89,24 +90,24 @@ function periods(level: NonNullable<SlicerObj['timeline']>['level'], min: number
 }
 
 function TimelineView({ doc, o }: { doc: Doc; o: SlicerObj }) {
-  const t = o.timeline!
+  const tl = o.timeline!
   const span = timelineSpan(doc, o)
-  const list = span ? periods(t.level, span.min, span.max) : []
+  const list = span ? periods(tl.level, span.min, span.max) : []
   const dragFrom = useRef<number | null>(null)
   const stop = (e: React.PointerEvent) => e.stopPropagation()
   const pick = (i: number, extend: boolean) => {
     const p = list[i]
     if (!p) return
-    if (extend && t.start !== null && t.end !== null) setTimelineRange(doc, o.id, Math.min(t.start, p.start), Math.max(t.end, p.end))
+    if (extend && tl.start !== null && tl.end !== null) setTimelineRange(doc, o.id, Math.min(tl.start, p.start), Math.max(tl.end, p.end))
     else setTimelineRange(doc, o.id, p.start, p.end)
   }
   const fmt = (serial: number) => {
     const dt = toDate(serial)
-    return t.level === 'years' ? String(dt.getUTCFullYear()) : t.level === 'days' ? `${MON3[dt.getUTCMonth()]} ${dt.getUTCDate()}, ${dt.getUTCFullYear()}` : `${MON3[dt.getUTCMonth()]} ${dt.getUTCFullYear()}`
+    return tl.level === 'years' ? String(dt.getUTCFullYear()) : tl.level === 'days' ? `${MON3[dt.getUTCMonth()]} ${dt.getUTCDate()}, ${dt.getUTCFullYear()}` : `${MON3[dt.getUTCMonth()]} ${dt.getUTCFullYear()}`
   }
-  const label = t.start === null || t.end === null ? 'All Periods' : (() => {
-    const last = t.end - 1
-    const a = fmt(t.start)
+  const label = tl.start === null || tl.end === null ? t('All Periods') : (() => {
+    const last = tl.end - 1
+    const a = fmt(tl.start)
     const b = fmt(last)
     return a === b ? a : `${a} – ${b}`
   })()
@@ -114,23 +115,23 @@ function TimelineView({ doc, o }: { doc: Doc; o: SlicerObj }) {
     <div className="timeline">
       <div className="slicer-head">
         <span className="slicer-caption">{o.caption}</span>
-        <button type="button" title="Clear Filter (Alt+C)" aria-label="Clear Filter" disabled={t.start === null} onPointerDown={stop} onClick={() => setTimelineRange(doc, o.id, null, null)}>
+        <button type="button" title={t('Clear Filter (Alt+C)')} aria-label={t('Clear Filter')} disabled={tl.start === null} onPointerDown={stop} onClick={() => setTimelineRange(doc, o.id, null, null)}>
           <FilterX size={14} />
         </button>
       </div>
       <div className="tl-bar">
         <span className="tl-label">{label}</span>
-        <select aria-label="Time level" value={t.level} onPointerDown={stop} onChange={(e) => setTimelineLevel(doc, o.id, e.target.value as typeof t.level)}>
-          <option value="years">YEARS</option>
-          <option value="quarters">QUARTERS</option>
-          <option value="months">MONTHS</option>
-          <option value="days">DAYS</option>
+        <select aria-label={t('Time level')} value={tl.level} onPointerDown={stop} onChange={(e) => setTimelineLevel(doc, o.id, e.target.value as typeof tl.level)}>
+          <option value="years">{t('YEARS')}</option>
+          <option value="quarters">{t('QUARTERS')}</option>
+          <option value="months">{t('MONTHS')}</option>
+          <option value="days">{t('DAYS')}</option>
         </select>
       </div>
       <div className="tl-strip" onPointerDown={stop}>
         {list.map((p, i) => {
-          const on = t.start !== null && t.end !== null && p.start >= t.start && p.end <= t.end
-          const showYear = t.level !== 'years' && (i === 0 || list[i - 1].year !== p.year)
+          const on = tl.start !== null && tl.end !== null && p.start >= tl.start && p.end <= tl.end
+          const showYear = tl.level !== 'years' && (i === 0 || list[i - 1].year !== p.year)
           return (
             <div key={p.start} className="tl-cell-wrap">
               <span className="tl-year">{showYear ? p.year : ''}</span>
@@ -168,10 +169,10 @@ function SlicerView({ doc, o }: { doc: Doc; o: SlicerObj }) {
     <div className="slicer">
       <div className="slicer-head">
         <span className="slicer-caption">{o.caption}</span>
-        <button type="button" className={o.multi ? 'is-active' : undefined} title="Multi-Select (Alt+S)" aria-label="Multi-Select" onPointerDown={stop} onClick={() => updateObject(doc, o.id, { multi: !o.multi } as Partial<SheetObject>, 'Multi-Select')}>
+        <button type="button" className={o.multi ? 'is-active' : undefined} title={t('Multi-Select (Alt+S)')} aria-label={t('Multi-Select')} onPointerDown={stop} onClick={() => updateObject(doc, o.id, { multi: !o.multi } as Partial<SheetObject>, tx('Multi-Select'))}>
           <ListChecks size={14} />
         </button>
-        <button type="button" title="Clear Filter (Alt+C)" aria-label="Clear Filter" disabled={o.selected === null} onPointerDown={stop} onClick={() => clearSlicer(doc, o.id)}>
+        <button type="button" title={t('Clear Filter (Alt+C)')} aria-label={t('Clear Filter')} disabled={o.selected === null} onPointerDown={stop} onClick={() => clearSlicer(doc, o.id)}>
           <FilterX size={14} />
         </button>
       </div>
@@ -209,7 +210,7 @@ export function ObjectLayer({
   onOpenFormat: (id: number) => void
 }) {
   const [g, setG] = useState<Geometry | null>(null)
-  const [draft, setDraft] = useState<{ id: number; anchor: Anchor; rotation?: number } | null>(null)
+  const [draft, setDraft] = useState<{ id: number; anchor: Anchor; rotation?: number; dx?: number; dy?: number } | null>(null)
   const [editing, setEditing] = useState<number | null>(null)
   const drag = useRef<Drag | null>(null)
   const sheet = doc.sheet
@@ -227,7 +228,12 @@ export function ObjectLayer({
     e.preventDefault()
     e.stopPropagation()
     if (doc.edit) doc.commitEdit()
-    if (doc.selObj !== o.id) selectObject(doc, o.id)
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      if (mode === 'move') {
+        selectObject(doc, o.id, true)
+        return
+      }
+    } else if (doc.selObj !== o.id && !doc.selObjs.includes(o.id)) selectObject(doc, o.id)
     ;(window as unknown as { __focusGrid?: () => void }).__focusGrid?.()
     drag.current = { id: o.id, mode, handle, x0: e.clientX, y0: e.clientY, orig: { ...o.anchor }, rot0: 'rotation' in o ? o.rotation : 0, moved: false }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
@@ -242,7 +248,7 @@ export function ObjectLayer({
     d.moved = true
     const a = d.orig
     if (d.mode === 'move') {
-      setDraft({ id: d.id, anchor: { ...a, x: Math.max(0, a.x + dx), y: Math.max(0, a.y + dy) } })
+      setDraft({ id: d.id, anchor: { ...a, x: Math.max(0, a.x + dx), y: Math.max(0, a.y + dy) }, dx, dy })
       return
     }
     if (d.mode === 'rotate') {
@@ -299,13 +305,19 @@ export function ObjectLayer({
     }
     const patch: Partial<SheetObject> = d.mode === 'rotate' ? ({ rotation: draft.rotation ?? 0 } as Partial<SheetObject>) : { anchor: draft.anchor }
     setDraft(null)
-    updateObject(doc, d.id, patch, d.mode === 'move' ? 'Move Object' : d.mode === 'rotate' ? 'Rotate Object' : 'Size Object')
+    const others = selectedIds(doc).filter((x) => x !== d.id)
+    if (d.mode === 'move' && others.length) {
+      moveEach(doc, tx('Move Objects'), [d.id, ...others].map((id) => ({ id, dx: draft.dx ?? 0, dy: draft.dy ?? 0 })))
+      return
+    }
+    updateObject(doc, d.id, patch, d.mode === 'move' ? tx('Move Object') : d.mode === 'rotate' ? tx('Rotate Object') : tx('Size Object'))
   }
 
   return (
     <div className="obj-layer" style={{ left: g.headerW, top: g.headerH, width: Math.max(0, g.width - g.headerW), height: Math.max(0, g.height - g.headerH) }}>
       {objects.map((o) => {
-        const anchor = draft?.id === o.id ? draft.anchor : o.anchor
+        const inMove = draft && draft.id !== o.id && draft.dx !== undefined && (doc.selObj === o.id || doc.selObjs.includes(o.id))
+        const anchor = draft?.id === o.id ? draft.anchor : inMove ? { ...o.anchor, x: Math.max(0, o.anchor.x + draft.dx!), y: Math.max(0, o.anchor.y + (draft.dy ?? 0)) } : o.anchor
         const rotation = draft?.id === o.id && draft.rotation !== undefined ? draft.rotation : 'rotation' in o ? o.rotation : 0
         const p = sheetToCanvas(g, anchor.x, anchor.y)
         const left = p.x - g.headerW
@@ -313,6 +325,7 @@ export function ObjectLayer({
         const w = anchor.w * z
         const h = anchor.h * z
         const sel = doc.selObj === o.id
+        const alsoSel = doc.selObjs.includes(o.id)
         const flipW = w < 0
         const flipH = h < 0
         const style: React.CSSProperties = {
@@ -325,7 +338,7 @@ export function ObjectLayer({
         return (
           <div
             key={o.id}
-            className={`obj obj-${o.kind}${sel ? ' is-selected' : ''}`}
+            className={`obj obj-${o.kind}${sel ? ' is-selected' : alsoSel ? ' is-selected is-secondary' : ''}`}
             style={style}
             onPointerDown={(e) => begin(e, o, 'move')}
             onPointerMove={move}
@@ -355,7 +368,7 @@ export function ObjectLayer({
                 editing={editing === o.id}
                 onDone={(text) => {
                   setEditing(null)
-                  if (text !== null && text !== o.text) updateObject(doc, o.id, { text } as Partial<SheetObject>, 'Edit Text')
+                  if (text !== null && text !== o.text) updateObject(doc, o.id, { text } as Partial<SheetObject>, tx('Edit Text'))
                 }}
               />
             )}
@@ -364,7 +377,7 @@ export function ObjectLayer({
                 {HANDLES.map((hd) => (
                   <span key={hd} className={`obj-handle h-${hd}`} onPointerDown={(e) => begin(e, o, 'resize', hd)} onPointerMove={move} onPointerUp={end} />
                 ))}
-                {o.kind !== 'chart' && o.kind !== 'slicer' && <span className="obj-rotate" title="Rotate" onPointerDown={(e) => begin(e, o, 'rotate')} onPointerMove={move} onPointerUp={end} />}
+                {o.kind !== 'chart' && o.kind !== 'slicer' && <span className="obj-rotate" title={t('Rotate')} onPointerDown={(e) => begin(e, o, 'rotate')} onPointerMove={move} onPointerUp={end} />}
               </>
             )}
           </div>

@@ -40,6 +40,10 @@ npm run desktop        # build and start the desktop app
 npm run desktop:dist   # build installers into release/ for the current system
 ```
 
+Installers per release: macOS `.dmg` and `.pkg` (Apple Silicon and Intel), Windows setup `.exe`
+and `.msi` (the `.msi` installs for all users, for software deployment tools), Linux
+`.AppImage` and `.deb`. The `.pkg` and `.msi` are meant for IT departments.
+
 ## Saving
 
 - **Save (Ctrl/Cmd+S)** writes back into the file that was opened or saved last, like any desktop
@@ -73,9 +77,16 @@ is marked as done, partial or open, and the top of the file has the current tota
 
 | Program | Done | Partial | Open | Weighted (partial counts half) |
 |---|---|---|---|---|
-| Kontor Docs | 345 | 50 | 16 | 90 % |
-| Kontor Sheets (without the 500-function library) | 323 | 32 | 20 | 90 % |
-| Kontor Slides | 323 | 37 | 19 | 90 % |
+| Kontor Docs | 375 | 32 | 7 | 94 % |
+| Kontor Sheets (without the function library) | 344 | 23 | 15 | 93 % |
+| Kontor Slides | 340 | 38 | 6 | 93.5 % |
+
+The open items need a server, an online service or an AI model (co-authoring, cloud storage,
+AI assistants, online pictures) or are not planned (VBA; macros replay the program's own
+commands instead).
+
+Every program's interface can be switched between English, German, French and Spanish
+(File › Options › Interface language); without a choice it follows the system language.
 
 Files are checked with automated package tests (well-formed XML, content types, relationships,
 element order). They have not yet been opened in other office programs as part of testing.

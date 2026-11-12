@@ -6,6 +6,7 @@ import { migratePresentation } from '../model/effects'
 import { setActiveMaster } from '../model/layouts'
 import { applyMasterEdit, isMasterId, masterSlide } from '../model/master'
 import { DEFAULT_DOC_TITLE } from '../brand'
+import { withConnectors } from '../model/connectors'
 
 export type ViewMode = 'normal' | 'sorter' | 'notesPage' | 'reading' | 'outline' | 'master' | 'handoutMaster' | 'notesMaster'
 
@@ -20,6 +21,8 @@ export type Tool =
   | { kind: 'motionPath'; targetId: string; entryId: string | null }
   /** Picture Format > Color > Set Transparent Color: click a color in a picture. */
   | { kind: 'transparentColor' }
+  /** Draw > Lasso Select: draw around objects to select them. */
+  | { kind: 'lasso' }
 
 export type Pane = null | 'formatShape' | 'formatBackground' | 'selection' | 'comments' | 'animation'
 
@@ -83,6 +86,8 @@ export type AppState = {
   /** Active ribbon tab. */
   tab: string
   hideInk: boolean
+  /** Draw > Ink to Shape: pen strokes that look like shapes become shapes. */
+  inkToShape: boolean
   /** Width of the slide thumbnail pane in px (resizable). */
   thumbWidth: number
   past: Presentation[]
@@ -174,6 +179,7 @@ function initial(): AppState {
     painter: null,
     tab: 'home',
     hideInk: false,
+    inkToShape: false,
     thumbWidth: initialThumbWidth(),
     past: [],
     future: [],
@@ -252,7 +258,7 @@ export function commit(fn: (p: Presentation) => Presentation, extra: Partial<App
     if (extra.editingId === undefined) extra = { ...extra, editingId: null, tableSel: state.tableSel ? { ...state.tableSel, editing: false } : null }
   }
   const prev = state.pres
-  const next = fn(prev)
+  const next = withConnectors(fn(prev), prev)
   if (next === prev) {
     if (Object.keys(extra).length) store.set(extra)
     return
@@ -358,4 +364,22 @@ export function updateElements(p: Presentation, slideId: string, ids: string[], 
 export function selectedElements(s: AppState = state): SlideElement[] {
   const slide = currentSlide(s)
   return s.selection.map((id) => findElement(slide.elements, id)).filter((e): e is SlideElement => !!e)
+}
+
+/** Takes over the document from another window of the same presentation (View > New Window). */
+export function applyRemoteDocument(pres: Presentation, title: string) {
+  const s = state
+  const slideId = pres.slides.some((x) => x.id === s.slideId) ? s.slideId : (pres.slides[0]?.id ?? '')
+  const ids = new Set(pres.slides.find((x) => x.id === slideId)?.elements.map((e) => e.id) ?? [])
+  store.set({
+    pres,
+    title,
+    slideId,
+    selectedSlides: s.selectedSlides.filter((id) => pres.slides.some((x) => x.id === id)),
+    selection: s.selection.filter((id) => ids.has(id)),
+    editingId: s.editingId && ids.has(s.editingId) ? s.editingId : null,
+    past: [...s.past, s.pres].slice(-HISTORY_LIMIT),
+    future: [],
+    revision: s.revision + 1,
+  })
 }

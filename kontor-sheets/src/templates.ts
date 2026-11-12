@@ -3,6 +3,7 @@ import { parseInput } from './model/parseInput'
 import type { StylePatch } from './model/style'
 import { Workbook } from './model/workbook'
 import { normalizeFormula } from './commands/doc'
+import { tx } from './i18n'
 
 export type Template = { id: string; label: string; build: () => Workbook }
 
@@ -44,10 +45,10 @@ const header: StylePatch = { bold: true, color: '#FFFFFF', fill: '#15784A' }
 const title: StylePatch = { bold: true, size: 18, color: '#15784A' }
 
 export const TEMPLATES: Template[] = [
-  { id: 'blank', label: 'Blank workbook', build: () => new Workbook() },
+  { id: 'blank', label: tx('Blank workbook'), build: () => new Workbook() },
   {
     id: 'budget',
-    label: 'Monthly budget',
+    label: tx('Monthly budget'),
     build: () =>
       make(
         'Budget',
@@ -65,7 +66,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: 'loan',
-    label: 'Loan calculator',
+    label: tx('Loan calculator'),
     build: () =>
       make(
         'Loan',
@@ -81,7 +82,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: 'todo',
-    label: 'To-do list',
+    label: tx('To-do list'),
     build: () =>
       make(
         'To-do',
@@ -98,7 +99,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: 'invoice',
-    label: 'Simple invoice',
+    label: tx('Simple invoice'),
     build: () =>
       make(
         'Invoice',

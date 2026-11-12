@@ -100,6 +100,28 @@ ipcMain.handle('kontor:save', async (_event, { path: target, defaultName, filter
   return { path: file, name: path.basename(file) }
 })
 
+// ---------- PDF export ----------
+
+const PDF_PAPER = { letter: 'Letter', legal: 'Legal', tabloid: 'Tabloid', a4: 'A4', a3: 'A3' }
+
+ipcMain.handle('kontor:print-pdf', async (_event, { html, landscape, paper, margins }) => {
+  const file = path.join(app.getPath('temp'), `kontor-print-${process.pid}-${Date.now()}.html`)
+  fs.writeFileSync(file, html, 'utf8')
+  const page = new BrowserWindow({ show: false, webPreferences: { sandbox: true, javascript: false } })
+  try {
+    await page.loadFile(file)
+    return await page.webContents.printToPDF({
+      landscape: !!landscape,
+      pageSize: PDF_PAPER[paper] || 'Letter',
+      printBackground: true,
+      margins: { top: margins?.top ?? 0.75, bottom: margins?.bottom ?? 0.75, left: margins?.left ?? 0.7, right: margins?.right ?? 0.7 },
+    })
+  } finally {
+    page.destroy()
+    fs.rmSync(file, { force: true })
+  }
+})
+
 ipcMain.on('kontor:ready', () => {
   rendererReady = true
   flush()

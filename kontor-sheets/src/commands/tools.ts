@@ -1,6 +1,6 @@
 // Data and view tools: Consolidate, Custom Views, links to places in the workbook, Get Data from
 // files, Recommended PivotTables and Forecast Sheet.
-import { MAX_COLS, MAX_ROWS, type Range } from '../model/address'
+import { MAX_COLS, MAX_ROWS, colName, quoteSheet, type Range } from '../model/address'
 import type { CustomView } from '../model/workbook'
 import type { Sheet } from '../model/sheet'
 import { CellError, type Scalar } from '../model/types'
@@ -13,6 +13,7 @@ import { createTable } from './tables'
 import { addObject, newChart } from './objects'
 import { computePivot, createPivot, readSource, updatePivot } from './pivot'
 import type { PivotDef } from '../model/extras'
+import { t, tx } from '../i18n'
 
 // ---------------------------------------------------------------------
 // Consolidate
@@ -21,8 +22,8 @@ import type { PivotDef } from '../model/extras'
 export type ConsolidateFn = 'sum' | 'count' | 'average' | 'max' | 'min' | 'product' | 'countNums' | 'stdDev' | 'stdDevp' | 'var' | 'varp'
 
 export const CONSOLIDATE_FNS: [ConsolidateFn, string][] = [
-  ['sum', 'Sum'], ['count', 'Count'], ['average', 'Average'], ['max', 'Max'], ['min', 'Min'], ['product', 'Product'], ['countNums', 'Count Numbers'],
-  ['stdDev', 'StdDev'], ['stdDevp', 'StdDevp'], ['var', 'Var'], ['varp', 'Varp'],
+  ['sum', tx('Sum')], ['count', tx('Count')], ['average', tx('Average')], ['max', tx('Max')], ['min', tx('Min')], ['product', tx('Product')], ['countNums', tx('Count Numbers')],
+  ['stdDev', tx('StdDev')], ['stdDevp', tx('StdDevp')], ['var', tx('Var')], ['varp', tx('Varp')],
 ]
 
 function aggregate(fn: ConsolidateFn, vals: Scalar[]): Scalar {
@@ -50,13 +51,17 @@ function aggregate(fn: ConsolidateFn, vals: Scalar[]): Scalar {
  * Data > Consolidate: combines several ranges into one table at the active cell, matching rows and
  * columns by their labels (top row / left column) or by position.
  */
-export function consolidate(doc: Doc, refs: string[], fn: ConsolidateFn, topLabels: boolean, leftLabels: boolean): string | null {
+const LINK_FN: Record<ConsolidateFn, string> = { sum: 'SUM', count: 'COUNTA', average: 'AVERAGE', max: 'MAX', min: 'MIN', product: 'PRODUCT', countNums: 'COUNT', stdDev: 'STDEV', stdDevp: 'STDEVP', var: 'VAR', varp: 'VARP' }
+
+/** Data > Consolidate. With `links`, every result is a formula over the source cells, so it follows changes to the sources. */
+export function consolidate(doc: Doc, refs: string[], fn: ConsolidateFn, topLabels: boolean, leftLabels: boolean, links = false): string | null {
   const sources = refs.map((r) => resolveRef(doc.wb, r, doc.sheet))
-  if (!sources.length) return 'Add at least one reference.'
-  if (sources.some((s) => !s)) return 'A reference is not valid.'
+  if (!sources.length) return t('Add at least one reference.')
+  if (sources.some((s) => !s)) return t('A reference is not valid.')
   const rowKeys: string[] = []
   const colKeys: string[] = []
   const cells = new Map<string, Scalar[]>()
+  const addrs = new Map<string, string[]>()
   const text = (v: Scalar) => (v === null ? '' : v instanceof CellError ? v.code : String(v))
   for (const src of sources) {
     const { sheet, range } = src!
@@ -72,6 +77,7 @@ export function consolidate(doc: Doc, refs: string[], fn: ConsolidateFn, topLabe
         const list = cells.get(k) ?? []
         list.push(doc.value(r, c, sheet))
         cells.set(k, list)
+        addrs.set(k, [...(addrs.get(k) ?? []), `${sheet === doc.sheet ? '' : quoteSheet(sheet.name) + '!'}$${colName(c)}$${r + 1}`])
       }
     }
   }
@@ -79,15 +85,17 @@ export function consolidate(doc: Doc, refs: string[], fn: ConsolidateFn, topLabe
   const sheet = doc.sheet
   const r0 = at.r + (topLabels ? 1 : 0)
   const c0 = at.c + (leftLabels ? 1 : 0)
-  if (r0 + rowKeys.length > MAX_ROWS || c0 + colKeys.length > MAX_COLS) return 'The destination is too close to the edge of the sheet.'
-  doc.transact('Consolidate', () => {
+  if (r0 + rowKeys.length > MAX_ROWS || c0 + colKeys.length > MAX_COLS) return t('The destination is too close to the edge of the sheet.')
+  doc.transact(tx('Consolidate'), () => {
     if (topLabels) colKeys.forEach((ck, j) => doc.write(sheet, at.r, c0 + j, { v: ck }))
     rowKeys.forEach((rk, i) => {
       if (leftLabels) doc.write(sheet, r0 + i, at.c, { v: rk })
       colKeys.forEach((ck, j) => {
         const vals = cells.get(`${rk}\u0001${ck}`)
         // text-only cells stay empty unless they are counted
-        if (vals && (fn === 'count' || vals.some((v) => typeof v === 'number'))) doc.write(sheet, r0 + i, c0 + j, { v: aggregate(fn, vals) })
+        if (!vals || !(fn === 'count' || vals.some((v) => typeof v === 'number'))) return
+        if (links) doc.write(sheet, r0 + i, c0 + j, { f: `${LINK_FN[fn]}(${addrs.get(`${rk}\u0001${ck}`)!.join(',')})` })
+        else doc.write(sheet, r0 + i, c0 + j, { v: aggregate(fn, vals) })
       })
     })
   })
@@ -120,8 +128,8 @@ export function addCustomView(doc: Doc, name: string) {
 export function showCustomView(doc: Doc, name: string): string | null {
   const v = doc.wb.customViews.find((x) => x.name === name)
   const sheet = v && doc.wb.sheetById(v.sheet)
-  if (!v || !sheet) return 'The sheet of this view no longer exists.'
-  doc.transact('Show View', () => {
+  if (!v || !sheet) return t('The sheet of this view no longer exists.')
+  doc.transact(tx('Show View'), () => {
     doc.noteProps(sheet)
     const setHidden = (axis: typeof sheet.rows, list: number[]) => {
       for (const i of [...axis.hidden]) axis.hidden.delete(i)
@@ -160,7 +168,7 @@ export function followLink(doc: Doc, link: string): string | null {
   const target = link.slice(1)
   const name = doc.wb.names.get(target.toUpperCase())
   const res = resolveRef(doc.wb, name ? name.ref : target, doc.sheet)
-  if (!res) return 'Reference isn\'t valid.'
+  if (!res) return t("Reference isn't valid.")
   doc.activeIndex = doc.wb.sheets.indexOf(res.sheet)
   doc.selectRange(res.range)
   doc.emit()
@@ -202,9 +210,9 @@ export function parseDataFile(name: string, text: string): DataSet[] {
   }
   if (ext === 'html' || ext === 'htm') {
     const doc = new DOMParser().parseFromString(text, 'text/html')
-    return [...doc.querySelectorAll('table')].map((t, i) => ({
-      name: t.querySelector('caption')?.textContent?.trim() || `Table ${i + 1}`,
-      rows: [...t.querySelectorAll('tr')].map((tr) => [...tr.querySelectorAll('th,td')].map((td) => (td.textContent ?? '').replace(/\s+/g, ' ').trim())),
+    return [...doc.querySelectorAll('table')].map((table, i) => ({
+      name: table.querySelector('caption')?.textContent?.trim() || t('Table {n}', { n: i + 1 }),
+      rows: [...table.querySelectorAll('tr')].map((tr) => [...tr.querySelectorAll('th,td')].map((td) => (td.textContent ?? '').replace(/\s+/g, ' ').trim())),
     })).filter((d) => d.rows.length)
   }
   if (ext === 'xml') {
@@ -229,8 +237,8 @@ function cellText(v: unknown): string {
 /** Loads a data set into a new sheet and formats it as a table. */
 export function loadDataSet(doc: Doc, set: DataSet): string | null {
   const width = Math.max(1, ...set.rows.map((r) => r.length))
-  if (!set.rows.length) return 'The file has no data.'
-  doc.transact('Load Data', () => {
+  if (!set.rows.length) return t('The file has no data.')
+  doc.transact(tx('Load Data'), () => {
     doc.noteWorkbook()
     const base = set.name.split('.').pop()!.replace(/[\\/?*[\]:]/g, '_').slice(0, 28) || 'Query'
     const sheet = doc.wb.addSheet(doc.wb.sheetByName(base) ? doc.wb.uniqueSheetName(base) : base, doc.activeIndex + 1)
@@ -266,10 +274,10 @@ export function recommendPivots(doc: Doc, source: string): PivotSuggestion[] {
   const out: PivotSuggestion[] = []
   for (const cat of cats)
     for (const num of nums) {
-      out.push({ title: `Sum of ${num} by ${cat}`, rows: [cat], values: [{ field: num, fn: 'sum', showAs: 'normal' }] })
+      out.push({ title: t('Sum of {value} by {category}', { value: num, category: cat }), rows: [cat], values: [{ field: num, fn: 'sum', showAs: 'normal' }] })
       if (out.length >= 8) return out
     }
-  for (const cat of cats) if (out.length < 10) out.push({ title: `Count of ${cat}`, rows: [cat], values: [{ field: cat, fn: 'count', showAs: 'normal' }] })
+  for (const cat of cats) if (out.length < 10) out.push({ title: t('Count of {category}', { category: cat }), rows: [cat], values: [{ field: cat, fn: 'count', showAs: 'normal' }] })
   return out
 }
 
@@ -287,7 +295,7 @@ export function insertRecommendedPivot(doc: Doc, source: string, s: PivotSuggest
   updatePivot(doc, p.id, (x) => {
     x.rows = [...s.rows]
     x.values = s.values.map((v) => ({ ...v }))
-  }, 'Insert PivotTable')
+  }, tx('Insert PivotTable'))
   return null
 }
 
@@ -300,15 +308,15 @@ export function insertRecommendedPivot(doc: Doc, source: string, s: PivotSuggest
  * formulas (with confidence bounds) up to the forecast end and a line chart of all of it.
  */
 export function createForecastSheet(doc: Doc, timeline: string, values: string, end: number, confidence: number, seasonality: number): string | null {
-  const t = resolveRef(doc.wb, timeline, doc.sheet)
+  const tl = resolveRef(doc.wb, timeline, doc.sheet)
   const v = resolveRef(doc.wb, values, doc.sheet)
-  if (!t || !v) return 'Select a timeline and a value range.'
+  if (!tl || !v) return t('Select a timeline and a value range.')
   const read = (rg: Range, sheet: Sheet) => {
     const out: Scalar[] = []
     for (let r = rg.r1; r <= rg.r2; r++) for (let c = rg.c1; c <= rg.c2; c++) out.push(doc.value(r, c, sheet))
     return out
   }
-  let ts = read(t.range, t.sheet)
+  let ts = read(tl.range, tl.sheet)
   let ys = read(v.range, v.sheet)
   const header = typeof ts[0] !== 'number' || typeof ys[0] !== 'number'
   const tName = header ? String(ts[0] ?? 'Timeline') : 'Timeline'
@@ -317,13 +325,13 @@ export function createForecastSheet(doc: Doc, timeline: string, values: string, 
     ts = ts.slice(1)
     ys = ys.slice(1)
   }
-  if (ts.length !== ys.length || ts.length < 3 || ts.some((x) => typeof x !== 'number')) return 'The timeline must contain at least three numbers or dates, one for each value.'
+  if (ts.length !== ys.length || ts.length < 3 || ts.some((x) => typeof x !== 'number')) return t('The timeline must contain at least three numbers or dates, one for each value.')
   const nums = ts as number[]
   const model = etsFit(ys.map((y) => (typeof y === 'number' ? y : 0)), nums, seasonality)
-  if (model instanceof CellError) return 'The forecast could not be computed for this data (the timeline needs a constant step).'
+  if (model instanceof CellError) return t('The forecast could not be computed for this data (the timeline needs a constant step).')
   const step = model.step
   const last = Math.max(...nums)
-  if (!(end > last)) return 'The forecast end must be after the last timeline value.'
+  if (!(end > last)) return t('The forecast end must be after the last timeline value.')
   // dates a month apart continue month by month
   const sorted = [...nums].sort((a, b) => a - b)
   const monthly = sorted.slice(1).every((x, i) => x - sorted[i] >= 28 && x - sorted[i] <= 31)
@@ -335,9 +343,9 @@ export function createForecastSheet(doc: Doc, timeline: string, values: string, 
   let future = 0
   while (future < 10000 && nextT(future + 1) <= end + 1e-9) future++
   if (!future) future = 1
-  const fmt = doc.wb.styles.get(t.sheet.styleId(t.range.r1 + (header ? 1 : 0), t.range.c1)).fmt
+  const fmt = doc.wb.styles.get(tl.sheet.styleId(tl.range.r1 + (header ? 1 : 0), tl.range.c1)).fmt
   const n = ts.length
-  doc.transact('Forecast Sheet', () => {
+  doc.transact(tx('Forecast Sheet'), () => {
     doc.noteWorkbook()
     const sheet = doc.wb.addSheet(doc.wb.uniqueSheetName('Forecast'), doc.activeIndex)
     doc.activeIndex = doc.wb.sheets.indexOf(sheet)
@@ -367,7 +375,7 @@ export function createForecastSheet(doc: Doc, timeline: string, values: string, 
     sheet.cols.touch()
     const chart = newChart(doc, 'line', 'clustered', `${absRef(sheet, { r1: 0, c1: 0, r2: n + future, c2: 4 })}`, { title: { show: true, text: `${vName} forecast` } })
     chart.anchor = { x: 6 * 100 + 140, y: 24, w: 520, h: 300 }
-    addObject(doc, chart, 'Forecast Sheet', sheet)
+    addObject(doc, chart, tx('Forecast Sheet'), sheet)
     doc.selectRange({ r1: 0, c1: 0, r2: 0, c2: 0 })
   })
   return null
@@ -381,11 +389,11 @@ export function createForecastSheet(doc: Doc, timeline: string, values: string, 
 export function fillJustify(doc: Doc): string | null {
   const rg = doc.activeRange
   const sheet = doc.sheet
-  if (rg.c1 !== rg.c2 && rg.r1 === rg.r2) return 'Select cells in one column.'
+  if (rg.c1 !== rg.c2 && rg.r1 === rg.r2) return t('Select cells in one column.')
   const words: string[] = []
   for (let r = rg.r1; r <= rg.r2; r++) {
     const v = doc.value(r, rg.c1, sheet)
-    if (typeof v === 'number' || (sheet.get(r, rg.c1)?.f !== undefined)) return 'Cells with numbers or formulas cannot be justified.'
+    if (typeof v === 'number' || (sheet.get(r, rg.c1)?.f !== undefined)) return t('Cells with numbers or formulas cannot be justified.')
     if (typeof v === 'string' && v.trim()) words.push(...v.trim().split(/\s+/))
   }
   if (!words.length) return null
@@ -401,7 +409,7 @@ export function fillJustify(doc: Doc): string | null {
     } else line = next
   }
   if (line) lines.push(line)
-  doc.transact('Justify', () => {
+  doc.transact(tx('Justify'), () => {
     for (let r = rg.r1; r <= Math.max(rg.r2, rg.r1 + lines.length - 1); r++) {
       const text = lines[r - rg.r1]
       const old = sheet.get(r, rg.c1)
@@ -424,7 +432,7 @@ export function clearNotesAndComments(doc: Doc) {
     }
   }
   if (!keys.size) return
-  doc.transact('Clear Comments and Notes', () => {
+  doc.transact(tx('Clear Comments and Notes'), () => {
     doc.noteProps(sheet)
     const notes = { ...sheet.x.notes }
     const comments = { ...sheet.x.comments }
@@ -461,10 +469,10 @@ export function checkAccessibility(doc: Doc): A11yIssue[] {
   for (const sheet of doc.wb.sheets) {
     for (const o of sheet.x.objects) {
       const alt = 'alt' in o ? (o as { alt?: string }).alt : undefined
-      if ((o.kind === 'picture' || o.kind === 'chart' || o.kind === 'shape') && !alt) out.push({ level: 'Errors', rule: 'Missing alternative text', sheet: sheet.name, where: o.name, fix: 'Add a description (right-click the object, Edit Alt Text).', go: { sheet: sheet.id, r: 0, c: 0, obj: o.id } })
+      if ((o.kind === 'picture' || o.kind === 'chart' || o.kind === 'shape') && !alt) out.push({ level: 'Errors', rule: t('Missing alternative text'), sheet: sheet.name, where: o.name, fix: t('Add a description (right-click the object, Edit Alt Text).'), go: { sheet: sheet.id, r: 0, c: 0, obj: o.id } })
     }
-    for (const t of sheet.x.tables) if (!t.header) out.push({ level: 'Errors', rule: 'No header row in table', sheet: sheet.name, where: t.name, fix: 'Turn on Header Row in Table Design.', go: { sheet: sheet.id, r: t.range.r1, c: t.range.c1 } })
-    for (const m of sheet.merges) out.push({ level: 'Warnings', rule: 'Merged cells', sheet: sheet.name, where: `${colLabel(m.c1)}${m.r1 + 1}:${colLabel(m.c2)}${m.r2 + 1}`, fix: 'Unmerge the cells; screen readers read merged cells poorly.', go: { sheet: sheet.id, r: m.r1, c: m.c1 } })
+    for (const table of sheet.x.tables) if (!table.header) out.push({ level: 'Errors', rule: t('No header row in table'), sheet: sheet.name, where: table.name, fix: t('Turn on Header Row in Table Design.'), go: { sheet: sheet.id, r: table.range.r1, c: table.range.c1 } })
+    for (const m of sheet.merges) out.push({ level: 'Warnings', rule: t('Merged cells'), sheet: sheet.name, where: `${colLabel(m.c1)}${m.r1 + 1}:${colLabel(m.c2)}${m.r2 + 1}`, fix: t('Unmerge the cells; screen readers read merged cells poorly.'), go: { sheet: sheet.id, r: m.r1, c: m.c1 } })
     let low = 0
     for (const [k, d] of sheet.cells) {
       if (low >= 20 || !d.s || d.v === undefined) continue
@@ -474,10 +482,10 @@ export function checkAccessibility(doc: Doc): A11yIssue[] {
         low++
         const r = Math.floor(k / 16384)
         const c = k % 16384
-        out.push({ level: 'Warnings', rule: 'Hard-to-read text contrast', sheet: sheet.name, where: `${colLabel(c)}${r + 1}`, fix: 'Use a darker font color or a lighter fill.', go: { sheet: sheet.id, r, c } })
+        out.push({ level: 'Warnings', rule: t('Hard-to-read text contrast'), sheet: sheet.name, where: `${colLabel(c)}${r + 1}`, fix: t('Use a darker font color or a lighter fill.'), go: { sheet: sheet.id, r, c } })
       }
     }
-    if (/^Sheet\d+$/.test(sheet.name) && sheet.used().r >= 0) out.push({ level: 'Tips', rule: 'Default sheet name', sheet: sheet.name, where: sheet.name, fix: 'Give the sheet a meaningful name.', go: { sheet: sheet.id, r: 0, c: 0 } })
+    if (/^Sheet\d+$/.test(sheet.name) && sheet.used().r >= 0) out.push({ level: 'Tips', rule: t('Default sheet name'), sheet: sheet.name, where: sheet.name, fix: t('Give the sheet a meaningful name.'), go: { sheet: sheet.id, r: 0, c: 0 } })
   }
   return out
 }

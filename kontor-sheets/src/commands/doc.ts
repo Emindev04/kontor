@@ -11,16 +11,20 @@ import { parseInput } from '../model/parseInput'
 import type { CellData, RichRun, Sheet } from '../model/sheet'
 import { DEFAULT_FONT, DEFAULT_SIZE, type Style, type StylePatch } from '../model/style'
 import type { Scalar } from '../model/types'
-import { Workbook } from '../model/workbook'
+import { Workbook, type ChangeRecord } from '../model/workbook'
 import { Engine } from '../engine/engine'
 import { ParseError, parseFormula } from '../engine/parser'
 import { tokenize } from '../engine/tokenizer'
 import { refText, shiftFormula } from '../engine/refs'
+import { fromR1C1, toR1C1 } from '../engine/r1c1'
+import { prefs } from '../model/prefs'
 import { Tx, captureAfter, restoreFull, restoreProps, restoreWb, type HistoryEntry } from './history'
 import { afterTyping } from './tables'
-import { blocked } from './review'
+import { authorName, blocked } from './review'
+import { recordStep, type Recorder } from './macros'
 import { validateInput } from './validation'
 import { applyRichPatch, normalizeRuns, runsText, spliceRuns, stripRunKeys } from './richText'
+import { t, tx } from '../i18n'
 
 export type Sel = { ranges: Range[]; active: Cell; anchor: Cell; head: Cell }
 
@@ -107,6 +111,14 @@ export class Doc {
   tool: { kind: 'pen' | 'highlighter' | 'eraser'; color: string; width: number } | null = null
   /** Selected floating object (chart, picture, shape) on the active sheet. */
   selObj: number | null = null
+  /** Further selected objects (Ctrl/Shift+click, or the other members of a group). */
+  selObjs: number[] = []
+  /** Macro being recorded (View > Macros > Record Macro). */
+  recorder: Recorder | null = null
+  /** Use Relative References for the next recording. */
+  macroRelative = false
+  /** View > Hide: the workbook window is hidden (the grid is not shown). */
+  windowHidden = false
   /** Cells marked by Circle Invalid Data. */
   circles: { r: number; c: number }[] = []
   /** Shape being drawn with the mouse after choosing it in the Shapes gallery. */
@@ -171,6 +183,7 @@ export class Doc {
     this.edit = null
     this.clip = null
     this.selObj = null
+    this.selObjs = []
     this.undoStack = []
     this.redoStack = []
     this.modified = false
@@ -245,13 +258,36 @@ export class Doc {
       return false
     }
     const after = captureAfter(tx, this.wb)
-    this.undoStack.push({ label, before: tx, after, selBefore, selAfter: cloneSel(this.sel), sheetBefore, sheetAfter: this.sheet.id })
+    const change = this.recordChange(label, tx)
+    if (this.recorder) recordStep(this, label, tx)
+    this.undoStack.push({ change, label, before: tx, after, selBefore, selAfter: cloneSel(this.sel), sheetBefore, sheetAfter: this.sheet.id })
     if (this.undoStack.length > 200) this.undoStack.shift()
     this.redoStack = []
     this.afterChange(tx.structural, tx.changed)
     this.modified = true
     this.emit()
     return true
+  }
+
+  /** Adds an entry to Review > Show Changes. */
+  private recordChange(label: string, tx: Tx) {
+    const text = (d: CellData | undefined) => (d?.f !== undefined ? '=' + d.f : d?.v === undefined || d.v === null ? '' : typeof d.v === 'object' ? d.v.code : String(d.v))
+    const cells: ChangeRecord['cells'] = []
+    let count = 0
+    let sheetName = this.sheet.name
+    tx.cells.forEach((m, sheet) => {
+      m.forEach((old, k) => {
+        const now = sheet.cells.get(k)
+        if (text(old) === text(now)) return
+        count++
+        sheetName = sheet.name
+        if (cells.length < 20) cells.push({ r: keyRow(k), c: keyCol(k), old: text(old), new: text(now) })
+      })
+    })
+    const record: ChangeRecord = { label, author: authorName(), time: new Date().toISOString(), sheet: sheetName, cells, count }
+    this.wb.changes.push(record)
+    if (this.wb.changes.length > 500) this.wb.changes.splice(0, this.wb.changes.length - 500)
+    return record
   }
 
   private afterChange(structural: boolean, changed: Map<Sheet, Set<number>>) {
@@ -293,6 +329,7 @@ export class Doc {
     if (!e) return
     this.edit = null
     this.applySnapshot(e.before)
+    if (e.change) this.wb.changes = this.wb.changes.filter((c) => c !== e.change)
     this.redoStack.push(e)
     this.focusSheet(e.sheetBefore)
     this.sel = cloneSel(e.selBefore as Sel)
@@ -308,6 +345,7 @@ export class Doc {
     }
     this.edit = null
     this.applySnapshot(e.after)
+    if (e.change) this.wb.changes.push(e.change)
     this.undoStack.push(e)
     this.focusSheet(e.sheetAfter)
     this.sel = cloneSel(e.selAfter as Sel)
@@ -448,11 +486,11 @@ export class Doc {
       const anchor = sheet.spillOwner.get(cellKey(r, c))
       if (anchor !== undefined) {
         const f = sheet.cells.get(anchor)?.f
-        return f !== undefined ? '=' + f : ''
+        return f !== undefined ? '=' + (prefs().r1c1 ? toR1C1(f, keyRow(anchor), keyCol(anchor)) : f) : ''
       }
       return ''
     }
-    if (d.f !== undefined) return '=' + d.f
+    if (d.f !== undefined) return '=' + (prefs().r1c1 ? toR1C1(d.f, r, c) : d.f)
     const v = d.v
     if (v === undefined || v === null) return ''
     if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE'
@@ -506,6 +544,7 @@ export class Doc {
   select(cell: Cell, opts: { extend?: boolean; add?: boolean } = {}) {
     this.tabStart = undefined
     this.selObj = null
+    this.selObjs = []
     const s = this.sel
     const c = { r: clamp(cell.r, 0, MAX_ROWS - 1), c: clamp(cell.c, 0, MAX_COLS - 1) }
     if (opts.extend) {
@@ -523,6 +562,7 @@ export class Doc {
 
   selectRange(rg: Range, active?: Cell, add = false) {
     this.selObj = null
+    this.selObjs = []
     const s = this.sel
     const a = active ?? { r: rg.r1, c: rg.c1 }
     this.sel = { ranges: add ? s.ranges.concat(rg) : [rg], active: a, anchor: a, head: { r: rg.r2, c: rg.c2 } }
@@ -627,6 +667,7 @@ export class Doc {
     this.activeIndex = i
     this.edit = null
     this.selObj = null
+    this.selObjs = []
     this.emit()
   }
 
@@ -640,7 +681,7 @@ export class Doc {
       try {
         parseFormula(body)
       } catch (e) {
-        throw new FormulaError(e instanceof ParseError ? e.message : 'There is a problem with this formula.')
+        throw new FormulaError(e instanceof ParseError ? e.message : t('There is a problem with this formula.'))
       }
       return { data: { f: body } }
     }
@@ -649,9 +690,10 @@ export class Doc {
 
   /** Writes typed text to a cell (or every selected cell for Ctrl+Enter), keeping its style. */
   setInput(r: number, c: number, text: string, fillSelection = false, rich?: RichRun[]) {
-    if (this.forGroup(`Typing "${text.slice(0, 20)}" in ${cellName(r, c)}`, () => this.setInput(r, c, text, fillSelection, rich))) return
+    if (this.forGroup(t('Typing "{text}" in {cell}', { text: text.slice(0, 20), cell: cellName(r, c) }), () => this.setInput(r, c, text, fillSelection, rich))) return
     const sheet = this.sheet
     if (blocked(this, 'cells', fillSelection ? this.sel.ranges : [{ r1: r, c1: c, r2: r, c2: c }])) return
+    if (prefs().r1c1 && /^[=+]/.test(text) && text.length > 1) text = text[0] + fromR1C1(text.slice(1), r, c)
     const prepared = this.prepareInput(text)
     const targets: Cell[] = []
     if (fillSelection) {
@@ -660,7 +702,7 @@ export class Doc {
         for (let rr = b.r1; rr <= b.r2; rr++) for (let cc = b.c1; cc <= b.c2; cc++) targets.push({ r: rr, c: cc })
       }
     } else targets.push({ r, c })
-    this.transact(`Typing "${text.slice(0, 20)}" in ${cellName(r, c)}`, () => {
+    this.transact(t('Typing "{text}" in {cell}', { text: text.slice(0, 20), cell: cellName(r, c) }), () => {
       for (const t of targets) {
         const old = sheet.get(t.r, t.c)
         let data: CellData = { ...prepared.data }
@@ -692,7 +734,7 @@ export class Doc {
   // ---------- formatting ----------
 
   /** Applies a style change to the selection (or given ranges). Whole rows/columns use row/column styles. */
-  applyStyle(patch: StylePatch | ((s: Style, r: number, c: number) => StylePatch), ranges = this.sel.ranges, label = 'Format Cells') {
+  applyStyle(patch: StylePatch | ((s: Style, r: number, c: number) => StylePatch), ranges = this.sel.ranges, label = tx('Format Cells')) {
     if (!this.edit && this.forGroup(label, () => this.applyStyle(patch, ranges, label))) return
     const sheet = this.sheet
     if (blocked(this, 'formatCells')) return
@@ -785,11 +827,11 @@ export class Doc {
       }
       void s
       return p
-    }, ranges, 'Borders')
+    }, ranges, tx('Borders'))
     if (mode === 'none') {
       // also clear the facing edges of neighbouring cells
       const sheet = this.sheet
-      this.transact('Borders', () => {
+      this.transact(tx('Borders'), () => {
         for (const rg of ranges) {
           if (isFullCols(rg) || isFullRows(rg)) continue
           const edges: [number, number, keyof Style][] = []
@@ -812,10 +854,10 @@ export class Doc {
   }
 
   clear(what: 'all' | 'formats' | 'contents' | 'links', ranges = this.sel.ranges) {
-    if (this.forGroup('Clear', () => this.clear(what, ranges))) return
+    if (this.forGroup(tx('Clear'), () => this.clear(what, ranges))) return
     const sheet = this.sheet
     if (blocked(this, 'cells', ranges.map((rg) => this.boundToUsed(rg)))) return
-    this.transact(what === 'contents' ? 'Clear Contents' : what === 'formats' ? 'Clear Formats' : 'Clear', () => {
+    this.transact(what === 'contents' ? tx('Clear Contents') : what === 'formats' ? tx('Clear Formats') : tx('Clear'), () => {
       for (const rg of ranges) {
         if ((what === 'all' || what === 'formats') && (isFullCols(rg) || isFullRows(rg))) {
           this.noteProps(sheet)
@@ -868,7 +910,7 @@ export class Doc {
   merge(mode: 'center' | 'across' | 'merge' | 'unmerge', ranges = this.sel.ranges) {
     const sheet = this.sheet
     if (blocked(this, 'formatCells')) return
-    this.transact(mode === 'unmerge' ? 'Unmerge Cells' : 'Merge Cells', () => {
+    this.transact(mode === 'unmerge' ? tx('Unmerge Cells') : tx('Merge Cells'), () => {
       this.noteProps(sheet)
       for (const rg0 of ranges) {
         const rg = this.boundToUsedIfHuge(rg0)
@@ -889,7 +931,7 @@ export class Doc {
         }
       }
     })
-    if (mode === 'center') this.applyStyle({ h: 'center' }, ranges.map((rg) => ({ r1: rg.r1, c1: rg.c1, r2: rg.r1, c2: rg.c1 })), 'Merge & Center')
+    if (mode === 'center') this.applyStyle({ h: 'center' }, ranges.map((rg) => ({ r1: rg.r1, c1: rg.c1, r2: rg.r1, c2: rg.c1 })), tx('Merge & Center'))
     this.sel = { ...this.sel, ranges: this.sel.ranges.map((r) => this.expandMerges(r)) }
     this.emit()
   }

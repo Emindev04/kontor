@@ -3,6 +3,7 @@ import type { Node as PMNode } from '@tiptap/pm/model'
 import { NodeSelection, Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view'
 import { isFloating, type WrapMode } from './Drawing'
+import { t, tx } from '../i18n'
 
 // Several drawing objects selected at once (Shift+click or the Selection Pane), and grouping them:
 // objects of a group share a group id and move together.
@@ -19,28 +20,28 @@ export function listDrawings(doc: PMNode) {
     if (!DRAWING_TYPES.includes(node.type.name)) return
     const kind = drawingKind(node)
     // Like the original, objects are numbered across the document ("Oval 1", "Rectangle 2").
-    out.push({ pos, node, kind, name: (node.attrs.name as string | null) || `${kind} ${out.length + 1}` })
+    out.push({ pos, node, kind, name: (node.attrs.name as string | null) || t('{kind} {n}', { kind: t(kind), n: out.length + 1 }) })
     return node.type.name === 'textBox' ? false : undefined
   })
   return out
 }
 
-const SHAPE_NAMES: Record<string, string> = { ellipse: 'Oval', rectangle: 'Rectangle', roundRect: 'Rectangle: Rounded Corners', line: 'Straight Connector', arrowLine: 'Straight Arrow Connector' }
+const SHAPE_NAMES: Record<string, string> = { ellipse: tx('Oval'), rectangle: tx('Rectangle'), roundRect: tx('Rectangle: Rounded Corners'), line: tx('Straight Connector'), arrowLine: tx('Straight Arrow Connector') }
 
 function drawingKind(node: PMNode) {
   switch (node.type.name) {
     case 'image':
-      return 'Picture'
+      return tx('Picture')
     case 'textBox':
-      return node.attrs.wordArt ? 'WordArt' : 'Text Box'
+      return node.attrs.wordArt ? tx('WordArt') : tx('Text Box')
     case 'chart':
-      return 'Chart'
+      return tx('Chart')
     case 'diagram':
-      return 'Diagram'
+      return tx('Diagram')
     case 'onlineVideo':
-      return 'Online Video'
+      return tx('Online Video')
     case 'signatureLine':
-      return 'Signature Line'
+      return tx('Signature Line')
     default:
       return SHAPE_NAMES[node.attrs.kind as string] ?? String(node.attrs.kind ?? 'Shape').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase())
   }
@@ -86,8 +87,8 @@ const newGroupId = () => `g${Date.now().toString(36)}${Math.random().toString(36
 export function groupDrawings(view: EditorView): string | null {
   const items = selectedDrawings(view.state)
   // Selecting one object of a group means the whole group.
-  if (items.length < 2) return 'Select two or more objects (Shift+click) to group them.'
-  if (items.some((d) => !isFloating(d.node.attrs.wrap as WrapMode))) return 'Only objects with the "In Front of Text" or "Behind Text" layout can be grouped.'
+  if (items.length < 2) return t('Select two or more objects (Shift+click) to group them.')
+  if (items.some((d) => !isFloating(d.node.attrs.wrap as WrapMode))) return t('Only objects with the “In Front of Text” or “Behind Text” layout can be grouped.')
   const id = newGroupId()
   const tr = view.state.tr
   // Remember where each object sits inside the group, so the group can be saved as one drawing.

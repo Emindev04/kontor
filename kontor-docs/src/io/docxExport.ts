@@ -1,3 +1,7 @@
+import { ruleCode, type RuleAttrs } from '../editor/MailMerge'
+import { refPage } from '../editor/Objects'
+import { authorityLines, categoryName, collectAuthorities } from '../editor/Authorities'
+import { decodeMultilevel, isMultilevel, isSymbolBullet } from '../editor/customLists'
 import {
   AlignmentType, BorderStyle, ColumnBreak, SectionType, VerticalAlignSection, LineNumberRestartFormat, EndnoteReferenceRun, FootnoteReferenceRun, CommentRangeEnd, CommentRangeStart, CommentReference, DeletedTextRun, Document, InsertedTextRun, ExternalHyperlink, Footer, Header, HeadingLevel, ImageRun, LeaderType, LevelFormat,
   LineRuleType, NumberFormat, Packer, PageBorderDisplay, PageBorderOffsetFrom, PageBreak, PageNumber, PageOrientation, Paragraph,
@@ -85,7 +89,7 @@ type Ctx = {
   contentWidthTwips: number
   contentWidthPx: number
   title: string
-  numbering: Map<string, { format: (typeof LevelFormat)[keyof typeof LevelFormat]; text: (level: number) => string; start?: number }>
+  numbering: Map<string, { format: (typeof LevelFormat)[keyof typeof LevelFormat]; text: (level: number) => string; start?: number; formats?: (level: number) => (typeof LevelFormat)[keyof typeof LevelFormat] }>
   /** Run formatting applied to text that does not set it itself (table style header rows). */
   runDefaults?: Partial<IRunOptions>
   comments: Comments
@@ -309,6 +313,12 @@ function runOptions(marks: JSONContent['marks'] = []) {
         if (a.kerning) o.kern = Math.round(Number(a.kerning) * 2)
         if (a.textEffect === 'emboss') o.emboss = true
         if (a.textEffect === 'engrave') o.imprint = true
+        // Glow, reflection and gradient fill (w14) are written through a marker, replaced afterwards.
+        if (a.glow || a.reflection || a.gradient) {
+          const fx = [a.glow && `glow:${toHex(a.glow) ?? '4472C4'}`, a.reflection && 'refl', a.gradient && `grad:${String(a.gradient).split(',').map((c) => toHex(c) ?? '000000').join(':')}`].filter(Boolean).join(';')
+          o.language = { eastAsia: `kontor-fx-${fx}` }
+          paragraphMarkers.used = true
+        }
         break
       }
     }
@@ -493,6 +503,9 @@ async function inline(nodes: JSONContent[] = [], ctx: Ctx): Promise<ParagraphChi
     } else if (n.type === 'indexEntry') {
       const term = String(n.attrs?.term ?? '').replace(/"/g, '')
       if (term) out.push(new SimpleField(`XE "${term}${n.attrs?.sub ? `:${String(n.attrs.sub).replace(/"/g, '')}` : ''}"`))
+    } else if (n.type === 'authorityEntry') {
+      const q = (v: unknown) => String(v ?? '').replace(/"/g, '')
+      out.push(new SimpleField(`TA${n.attrs?.long ? ` \\l "${q(n.attrs.long)}"` : ''} \\s "${q(n.attrs?.short)}" \\c ${Number(n.attrs?.category) || 1}`))
     } else if (n.type === 'bookmark') {
       if (n.attrs?.name) out.push(new DocxBookmark({ id: String(n.attrs.name), children: [] }) as unknown as ParagraphChild)
     } else if (n.type === 'crossRef') {
@@ -507,6 +520,10 @@ async function inline(nodes: JSONContent[] = [], ctx: Ctx): Promise<ParagraphChi
       const ids = ctx.noteIds[kind]
       if (!ids.has(id)) ids.set(id, ids.size + 1)
       out.push(kind === 'endnote' ? new EndnoteReferenceRun(ids.get(id)!) : new FootnoteReferenceRun(ids.get(id)!))
+    } else if (n.type === 'mergeRule') {
+      const a = n.attrs as RuleAttrs
+      const simple = { recordNumber: 'MERGEREC', sequence: 'MERGESEQ', nextRecord: 'NEXT' }[a.kind as string]
+      out.push(simple ? new SimpleField(simple, ruleCode(a)) : new TextRun(ruleCode(a)))
     } else if (n.type === 'mergeField') {
       const { options } = runOptions(n.marks)
       out.push(new TextRun({ ...options, text: `«${n.attrs?.name ?? ''}»` }))
@@ -524,6 +541,57 @@ function lineSpacing(value: string | null | undefined) {
 }
 
 const border: IBorderOptions = { style: BorderStyle.SINGLE, size: 4, color: 'auto', space: 1 }
+
+/** Set when a paragraph needs w:mirrorIndents or w:suppressAutoHyphens (written through marker elements). */
+const paragraphMarkers = { used: false }
+
+// Paragraph properties must keep the order of the schema (strict readers reject a file otherwise):
+// the elements that may follow w:suppressAutoHyphens and w:mirrorIndents inside w:pPr.
+const AFTER_SUPPRESS_HYPHENS = ['kinsoku', 'wordWrap', 'overflowPunct', 'topLinePunct', 'autoSpaceDE', 'autoSpaceDN', 'bidi', 'adjustRightInd', 'snapToGrid', 'spacing', 'ind', 'contextualSpacing', 'mirrorIndents', 'suppressOverlap', 'jc', 'textDirection', 'textAlignment', 'textboxTightWrap', 'outlineLvl', 'divId', 'cnfStyle', 'rPr', 'sectPr', 'pPrChange']
+const AFTER_MIRROR_INDENTS = AFTER_SUPPRESS_HYPHENS.slice(AFTER_SUPPRESS_HYPHENS.indexOf('mirrorIndents') + 1)
+
+/** Inserts `element` into the content of a w:pPr before the first of `followers` (or at the end). */
+function insertInPPr(content: string, element: string, followers: string[]) {
+  // Only the paragraph's own properties count, not those of its paragraph mark (w:rPr) or section.
+  const own = content.search(/<w:(?:rPr|sectPr|pPrChange)[\s>/]/)
+  const head = own < 0 ? content.length : own
+  let at = head
+  for (const name of followers) {
+    const i = content.slice(0, head).search(new RegExp(`<w:${name}[\\s>/]`))
+    if (i >= 0 && i < at) at = i
+  }
+  return content.slice(0, at) + element + content.slice(at)
+}
+
+/** Replaces the marker elements with w:mirrorIndents, w:suppressAutoHyphens and the w14 text effects. */
+export function replaceParagraphMarkers(xml: string) {
+  return xml
+    .replace(/<w:pPr>([\s\S]*?)<\/w:pPr>/g, (whole, content: string) => {
+      const mirror = /<w:wordWrap w:val="0"\/>/.test(content)
+      const noHyphens = /<w:overflowPunct(?: w:val="(?:true|1|on)")?\/>/.test(content)
+      if (!mirror && !noHyphens) return whole
+      let c = content.replace(/<w:wordWrap w:val="0"\/>/, '').replace(/<w:overflowPunct(?: w:val="(?:true|1|on)")?\/>/, '')
+      if (noHyphens) c = insertInPPr(c, '<w:suppressAutoHyphens/>', AFTER_SUPPRESS_HYPHENS)
+      if (mirror) c = insertInPPr(c, '<w:mirrorIndents/>', AFTER_MIRROR_INDENTS)
+      return `<w:pPr>${c}</w:pPr>`
+    })
+    .replace(/<w:lang w:eastAsia="kontor-fx-([^"]*)"\/>/g, (_m, fx: string) => textEffectXml(fx))
+}
+
+/** w14 text effects (glow, reflection, gradient fill) from the marker of runOptions. */
+function textEffectXml(fx: string) {
+  let out = ''
+  for (const part of fx.split(';')) {
+    const [kind, ...values] = part.split(':')
+    if (kind === 'glow') out += `<w14:glow w14:rad="63500"><w14:srgbClr w14:val="${values[0]}"><w14:alpha w14:val="40000"/></w14:srgbClr></w14:glow>`
+    else if (kind === 'refl') out += '<w14:reflection w14:blurRad="6350" w14:stA="55000" w14:stPos="0" w14:endA="300" w14:endPos="45500" w14:dist="0" w14:dir="5400000" w14:fadeDir="5400000" w14:sx="100000" w14:sy="-100000" w14:kx="0" w14:ky="0" w14:algn="bl"/>'
+    else if (kind === 'grad') {
+      const [from, to = from] = values
+      out += `<w14:textFill><w14:gradFill><w14:gsLst><w14:gs w14:pos="0"><w14:srgbClr w14:val="${from}"/></w14:gs><w14:gs w14:pos="100000"><w14:srgbClr w14:val="${to}"/></w14:gs></w14:gsLst><w14:lin w14:ang="0" w14:scaled="0"/></w14:gradFill></w14:textFill>`
+    }
+  }
+  return out
+}
 
 function paraProps(n: JSONContent): Partial<IParagraphOptions> {
   const a = n.attrs ?? {}
@@ -550,6 +618,18 @@ function paraProps(n: JSONContent): Partial<IParagraphOptions> {
   if (a.pageBreakBefore) p.pageBreakBefore = true
   if (a.widowControl === false) p.widowControl = false
   if (a.dir === 'rtl') p.bidirectional = true
+  if (a.outlineLevel && n.type !== 'heading') p.outlineLevel = Math.min(9, a.outlineLevel) - 1
+  if (a.contextualSpacing) p.contextualSpacing = true
+  if (a.suppressLineNumbers) p.suppressLineNumbers = true
+  // The writer has no option for these two: marker elements are swapped for the real ones afterwards.
+  if (a.mirrorIndents) {
+    p.wordWrap = true
+    paragraphMarkers.used = true
+  }
+  if (a.noHyphenate) {
+    p.overflowPunctuation = true
+    paragraphMarkers.used = true
+  }
   if (a.pStyle && PARAGRAPH_STYLE_IDS[a.pStyle]) p.style = PARAGRAPH_STYLE_IDS[a.pStyle]
   else if (a.pStyle && customStyles[a.pStyle]) p.style = customId(a.pStyle)
   const shading = toHex(a.shading)
@@ -569,10 +649,25 @@ function paraProps(n: JSONContent): Partial<IParagraphOptions> {
 function listReference(n: JSONContent, ctx: Ctx) {
   const style = (n.attrs?.listStyle as string | null) ?? (n.type === 'orderedList' ? 'decimal' : 'disc')
   const start = n.type === 'orderedList' ? ((n.attrs?.start as number) ?? 1) : 1
-  const key = `${n.type === 'orderedList' ? 'num' : 'bullet'}-${style}${start !== 1 ? `-${start}` : ''}`
+  // Reference names must stay plain: long definitions (multilevel, picture bullets) are hashed.
+  const name = /^[\w-]+$/.test(style) ? style : `h${Array.from(style).reduce((h, c) => (Math.imul(h, 31) + c.codePointAt(0)!) | 0, 7) >>> 0}`
+  const key = `${n.type === 'orderedList' ? 'num' : 'bullet'}-${name}${start !== 1 ? `-${start}` : ''}`
   if (!ctx.numbering.has(key)) {
-    if (n.type === 'bulletList') {
-      const symbol = BULLET_STYLES.find((b) => b.id === style)?.symbol ?? '•'
+    const levels = decodeMultilevel(style)
+    if (levels) {
+      const map: Record<string, (typeof LevelFormat)[keyof typeof LevelFormat]> = {
+        decimal: LevelFormat.DECIMAL,
+        'decimal-zero': LevelFormat.DECIMAL_ZERO,
+        'lower-alpha': LevelFormat.LOWER_LETTER,
+        'upper-alpha': LevelFormat.UPPER_LETTER,
+        'lower-roman': LevelFormat.LOWER_ROMAN,
+        'upper-roman': LevelFormat.UPPER_ROMAN,
+        bullet: LevelFormat.BULLET,
+        none: LevelFormat.NONE,
+      }
+      ctx.numbering.set(key, { format: map[levels[0].f], formats: (level) => map[levels[level].f], start, text: (level) => levels[level].t || (levels[level].f === 'bullet' ? '•' : '') })
+    } else if (n.type === 'bulletList') {
+      const symbol = isSymbolBullet(style) ? style.slice(4) : (BULLET_STYLES.find((b) => b.id === style)?.symbol ?? '•')
       ctx.numbering.set(key, { format: LevelFormat.BULLET, text: (level) => (level === 0 ? symbol : ['◦', '▪', '•'][level % 3]) })
     } else {
       const formats: Record<string, [(typeof LevelFormat)[keyof typeof LevelFormat], string]> = {
@@ -590,6 +685,7 @@ function listReference(n: JSONContent, ctx: Ctx) {
       ctx.numbering.set(key, {
         format,
         start,
+        ...(style === 'legal' ? { formats: () => LevelFormat.DECIMAL } : style === 'outline' ? { formats: (level: number) => [LevelFormat.UPPER_ROMAN, LevelFormat.UPPER_LETTER, LevelFormat.DECIMAL, LevelFormat.LOWER_LETTER, LevelFormat.LOWER_ROMAN][level % 5] } : {}),
         text: (level) => (style === 'legal' ? Array.from({ length: level + 1 }, (_, i) => `%${i + 1}`).join('.') + '.' : level === 0 ? `%1${suffix}` : `%${level + 1}.`),
       })
     }
@@ -597,14 +693,16 @@ function listReference(n: JSONContent, ctx: Ctx) {
   return key
 }
 
-async function list(n: JSONContent, ctx: Ctx, level: number, instance: number): Promise<Block[]> {
-  const reference = listReference(n, ctx)
+async function list(n: JSONContent, ctx: Ctx, level: number, instance: number, inherited?: string): Promise<Block[]> {
+  // Lists inside a multilevel list use its levels.
+  const reference = inherited && !n.attrs?.listStyle ? inherited : listReference(n, ctx)
+  const multilevel = isMultilevel(n.attrs?.listStyle) ? reference : inherited
   const out: Block[] = []
   for (const item of n.content ?? []) {
     let first = true
     for (const child of item.content ?? []) {
       if (child.type === 'bulletList' || child.type === 'orderedList') {
-        out.push(...(await list(child, ctx, Math.min(level + 1, 8), instance)))
+        out.push(...(await list(child, ctx, Math.min(level + 1, 8), instance, multilevel)))
       } else if ((child.type === 'paragraph' || child.type === 'heading') && first) {
         const { indent: _ignored, ...props } = paraProps(child)
         out.push(new Paragraph({ ...props, numbering: { reference, level, instance }, children: await inline(child.content, ctx) }))
@@ -795,15 +893,29 @@ async function blocks(nodes: JSONContent[] = [], ctx: Ctx, extra: Partial<IParag
         break
       }
       case 'tableOfContents': {
-        out.push(new Paragraph({ style: 'TOCHeading', children: [new TextRun('Contents')] }))
-        for (const e of (n.attrs?.entries ?? []) as { text: string; level: number; page: string }[]) {
+        const a = n.attrs ?? {}
+        const figures = a.kind === 'figures'
+        const showPages = a.showPages !== false
+        const right = showPages && a.rightAlign !== false
+        const leader = { dot: LeaderType.DOT, dash: LeaderType.HYPHEN, underline: LeaderType.UNDERSCORE, none: LeaderType.NONE }[String(a.leader ?? 'dot')] ?? LeaderType.DOT
+        if (!figures) out.push(new Paragraph({ style: 'TOCHeading', children: [new TextRun('Contents')] }))
+        for (const e of (a.entries ?? []) as { text: string; level: number; page: string }[]) {
           out.push(
             new Paragraph({
-              style: `TOC${Math.min(e.level, 9)}`,
-              tabStops: [{ type: TabStopType.RIGHT, position: ctx.contentWidthTwips, leader: LeaderType.DOT }],
-              children: [new TextRun({ children: [e.text, new Tab(), e.page] })],
+              ...(figures ? { spacing: { after: 0 } } : { style: `TOC${Math.min(e.level, 9)}` }),
+              ...(right ? { tabStops: [{ type: TabStopType.RIGHT, position: ctx.contentWidthTwips, leader }] } : {}),
+              children: [new TextRun({ children: showPages ? (right ? [e.text, new Tab(), e.page] : [`${e.text} ${e.page}`]) : [e.text] })],
             }),
           )
+        }
+        break
+      }
+      case 'tableOfAuthorities': {
+        const a = n.attrs ?? {}
+        const leader = { dot: LeaderType.DOT, dash: LeaderType.HYPHEN, underline: LeaderType.UNDERSCORE, none: LeaderType.NONE }[String(a.leader ?? 'dot')] ?? LeaderType.DOT
+        for (const group of authorityLines(collectAuthorities(ctx.doc), refPage, { category: Number(a.category) || 0, passim: a.passim !== false })) {
+          out.push(new Paragraph({ spacing: { before: 240, after: 80 }, children: [new TextRun({ text: categoryName(group.category), bold: true })] }))
+          for (const e of group.entries) out.push(new Paragraph({ tabStops: [{ type: TabStopType.RIGHT, position: ctx.contentWidthTwips, leader }], children: [new TextRun({ children: [e.text, new Tab(), e.pages] })] }))
         }
         break
       }
@@ -829,6 +941,7 @@ export type ExportInput = {
 }
 
 export async function exportDocx({ doc, setup, design, headerFooter, title, comments = {}, trackChanges, notes = {}, crossRefs = {}, styles = {} }: ExportInput): Promise<Blob> {
+  paragraphMarkers.used = false
   customStyles = Object.fromEntries(Object.entries(styles).filter(([, d]) => d.custom))
   // Formats of the built-in styles: the style set first, then the document's own changes.
   const setFormats = STYLE_SETS.find((x) => x.id === design.styleSet)?.styles ?? {}
@@ -1004,7 +1117,7 @@ export async function exportDocx({ doc, setup, design, headerFooter, title, comm
         reference,
         levels: Array.from({ length: 9 }, (_, level) => ({
           level,
-          format: def.format === LevelFormat.BULLET ? LevelFormat.BULLET : level === 0 ? def.format : [LevelFormat.LOWER_LETTER, LevelFormat.LOWER_ROMAN, LevelFormat.DECIMAL][(level - 1) % 3],
+          format: def.formats ? def.formats(level) : def.format === LevelFormat.BULLET ? LevelFormat.BULLET : level === 0 ? def.format : [LevelFormat.LOWER_LETTER, LevelFormat.LOWER_ROMAN, LevelFormat.DECIMAL][(level - 1) % 3],
           text: def.text(level),
           start: level === 0 ? (def.start ?? 1) : 1,
           alignment: AlignmentType.LEFT,
@@ -1036,6 +1149,7 @@ export async function exportDocx({ doc, setup, design, headerFooter, title, comm
               top: twip(margins.top),
               bottom: twip(margins.bottom),
               left: twip(margins.left),
+              ...(setup.gutter ? { gutter: twip(setup.gutter) } : {}),
               right: twip(margins.right),
               header: twip(setup.headerDistance),
               footer: twip(setup.footerDistance),
@@ -1077,12 +1191,23 @@ export async function exportDocx({ doc, setup, design, headerFooter, title, comm
   })
   const blob = await Packer.toBlob(document)
   const textMark = watermark && !watermark.image && watermark.text ? watermark : null
-  if (!setup.mirrored && !textMark && !ctx.diagrams.length) return blob
+  const markers = paragraphMarkers.used
+  paragraphMarkers.used = false
+  if (!setup.mirrored && !textMark && !ctx.diagrams.length && !markers && !setup.gutter) return blob
   // The writer has no option for mirrored margins or VML watermarks: add them to the package afterwards.
   const { default: JSZip } = await import('jszip')
   const zip = await JSZip.loadAsync(await blob.arrayBuffer())
   const settings = await zip.file('word/settings.xml')?.async('string')
   if (setup.mirrored && settings && !settings.includes('w:mirrorMargins')) zip.file('word/settings.xml', settings.replace(/(<w:settings[^>]*>)/, '$1<w:mirrorMargins/>'))
+  if (setup.gutter && setup.gutterPosition === 'top') {
+    const current = (await zip.file('word/settings.xml')?.async('string')) ?? ''
+    if (current && !current.includes('w:gutterAtTop')) zip.file('word/settings.xml', current.replace(/(<w:settings[^>]*>)/, '$1<w:gutterAtTop/>'))
+  }
+  if (markers) {
+    for (const name of Object.keys(zip.files).filter((f) => /^word\/(document|header\d+|footer\d+|footnotes|endnotes)\.xml$/.test(f))) {
+      zip.file(name, replaceParagraphMarkers(await zip.file(name)!.async('string')))
+    }
+  }
   if (textMark) {
     const headers = Object.keys(zip.files).filter((name) => /^word\/header\d+\.xml$/.test(name))
     for (const [i, name] of headers.entries()) {

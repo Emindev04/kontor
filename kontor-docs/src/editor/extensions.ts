@@ -1,3 +1,5 @@
+import { Authorities } from './Authorities'
+import { SimilarFormatting } from './SimilarFormatting'
 import { Extension, type Extensions } from '@tiptap/core'
 import { StarterKit } from '@tiptap/starter-kit'
 import { TextStyleKit } from '@tiptap/extension-text-style'
@@ -17,7 +19,7 @@ import { Pagination, type PaginationController } from './Pagination'
 import { StyledTableView, TableStyles } from './TableStyles'
 import { ListStyles } from './ListStyles'
 import { TableOfContents } from './TableOfContents'
-import { MergeField } from './MailMerge'
+import { MergeField, MergeRule } from './MailMerge'
 import { ImageFormat } from './ImageFormat'
 import { stepFontSize } from './commands'
 import { Review } from './Review'
@@ -38,6 +40,7 @@ import { Bookmark, CrossRef, CrossRefRefresh, Equation, SignatureLine } from './
 import { PasteOptions, type PasteMode } from './Paste'
 import { DrawingSelection } from './DrawingSelection'
 import { Citations } from './Citations'
+import { t } from '../i18n'
 
 /** Callbacks for objects that open a dialog when double-clicked. */
 export type ObjectEditors = { chart?: (pos: number) => void; diagram?: (pos: number) => void; equation?: (pos: number) => void; signature?: (pos: number) => void }
@@ -111,6 +114,7 @@ export function createExtensions({ pagination, resolveField, getAuthor, getNoteS
     Repeat,
     OnlineVideo,
     Citations,
+    Authorities,
     ImageFormat,
     Subscript,
     Superscript,
@@ -125,14 +129,16 @@ export function createExtensions({ pagination, resolveField, getAuthor, getNoteS
     ListStyles,
     TableOfContents,
     MergeField,
+    MergeRule,
     CharStyle,
     TextEffects,
     Search,
+    SimilarFormatting,
     Field.configure({ resolve: resolveField ?? null }),
     WordShortcuts,
     PasteOptions.configure({ getDefaultMode: getPasteMode ?? (() => 'keep') }),
     ...(getAutoCorrect ? [AutoCorrect.configure({ getSettings: getAutoCorrect })] : []),
-    Review.configure({ getAuthor: getAuthor ?? (() => 'Author') }),
+    Review.configure({ getAuthor: getAuthor ?? (() => t('Author')) }),
     NoteRef.configure({ getSettings: getNoteSettings ?? (() => DEFAULT_NOTE_SETTINGS) }),
     ...(pagination ? [Pagination.configure({ controller: pagination })] : []),
   ]

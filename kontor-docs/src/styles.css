@@ -389,12 +389,15 @@ input {
   gap: 3px;
   height: 70px;
   min-width: 52px;
-  max-width: 82px;
+  max-width: 100px;
   padding: 5px 4px 3px;
   white-space: normal;
   text-align: center;
   line-height: 1.15;
   font-size: 11.5px;
+  /* Long single words (common in German) break with a hyphen instead of running out of the button. */
+  hyphens: auto;
+  overflow-wrap: anywhere;
 }
 
 .rb-large svg:first-child {
@@ -3915,6 +3918,20 @@ kbd {
   background: #e1dfdd;
 }
 
+.bs-recent-remove.is-pinned,
+.bs-recent-remove:focus-visible {
+  visibility: visible;
+}
+
+.bs-recent strong svg {
+  vertical-align: -1px;
+  color: #605e5c;
+}
+
+.bs-info h2 svg {
+  vertical-align: -2px;
+}
+
 /* ---------- Paste Options button ---------- */
 
 .paste-options {
@@ -4362,4 +4379,396 @@ kbd {
   color: #fff;
   font: 11px system-ui, sans-serif;
   pointer-events: none;
+}
+
+/* ---------- Define New Bullet / Multilevel List ---------- */
+
+.bullet-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 2px;
+}
+
+.bullet-cell {
+  height: 28px;
+  border: 1px solid #e1e1e1;
+  border-radius: 2px;
+  background: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.bullet-cell:hover {
+  border-color: #e3881f;
+}
+
+.bullet-cell.is-active {
+  border-color: var(--accent, #2b579a);
+  background: #cfe0f5;
+}
+
+.bullet-preview {
+  margin: 0;
+  padding-left: 28px;
+  background: #fff;
+}
+
+.btn-small {
+  min-width: 0;
+  padding: 1px 6px;
+}
+
+.ml-dialog {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ml-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ml-level {
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ml-level.is-active {
+  border-color: #9ec1e8;
+  background: #cfe0f5;
+}
+
+.ml-preview {
+  padding: 8px;
+  border: 1px solid #e1e1e1;
+  background: #fff;
+  font-size: 11px;
+}
+
+.ml-preview-row {
+  display: flex;
+  align-items: center;
+  height: 18px;
+}
+
+.ml-preview-row.is-active {
+  font-weight: 600;
+}
+
+.ml-preview-num {
+  min-width: 28px;
+}
+
+/* Find › Format */
+.find-formats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.find-format {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 4px 8px 6px;
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  font-size: 11.5px;
+}
+
+.find-format legend {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.find-format-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.find-format-item input:not([type='checkbox']):not([type='color']) {
+  width: 90px;
+}
+
+.link-btn.is-active {
+  font-weight: 600;
+}
+
+/* Table › Draw Table and Eraser */
+.ProseMirror.is-drawing-table,
+.ProseMirror.is-drawing-table * {
+  cursor: crosshair !important;
+}
+
+.ProseMirror.is-erasing-table,
+.ProseMirror.is-erasing-table * {
+  cursor: cell !important;
+}
+
+.draw-table-rect {
+  position: fixed;
+  z-index: 60;
+  border: 1px dashed #000;
+  pointer-events: none;
+}
+
+.dlg-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dlg-col textarea,
+.dlg-col input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Table of Contents / Table of Figures dialog preview */
+.toc-preview {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e1e1e1;
+  background: #fff;
+  font-family: Georgia, serif;
+}
+
+.toc-preview-line {
+  display: flex;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.toc-preview-line.is-inline {
+  display: block;
+}
+
+.toc-preview-fill {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 2px;
+  color: #666;
+}
+
+/* Style Inspector (Styles pane) */
+.style-inspector {
+  margin: 4px 8px;
+  padding: 6px 8px;
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  background: #faf9f8;
+  font-size: 11.5px;
+}
+
+.si-head {
+  margin: 4px 0 2px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.si-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 1px 4px;
+  border: 1px solid #e1e1e1;
+  background: #fff;
+}
+
+.si-row + .si-row {
+  border-top: 0;
+}
+
+.si-row > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.si-plus {
+  color: #605e5c;
+}
+
+.styles-pane-foot .btn.is-active {
+  background: #cfe0f5;
+}
+
+/* Manage Styles */
+.manage-styles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.manage-styles .dlg-list {
+  height: 260px;
+  max-height: none;
+}
+
+/* Vertical ruler (beside the page with the cursor) */
+.vruler {
+  position: absolute;
+  left: -28px;
+  z-index: 3;
+  width: 20px;
+  user-select: none;
+}
+
+.vruler svg {
+  display: block;
+  width: 20px;
+  height: 100%;
+  overflow: visible;
+}
+
+.vruler-handle {
+  fill: transparent;
+  cursor: row-resize;
+}
+
+.vruler-tip {
+  left: 26px;
+  transform: translateY(-50%);
+}
+
+@media print {
+  .vruler {
+    display: none;
+  }
+}
+
+/* View › Macros */
+.macro-recording {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  transform: translateX(-50%);
+  border: 1px solid #c8c6c4;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  font-size: 12px;
+}
+
+.macro-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #c50f1f;
+}
+
+.macros-dialog {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+}
+
+.macros-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.macro-steps {
+  max-height: 140px;
+  margin: 0;
+  padding-left: 22px;
+  overflow-y: auto;
+  font-size: 11.5px;
+}
+
+/* Draw tab: ink on the page */
+.ink-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.ink-overlay.is-eraser {
+  cursor: cell;
+}
+
+.ink-live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.pages.hide-ink .drawing:has(img[alt='Ink']) {
+  visibility: hidden;
+}
+
+.ink-width {
+  flex-direction: column;
+  align-self: center;
+  font-size: 11px;
+}
+
+.ink-width input {
+  width: 90px;
+}
+
+/* File › Print settings */
+.bs-print-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.bs-copies input {
+  width: 64px;
+}
+
+/* Options › Customize the Ribbon: own tabs */
+.custom-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.custom-tabs-tree {
+  max-height: 180px;
+}
+
+.custom-tabs-tree .ct-group {
+  padding-left: 22px;
+}
+
+.ct-item {
+  display: flex;
+  align-items: center;
+  padding-left: 40px;
+  font-size: 11.5px;
+}
+
+.ct-item span {
+  flex: 1;
+}
+
+.rg-empty {
+  align-self: center;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 11px;
 }

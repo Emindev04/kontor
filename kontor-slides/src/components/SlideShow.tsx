@@ -8,6 +8,7 @@ import { SlideView, presProps } from '../render/SlideView'
 import type { AnimLayer, AnimState, TextAnimPara } from '../render/ElementView'
 import { commit, store, useStore } from '../store/store'
 import { ContextMenu, type MenuItem } from './ui'
+import { t, formatDate } from '../i18n'
 
 type Phase = { idx: number; step: number; prev: number | null; key: number; trig?: string[] }
 
@@ -253,7 +254,7 @@ function usePresenterWindow(open: boolean, onClosed: () => void) {
       setWin(null)
       return
     }
-    w.document.title = 'Presenter View'
+    w.document.title = t('Presenter View')
     w.document.head.innerHTML = ''
     document.querySelectorAll('style, link[rel="stylesheet"]').forEach((n) => {
       const c = n.cloneNode(true) as HTMLElement
@@ -340,7 +341,7 @@ export function SlideShow() {
   const keepInk = useCallback(() => {
     const entries = Object.entries(ink).filter(([, v]) => v.length)
     if (!entries.length) return
-    if (!window.confirm('Do you want to keep your ink annotations?')) return
+    if (!window.confirm(t('Do you want to keep your ink annotations?'))) return
     commit((p) => ({
       ...p,
       slides: p.slides.map((sl) => {
@@ -367,7 +368,7 @@ export function SlideShow() {
   const finish = useCallback(() => {
     if (rehearse) {
       const total = timings.current.reduce((a, b) => a + b, 0)
-      const keep = window.confirm(`The total time for the slide show was ${fmtTime(total)}. Do you want to keep the new slide timings?`)
+      const keep = window.confirm(t('The total time for the slide show was {time}. Do you want to keep the new slide timings?', { time: fmtTime(total) }))
       if (keep) {
         const byId = new Map(slides.map((s, i) => [s.id, Math.round((timings.current[i] ?? 0) * 100) / 100]))
         commit((p) => ({
@@ -607,25 +608,25 @@ export function SlideShow() {
   }
 
   const menuItems: MenuItem[] = [
-    { label: 'Next', onClick: next },
-    { label: 'Previous', onClick: prev },
-    { label: 'Last Viewed', disabled: phase.prev === null, onClick: () => phase.prev !== null && goTo(phase.prev, { noTransition: true }) },
+    { label: t('Next'), onClick: next },
+    { label: t('Previous'), onClick: prev },
+    { label: t('Last Viewed'), disabled: phase.prev === null, onClick: () => phase.prev !== null && goTo(phase.prev, { noTransition: true }) },
     'separator',
-    { heading: 'Go to Slide' },
-    ...slides.slice(0, 30).map((s, i) => ({ label: `${pres.slides.indexOf(s) + 1}. ${slideTitle(s) || 'Slide'}`, active: i === phase.idx, onClick: () => goTo(i, { noTransition: true }) })),
-    ...(pres.customShows?.length ? ['separator' as const, { heading: 'Custom Show' }, ...pres.customShows.map((c) => ({ label: c.name, active: customId === c.id, onClick: () => store.set({ show: { ...show, start: 0, custom: c.id } }) }))] : []),
+    { heading: t('Go to Slide') },
+    ...slides.slice(0, 30).map((s, i) => ({ label: `${pres.slides.indexOf(s) + 1}. ${slideTitle(s) || t('Slide')}`, active: i === phase.idx, onClick: () => goTo(i, { noTransition: true }) })),
+    ...(pres.customShows?.length ? ['separator' as const, { heading: t('Custom Show') }, ...pres.customShows.map((c) => ({ label: c.name, active: customId === c.id, onClick: () => store.set({ show: { ...show, start: 0, custom: c.id } }) }))] : []),
     'separator',
-    { label: blank === 'black' ? 'Unblack Screen' : 'Black Screen', onClick: () => setBlank((b) => (b === 'black' ? null : 'black')) },
-    { label: blank === 'white' ? 'Unwhite Screen' : 'White Screen', onClick: () => setBlank((b) => (b === 'white' ? null : 'white')) },
-    { label: laserOn ? 'Turn off Laser Pointer' : 'Laser Pointer (Ctrl+L)', onClick: () => setLaserOn((v) => !v) },
-    { label: 'Pen (Ctrl+P)', active: pen === 'pen', onClick: () => setPen((v) => (v === 'pen' ? null : 'pen')) },
-    { label: 'Highlighter (Ctrl+I)', active: pen === 'highlighter', onClick: () => setPen((v) => (v === 'highlighter' ? null : 'highlighter')) },
-    { label: 'Eraser (Ctrl+E)', active: pen === 'eraser', onClick: () => setPen((v) => (v === 'eraser' ? null : 'eraser')) },
-    { label: 'Erase All Ink on Slide (E)', disabled: !slideInk?.length, onClick: () => setSlideInk([]) },
-    { label: 'Arrow (Ctrl+A)', active: !pen, onClick: () => setPen(null) },
+    { label: blank === 'black' ? t('Unblack Screen') : t('Black Screen'), onClick: () => setBlank((b) => (b === 'black' ? null : 'black')) },
+    { label: blank === 'white' ? t('Unwhite Screen') : t('White Screen'), onClick: () => setBlank((b) => (b === 'white' ? null : 'white')) },
+    { label: laserOn ? t('Turn off Laser Pointer') : t('Laser Pointer (Ctrl+L)'), onClick: () => setLaserOn((v) => !v) },
+    { label: t('Pen (Ctrl+P)'), active: pen === 'pen', onClick: () => setPen((v) => (v === 'pen' ? null : 'pen')) },
+    { label: t('Highlighter (Ctrl+I)'), active: pen === 'highlighter', onClick: () => setPen((v) => (v === 'highlighter' ? null : 'highlighter')) },
+    { label: t('Eraser (Ctrl+E)'), active: pen === 'eraser', onClick: () => setPen((v) => (v === 'eraser' ? null : 'eraser')) },
+    { label: t('Erase All Ink on Slide (E)'), disabled: !slideInk?.length, onClick: () => setSlideInk([]) },
+    { label: t('Arrow (Ctrl+A)'), active: !pen, onClick: () => setPen(null) },
     'separator',
-    ...(wantPresenter ? [] : [{ label: 'Show Presenter View', onClick: () => store.set({ show: { ...show, start: pres.slides.indexOf(slide), presenter: true } }) } as MenuItem]),
-    { label: 'End Show', onClick: rehearse ? finish : exit },
+    ...(wantPresenter ? [] : [{ label: t('Show Presenter View'), onClick: () => store.set({ show: { ...show, start: pres.slides.indexOf(slide), presenter: true } }) } as MenuItem]),
+    { label: t('End Show'), onClick: rehearse ? finish : exit },
   ]
 
   const stage = scale > 0 && !ended && <Stage pres={pres} slides={slides} phase={phase} scale={scale} blank={blank} size={pres.size} noAnim={noAnim} ink={slideInk} drawing={drawing} onDraw={setSlideInk} />
@@ -659,7 +660,7 @@ export function SlideShow() {
       ref={rootRef}
       className={`slideshow${reading ? ' is-reading' : ''}${idle && !reading ? ' is-idle' : ''}${laserOn ? ' is-laser' : ''}${pen ? ' is-pen' : ''}`}
       role="dialog"
-      aria-label={reading ? 'Reading view' : 'Slide show'}
+      aria-label={reading ? t('Reading view') : t('Slide show')}
       onContextMenu={(e) => {
         e.preventDefault()
         if (!kiosk) setMenu({ x: e.clientX, y: e.clientY })
@@ -668,58 +669,58 @@ export function SlideShow() {
     >
       <div className="show-area" ref={stageRef} onClick={onClick}>
         {stage}
-        {ended && <div className="show-end">End of slide show, click to exit.</div>}
+        {ended && <div className="show-end">{t('End of slide show, click to exit.')}</div>}
       </div>
       {laserOn && laser && <div className="laser-dot" style={{ left: laser.x, top: laser.y, background: pres.laserColor ?? undefined }} />}
       {rehearse && (
         <div className="rehearse-bar" onClick={(e) => e.stopPropagation()}>
-          <strong>Recording</strong>
-          <button type="button" aria-label="Next" title="Next" onClick={next}>
+          <strong>{t('Recording')}</strong>
+          <button type="button" aria-label={t('Next')} title={t('Next')} onClick={next}>
             <ChevronRight size={16} />
           </button>
-          <button type="button" aria-label={paused ? 'Resume recording' : 'Pause recording'} onClick={() => setPaused((p) => !p)}>
+          <button type="button" aria-label={paused ? t('Resume recording') : t('Pause recording')} onClick={() => setPaused((p) => !p)}>
             {paused ? <Play size={14} /> : <Pause size={14} />}
           </button>
           <span className="rehearse-time">{fmtTime(slideTime)}</span>
-          <button type="button" aria-label="Repeat" title="Repeat" onClick={() => setSlideTime(0)}>
+          <button type="button" aria-label={t('Repeat')} title={t('Repeat')} onClick={() => setSlideTime(0)}>
             <RotateCcw size={14} />
           </button>
           <span className="rehearse-total">{fmtTime(timings.current.reduce((a, b) => a + b, 0) + slideTime)}</span>
-          <button type="button" aria-label="Close" onClick={finish}>
+          <button type="button" aria-label={t('Close')} onClick={finish}>
             <X size={14} />
           </button>
         </div>
       )}
       {reading ? (
         <div className="reading-bar">
-          <span>{pres.slides.indexOf(slides[phase.idx]) + 1 > 0 ? `Slide ${pres.slides.indexOf(slides[phase.idx]) + 1} of ${pres.slides.length}` : ''}</span>
+          <span>{pres.slides.indexOf(slides[phase.idx]) + 1 > 0 ? t('Slide {n} of {total}', { n: pres.slides.indexOf(slides[phase.idx]) + 1, total: pres.slides.length }) : ''}</span>
           <span className="spacer" />
-          <button type="button" aria-label="Previous" title="Previous" onClick={prev}>
+          <button type="button" aria-label={t('Previous')} title={t('Previous')} onClick={prev}>
             <ChevronLeft size={16} />
           </button>
-          <button type="button" aria-label="Menu" title="Menu" onClick={(e) => setMenu({ x: e.clientX, y: e.clientY - 200 })}>
+          <button type="button" aria-label={t('Menu')} title={t('Menu')} onClick={(e) => setMenu({ x: e.clientX, y: e.clientY - 200 })}>
             <Menu size={16} />
           </button>
-          <button type="button" aria-label="Next" title="Next" onClick={next}>
+          <button type="button" aria-label={t('Next')} title={t('Next')} onClick={next}>
             <ChevronRight size={16} />
           </button>
-          <button type="button" aria-label="Exit Reading View" title="Exit (Esc)" onClick={exit}>
+          <button type="button" aria-label={t('Exit Reading View')} title={t('Exit (Esc)')} onClick={exit}>
             <X size={16} />
           </button>
         </div>
       ) : (
         !kiosk && (
           <div className="show-toolbar" onClick={(e) => e.stopPropagation()}>
-            <button type="button" aria-label="Previous" onClick={prev}>
+            <button type="button" aria-label={t('Previous')} onClick={prev}>
               <ChevronLeft size={18} />
             </button>
-            <button type="button" aria-label="Next" onClick={next}>
+            <button type="button" aria-label={t('Next')} onClick={next}>
               <ChevronRight size={18} />
             </button>
-            <button type="button" aria-label="Pen and laser pointer tools" title="Pen" className={pen ? 'is-active' : undefined} onClick={() => setPen((v) => (v ? null : 'pen'))}>
+            <button type="button" aria-label={t('Pen and laser pointer tools')} title={t('Pen')} className={pen ? 'is-active' : undefined} onClick={() => setPen((v) => (v ? null : 'pen'))}>
               <PenLine size={18} />
             </button>
-            <button type="button" aria-label="More slide show options" onClick={(e) => setMenu({ x: e.clientX, y: e.clientY - 300 })}>
+            <button type="button" aria-label={t('More slide show options')} onClick={(e) => setMenu({ x: e.clientX, y: e.clientY - 300 })}>
               <Menu size={18} />
             </button>
             <span className="show-count">
@@ -784,21 +785,21 @@ function PresenterView(props: PresenterProps) {
   const nextScale = nextBox.w ? fitScale(nextBox, pres.size) : 0
   const realIndex = (s: Slide) => pres.slides.indexOf(s)
   return (
-    <div className={`presenter${props.standalone ? ' is-standalone' : ''}`} role="dialog" aria-label="Presenter view">
+    <div className={`presenter${props.standalone ? ' is-standalone' : ''}`} role="dialog" aria-label={t('Presenter view')}>
       <div className="pv-top">
         <span className="pv-timer">
           {fmtTime(elapsed)}
-          <button type="button" aria-label={paused ? 'Resume timer' : 'Pause timer'} onClick={() => (paused ? (props.resetTimer(), setPaused(false)) : (setPausedAt(props.elapsed()), setPaused(true)))}>
+          <button type="button" aria-label={paused ? t('Resume timer') : t('Pause timer')} onClick={() => (paused ? (props.resetTimer(), setPaused(false)) : (setPausedAt(props.elapsed()), setPaused(true)))}>
             {paused ? <Play size={14} /> : <Pause size={14} />}
           </button>
-          <button type="button" aria-label="Restart timer" onClick={() => (props.resetTimer(), setPausedAt(0))}>
+          <button type="button" aria-label={t('Restart timer')} onClick={() => (props.resetTimer(), setPausedAt(0))}>
             <RotateCcw size={14} />
           </button>
         </span>
-        <span className="pv-clock">{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
+        <span className="pv-clock">{formatDate(new Date(), { hour: 'numeric', minute: '2-digit' })}</span>
         <span className="spacer" />
         <button type="button" className="pv-end" onClick={props.exit}>
-          End Slide Show
+          {t('End Slide Show')}
         </button>
       </div>
       {grid ? (
@@ -816,23 +817,23 @@ function PresenterView(props: PresenterProps) {
         <div className="pv-main">
           <div className="pv-current" ref={curRef}>
             {curScale > 0 && !props.ended && <Stage pres={pres} slides={slides} phase={{ ...phase, prev: null }} scale={curScale} blank={props.blank} size={pres.size} noAnim={props.noAnim} ink={props.ink} drawing={props.drawing} onDraw={props.onDraw} />}
-            {props.ended && <div className="show-end">End of slide show</div>}
+            {props.ended && <div className="show-end">{t('End of slide show')}</div>}
           </div>
           <div className="pv-side">
-            <div className="pv-next-label">{nextIsStep ? 'Next animation' : nextSlide ? 'Next slide' : 'End of slide show'}</div>
+            <div className="pv-next-label">{nextIsStep ? t('Next animation') : nextSlide ? t('Next slide') : t('End of slide show')}</div>
             <div className="pv-next" ref={nextRef}>
               {nextScale > 0 && (nextIsStep ? slide : nextSlide) && (
                 <Stage pres={pres} slides={slides} phase={nextIsStep ? { idx: phase.idx, step: phase.step + 1, prev: null, key: -1, trig: phase.trig } : { idx: phase.idx + 1, step: 0, prev: null, key: -1 }} scale={nextScale} blank={null} size={pres.size} noAnim />
               )}
             </div>
             <div className="pv-notes" style={{ fontSize }}>
-              {slide?.notes || <span className="pv-empty">No notes.</span>}
+              {slide?.notes || <span className="pv-empty">{t('No notes.')}</span>}
             </div>
             <div className="pv-notes-tools">
-              <button type="button" aria-label="Make the text larger" title="Make the text larger" onClick={() => setFontSize((f) => Math.min(48, f + 2))}>
+              <button type="button" aria-label={t('Make the text larger')} title={t('Make the text larger')} onClick={() => setFontSize((f) => Math.min(48, f + 2))}>
                 A+
               </button>
-              <button type="button" aria-label="Make the text smaller" title="Make the text smaller" onClick={() => setFontSize((f) => Math.max(10, f - 2))}>
+              <button type="button" aria-label={t('Make the text smaller')} title={t('Make the text smaller')} onClick={() => setFontSize((f) => Math.max(10, f - 2))}>
                 A−
               </button>
             </div>
@@ -840,29 +841,29 @@ function PresenterView(props: PresenterProps) {
         </div>
       )}
       <div className="pv-bottom">
-        <button type="button" aria-label="Pen" title="Pen (Ctrl+P)" className={props.pen === 'pen' ? 'is-active' : undefined} onClick={() => props.setPen(props.pen === 'pen' ? null : 'pen')}>
+        <button type="button" aria-label={t('Pen')} title={t('Pen (Ctrl+P)')} className={props.pen === 'pen' ? 'is-active' : undefined} onClick={() => props.setPen(props.pen === 'pen' ? null : 'pen')}>
           <PenLine size={16} />
         </button>
-        <button type="button" aria-label="Highlighter" title="Highlighter (Ctrl+I)" className={props.pen === 'highlighter' ? 'is-active' : undefined} onClick={() => props.setPen(props.pen === 'highlighter' ? null : 'highlighter')}>
+        <button type="button" aria-label={t('Highlighter')} title={t('Highlighter (Ctrl+I)')} className={props.pen === 'highlighter' ? 'is-active' : undefined} onClick={() => props.setPen(props.pen === 'highlighter' ? null : 'highlighter')}>
           <Highlighter size={16} />
         </button>
-        <button type="button" aria-label="Laser Pointer" title="Laser Pointer (Ctrl+L)" className={props.laserOn ? 'is-active' : undefined} onClick={() => props.setLaserOn((v) => !v)}>
+        <button type="button" aria-label={t('Laser Pointer')} title={t('Laser Pointer (Ctrl+L)')} className={props.laserOn ? 'is-active' : undefined} onClick={() => props.setLaserOn((v) => !v)}>
           <Pointer size={16} />
         </button>
-        <button type="button" aria-label="See all slides" title="See all slides" className={grid ? 'is-active' : undefined} onClick={() => setGrid((g) => !g)}>
+        <button type="button" aria-label={t('See all slides')} title={t('See all slides')} className={grid ? 'is-active' : undefined} onClick={() => setGrid((g) => !g)}>
           <LayoutGrid size={16} />
         </button>
-        <button type="button" aria-label="Black or unblack slide show" title="Black or unblack slide show (B)" className={props.blank === 'black' ? 'is-active' : undefined} onClick={() => props.setBlank((b) => (b === 'black' ? null : 'black'))}>
+        <button type="button" aria-label={t('Black or unblack slide show')} title={t('Black or unblack slide show (B)')} className={props.blank === 'black' ? 'is-active' : undefined} onClick={() => props.setBlank((b) => (b === 'black' ? null : 'black'))}>
           <MonitorOff size={16} />
         </button>
         <span className="spacer" />
-        <button type="button" aria-label="Previous" onClick={props.prev}>
+        <button type="button" aria-label={t('Previous')} onClick={props.prev}>
           <ChevronLeft size={18} />
         </button>
         <span className="pv-count">
-          Slide {slide ? realIndex(slide) + 1 : '–'} of {pres.slides.length}
+          {t('Slide {n} of {total}', { n: slide ? realIndex(slide) + 1 : '–', total: pres.slides.length })}
         </span>
-        <button type="button" aria-label="Next" onClick={props.next}>
+        <button type="button" aria-label={t('Next')} onClick={props.next}>
           <ChevronRight size={18} />
         </button>
       </div>

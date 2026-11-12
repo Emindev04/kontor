@@ -2,8 +2,10 @@
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
-import type { Presentation } from '../model/types'
+import type { Presentation, Slide, SlideElement } from '../model/types'
+import { bounds } from '../model/geometry'
 import { SlideView, presProps } from '../render/SlideView'
+import { t } from '../i18n'
 
 export type ImageFormat = 'png' | 'jpeg'
 
@@ -57,7 +59,7 @@ async function renderSlide(pres: Presentation, index: number, format: ImageForma
     // Draw to a canvas and encode it ourselves: html-to-image's toBlob always writes PNG.
     const canvas = await toCanvas(node, { pixelRatio: width / pres.size.w, width: pres.size.w, height: pres.size.h, backgroundColor: '#FFFFFF' })
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, format === 'png' ? 'image/png' : 'image/jpeg', 0.92))
-    if (!blob) throw new Error('The slide could not be drawn.')
+    if (!blob) throw new Error(t('The slide could not be drawn.'))
     return { blob, text }
   } finally {
     root.unmount()
@@ -196,4 +198,33 @@ export function buildPdf(pages: PdfPage[], pageW: number, pageH: number, title =
   push(table)
   push(`trailer\n<< /Size ${count} /Root 1 0 R /Info 4 0 R >>\nstartxref\n${xref}\n%%EOF\n`)
   return new Blob(chunks as BlobPart[], { type: 'application/pdf' })
+}
+
+/**
+ * One object drawn on its own as a PNG data URL (transparent around it), at `scale` × its size.
+ * Used where a format has no equivalent object, e.g. charts and diagrams in .odp files.
+ */
+export async function elementImage(pres: Presentation, el: SlideElement, scale = 2): Promise<string | null> {
+  const { toCanvas } = await import('html-to-image')
+  const b = bounds(el)
+  if (b.w < 1 || b.h < 1) return null
+  const slide: Slide = { id: 'raster', layout: 'blank', elements: [{ ...el, x: el.x - b.x, y: el.y - b.y } as SlideElement], notes: '', background: { type: 'none' }, hideBackgroundGraphics: true }
+  const host = document.createElement('div')
+  host.className = 'export-host'
+  host.style.cssText = `position:fixed;left:-100000px;top:0;width:${b.w}px;height:${b.h}px;pointer-events:none;`
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  try {
+    const props = { ...presProps(pres), size: { w: Math.ceil(b.w), h: Math.ceil(b.h), name: 'custom' as const }, headerFooter: { ...pres.headerFooter, date: false, footer: false, slideNumber: false } }
+    flushSync(() => root.render(createElement(SlideView, { slide, index: 0, ...props, mode: 'show' })))
+    await document.fonts.ready
+    await Promise.all(Array.from(host.querySelectorAll('img')).map((img) => img.decode().catch(() => undefined)))
+    await frame()
+    const node = host.firstElementChild as HTMLElement
+    const canvas = await toCanvas(node, { pixelRatio: scale, width: Math.ceil(b.w), height: Math.ceil(b.h) })
+    return canvas.toDataURL('image/png')
+  } finally {
+    root.unmount()
+    host.remove()
+  }
 }

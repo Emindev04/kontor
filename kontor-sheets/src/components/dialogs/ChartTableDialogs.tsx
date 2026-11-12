@@ -1,4 +1,5 @@
 // Dialogs for charts, tables, PivotTables, custom filters, conditional formatting and data validation.
+import { t, tx } from '../../i18n'
 import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import { colName, rangeName, type Range } from '../../model/address'
@@ -35,28 +36,29 @@ function selectionSource(app: ReturnType<typeof useApp>): string {
 // ---------- charts ----------
 
 const CHART_KINDS: { type: ChartType; label: string; groupings?: ChartGrouping[] }[] = [
-  { type: 'column', label: 'Column', groupings: ['clustered', 'stacked', 'percent'] },
-  { type: 'line', label: 'Line', groupings: ['clustered', 'stacked', 'percent'] },
-  { type: 'pie', label: 'Pie' },
-  { type: 'doughnut', label: 'Doughnut' },
-  { type: 'bar', label: 'Bar', groupings: ['clustered', 'stacked', 'percent'] },
-  { type: 'area', label: 'Area', groupings: ['clustered', 'stacked', 'percent'] },
-  { type: 'scatter', label: 'X Y (Scatter)' },
-  { type: 'radar', label: 'Radar' },
-  { type: 'histogram', label: 'Histogram' },
-  { type: 'waterfall', label: 'Waterfall' },
-  { type: 'funnel', label: 'Funnel' },
-  { type: 'treemap', label: 'Treemap' },
-  { type: 'boxWhisker', label: 'Box & Whisker' },
-  { type: 'combo', label: 'Combo' },
+  { type: 'column', label: tx('Column'), groupings: ['clustered', 'stacked', 'percent'] },
+  { type: 'line', label: tx('Line'), groupings: ['clustered', 'stacked', 'percent'] },
+  { type: 'pie', label: tx('Pie') },
+  { type: 'doughnut', label: tx('Doughnut') },
+  { type: 'bar', label: tx('Bar'), groupings: ['clustered', 'stacked', 'percent'] },
+  { type: 'area', label: tx('Area'), groupings: ['clustered', 'stacked', 'percent'] },
+  { type: 'scatter', label: tx('X Y (Scatter)') },
+  { type: 'radar', label: tx('Radar') },
+  { type: 'histogram', label: tx('Histogram') },
+  { type: 'waterfall', label: tx('Waterfall') },
+  { type: 'funnel', label: tx('Funnel') },
+  { type: 'treemap', label: tx('Treemap') },
+  { type: 'boxWhisker', label: tx('Box & Whisker') },
+  { type: 'combo', label: tx('Combo') },
 ]
 
-const GROUP_LABEL: Record<ChartGrouping, string> = { clustered: 'Clustered', stacked: 'Stacked', percent: '100% Stacked' }
+const GROUP_LABEL: Record<ChartGrouping, string> = { clustered: tx('Clustered'), stacked: tx('Stacked'), percent: tx('100% Stacked') }
 
 function subtypeName(type: ChartType, g: ChartGrouping) {
-  const base = CHART_KINDS.find((k) => k.type === type)?.label ?? type
-  if (type === 'line' || type === 'area') return g === 'clustered' ? base : `${GROUP_LABEL[g]} ${base}`
-  return CHART_KINDS.find((k) => k.type === type)?.groupings ? `${GROUP_LABEL[g]} ${base}` : base
+  const base = t(CHART_KINDS.find((k) => k.type === type)?.label ?? type)
+  const grouped = t('{grouping} {chartType}', { grouping: t(GROUP_LABEL[g]), chartType: base })
+  if (type === 'line' || type === 'area') return g === 'clustered' ? base : grouped
+  return CHART_KINDS.find((k) => k.type === type)?.groupings ? grouped : base
 }
 
 export function insertChart(app: ReturnType<typeof useApp>, type: ChartType, grouping: ChartGrouping, source: string, onNewSheet = false) {
@@ -72,7 +74,7 @@ export function insertChart(app: ReturnType<typeof useApp>, type: ChartType, gro
     chart.series = series
   }
   if (onNewSheet) chart.anchor = { x: 8, y: 8, w: 900, h: 560 }
-  addObject(doc, chart, 'Insert Chart')
+  addObject(doc, chart, t('Insert Chart'))
   app.setTab('chartDesign')
 }
 
@@ -83,16 +85,16 @@ function uniqueChartSheet(app: ReturnType<typeof useApp>) {
 function recommended(app: ReturnType<typeof useApp>, source: string): { type: ChartType; grouping: ChartGrouping; why: string }[] {
   const doc = app.doc
   const d = deriveSeries(doc.wb, doc.engine, source, undefined)
-  const out: { type: ChartType; grouping: ChartGrouping; why: string }[] = [{ type: 'column', grouping: 'clustered', why: 'A clustered column chart compares values across a few categories.' }]
+  const out: { type: ChartType; grouping: ChartGrouping; why: string }[] = [{ type: 'column', grouping: 'clustered', why: t('A clustered column chart compares values across a few categories.') }]
   const fake = newChart(doc, 'column', 'clustered', source)
   const data = chartData(doc.wb, doc.engine, { ...fake, series: d.series })
   const n = data.categories.length
-  if (data.series.length === 1 && n <= 8 && data.series[0].values.every((v) => v === null || v >= 0)) out.push({ type: 'pie', grouping: 'clustered', why: 'A pie chart shows proportions of a whole. Use it when the total adds up to 100%.' })
-  if (n > 6) out.push({ type: 'line', grouping: 'clustered', why: 'A line chart shows trends over time (years, months, days) or categories.' })
-  out.push({ type: 'bar', grouping: 'clustered', why: 'A clustered bar chart compares values across categories with long labels.' })
-  if (data.series.length > 1) out.push({ type: 'column', grouping: 'stacked', why: 'A stacked column chart compares parts of a whole across categories.' })
-  if (data.series.length > 1) out.push({ type: 'combo', grouping: 'clustered', why: 'A combo chart highlights different kinds of information with columns and lines.' })
-  if (!out.some((o) => o.type === 'line')) out.push({ type: 'line', grouping: 'clustered', why: 'A line chart shows trends over time.' })
+  if (data.series.length === 1 && n <= 8 && data.series[0].values.every((v) => v === null || v >= 0)) out.push({ type: 'pie', grouping: 'clustered', why: t('A pie chart shows proportions of a whole. Use it when the total adds up to 100%.') })
+  if (n > 6) out.push({ type: 'line', grouping: 'clustered', why: t('A line chart shows trends over time (years, months, days) or categories.') })
+  out.push({ type: 'bar', grouping: 'clustered', why: t('A clustered bar chart compares values across categories with long labels.') })
+  if (data.series.length > 1) out.push({ type: 'column', grouping: 'stacked', why: t('A stacked column chart compares parts of a whole across categories.') })
+  if (data.series.length > 1) out.push({ type: 'combo', grouping: 'clustered', why: t('A combo chart highlights different kinds of information with columns and lines.') })
+  if (!out.some((o) => o.type === 'line')) out.push({ type: 'line', grouping: 'clustered', why: t('A line chart shows trends over time.') })
   return out
 }
 
@@ -116,7 +118,7 @@ export function InsertChartDialog({ onClose, data }: P & { data?: unknown }) {
       const patch: Partial<ChartDef> = { type, grouping, markers: type === 'line' || type === 'scatter' || type === 'radar' }
       if (type === 'combo' && !changing.series) patch.series = chartSeries(doc.wb, doc.engine, changing).map((s, i) => ({ ...s, type: i === 0 ? 'column' : 'line' }))
       if (type === 'pie' || type === 'doughnut') patch.gridlines = { major: false, minor: false, vertical: false }
-      updateChart(doc, changing.id, patch, 'Change Chart Type')
+      updateChart(doc, changing.id, patch, t('Change Chart Type'))
     } else insertChart(app, type, grouping, source, data === 'sheet')
   }
   if (data === 'quick' || data === 'sheet') {
@@ -129,8 +131,8 @@ export function InsertChartDialog({ onClose, data }: P & { data?: unknown }) {
   }
   const kind = CHART_KINDS.find((k) => k.type === type)
   return (
-    <Modal title={changing ? 'Change Chart Type' : 'Insert Chart'} onClose={onClose} width={760} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
-      <DialogTabs tabs={[{ id: 'rec', label: 'Recommended Charts' }, { id: 'all', label: 'All Charts' }]} active={tab} onChange={setTab} />
+    <Modal title={changing ? t('Change Chart Type') : t('Insert Chart')} onClose={onClose} width={760} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+      <DialogTabs tabs={[{ id: 'rec', label: t('Recommended Charts') }, { id: 'all', label: t('All Charts') }]} active={tab} onChange={setTab} />
       <div className="chart-dlg">
         <div className="chart-dlg-list">
           {tab === 'rec'
@@ -143,7 +145,7 @@ export function InsertChartDialog({ onClose, data }: P & { data?: unknown }) {
             : CHART_KINDS.map((k) => (
                 <button key={k.type} type="button" className={cls('chart-dlg-item', type === k.type && 'is-active')} onClick={() => { setType(k.type); setGrouping('clustered') }}>
                   <span dangerouslySetInnerHTML={{ __html: chartTypeIcon(k.type, 'clustered') }} />
-                  {k.label}
+                  {t(k.label)}
                 </button>
               ))}
         </div>
@@ -183,27 +185,27 @@ export function SelectDataDialog({ onClose, data }: P & { data?: unknown }) {
   const cur = series[sel]
   const setCur = (patch: Partial<ChartSeries>) => setSeries(series.map((s, i) => (i === sel ? { ...s, ...patch } : s)))
   const ok = () => {
-    if (!parseRef(app, source)) return app.alert('The chart data range is not valid.')
-    updateChart(doc, chart.id, { source, byRow, series }, 'Select Data')
+    if (!parseRef(app, source)) return app.alert(t('The chart data range is not valid.'))
+    updateChart(doc, chart.id, { source, byRow, series }, t('Select Data'))
     onClose()
   }
   return (
-    <Modal title="Select Data Source" onClose={onClose} width={640} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Select Data Source')} onClose={onClose} width={640} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
         <label>
-          Chart data range:
+          {t('Chart data range:')}
           <input value={source} onChange={(e) => setSource(e.target.value)} onBlur={() => parseRef(app, source) && source !== chart.source && reloadFrom(source, byRow)} />
         </label>
       </div>
       <div className="dlg-inline">
-        <button type="button" className="btn" onClick={() => { setByRow(!byRow); reloadFrom(source, !byRow) }}>Switch Row/Column</button>
+        <button type="button" className="btn" onClick={() => { setByRow(!byRow); reloadFrom(source, !byRow) }}>{t('Switch Row/Column')}</button>
       </div>
       <div className="sd-cols">
         <fieldset className="dlg-fieldset">
-          <legend>Legend Entries (Series)</legend>
+          <legend>{t('Legend Entries (Series)')}</legend>
           <div className="sd-actions">
-            <button type="button" className="btn btn-small" onClick={() => { setSeries([...series, { name: `Series${series.length + 1}`, values: '' }]); setSel(series.length) }}><Plus size={12} /> Add</button>
-            <button type="button" className="btn btn-small" disabled={!cur} onClick={() => { setSeries(series.filter((_, i) => i !== sel)); setSel(Math.max(0, sel - 1)) }}><Trash2 size={12} /> Remove</button>
+            <button type="button" className="btn btn-small" onClick={() => { setSeries([...series, { name: `Series${series.length + 1}`, values: '' }]); setSel(series.length) }}><Plus size={12} />{' '}{t('Add')}</button>
+            <button type="button" className="btn btn-small" disabled={!cur} onClick={() => { setSeries(series.filter((_, i) => i !== sel)); setSel(Math.max(0, sel - 1)) }}><Trash2 size={12} />{' '}{t('Remove')}</button>
             <button type="button" className="btn btn-small" disabled={sel === 0} onClick={() => { const s = series.slice(); [s[sel - 1], s[sel]] = [s[sel], s[sel - 1]]; setSeries(s); setSel(sel - 1) }}><ArrowUp size={12} /></button>
             <button type="button" className="btn btn-small" disabled={sel >= series.length - 1} onClick={() => { const s = series.slice(); [s[sel + 1], s[sel]] = [s[sel], s[sel + 1]]; setSeries(s); setSel(sel + 1) }}><ArrowDown size={12} /></button>
           </div>
@@ -214,15 +216,15 @@ export function SelectDataDialog({ onClose, data }: P & { data?: unknown }) {
           </select>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Edit Series</legend>
+          <legend>{t('Edit Series')}</legend>
           {cur ? (
             <div className="form">
-              <label>Series name: <input value={cur.name ?? ''} onChange={(e) => setCur({ name: e.target.value })} /></label>
-              <label>Series values: <input value={cur.values} onChange={(e) => setCur({ values: e.target.value })} /></label>
-              <label>{chart.type === 'scatter' ? 'Series X values:' : 'Axis labels (categories):'} <input value={cur.categories ?? ''} onChange={(e) => setCur({ categories: e.target.value || undefined })} /></label>
+              <label>{t('Series name:')}{' '}<input value={cur.name ?? ''} onChange={(e) => setCur({ name: e.target.value })} /></label>
+              <label>{t('Series values:')}{' '}<input value={cur.values} onChange={(e) => setCur({ values: e.target.value })} /></label>
+              <label>{chart.type === 'scatter' ? t('Series X values:') : t('Axis labels (categories):')} <input value={cur.categories ?? ''} onChange={(e) => setCur({ categories: e.target.value || undefined })} /></label>
             </div>
           ) : (
-            <p className="dlg-hint">Add a series to edit it.</p>
+            <p className="dlg-hint">{t('Add a series to edit it.')}</p>
           )}
         </fieldset>
       </div>
@@ -242,8 +244,8 @@ export function MoveChartDialog({ onClose, data }: P & { data?: unknown }) {
   if (!chart) return null
   const ok = () => {
     const from = doc.sheet
-    if (where === 'new' && doc.wb.sheetByName(name)) return app.alert('A sheet with this name already exists.')
-    doc.transact('Move Chart', () => {
+    if (where === 'new' && doc.wb.sheetByName(name)) return app.alert(t('A sheet with this name already exists.'))
+    doc.transact(tx('Move Chart'), () => {
       doc.noteWorkbook()
       doc.noteProps(from)
       let dest = doc.wb.sheetById(target)!
@@ -257,18 +259,19 @@ export function MoveChartDialog({ onClose, data }: P & { data?: unknown }) {
       doc.activeIndex = doc.wb.sheets.indexOf(dest)
     })
     doc.selObj = chart.id
+    doc.selObjs = []
     doc.emit()
     onClose()
   }
   return (
-    <Modal title="Move Chart" onClose={onClose} width={420} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Move Chart')} onClose={onClose} width={420} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
         <label className="check-item">
-          <input type="radio" checked={where === 'new'} onChange={() => setWhere('new')} /> New sheet:
+          <input type="radio" checked={where === 'new'} onChange={() => setWhere('new')} />{' '}{t('New sheet:')}
           <input value={name} onChange={(e) => setName(e.target.value)} disabled={where !== 'new'} />
         </label>
         <label className="check-item">
-          <input type="radio" checked={where === 'object'} onChange={() => setWhere('object')} /> Object in:
+          <input type="radio" checked={where === 'object'} onChange={() => setWhere('object')} />{' '}{t('Object in:')}
           <select value={target} onChange={(e) => setTarget(Number(e.target.value))} disabled={where !== 'object'}>
             {doc.wb.sheets.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
@@ -290,17 +293,17 @@ export function CreateTableDialog({ onClose, data }: P & { data?: unknown }) {
   const [header, setHeader] = useState(s.header)
   const ok = () => {
     const res = parseRef(app, ref)
-    if (!res) return app.alert('The reference isn’t valid.')
+    if (!res) return app.alert(t('The reference isn’t valid.'))
     const err = createTable(doc, res.range, header, typeof data === 'string' ? data : DEFAULT_TABLE_STYLE)
     if (err) return app.alert(err)
     onClose()
     app.setTab('tableDesign')
   }
   return (
-    <Modal title="Create Table" onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Create Table')} onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label>Where is the data for your table? <input autoFocus value={ref} onChange={(e) => setRef(e.target.value)} /></label>
-        <label className="check-item"><input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} /> My table has headers</label>
+        <label>{t('Where is the data for your table?')}{' '}<input autoFocus value={ref} onChange={(e) => setRef(e.target.value)} /></label>
+        <label className="check-item"><input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} />{' '}{t('My table has headers')}</label>
       </div>
     </Modal>
   )
@@ -309,21 +312,21 @@ export function CreateTableDialog({ onClose, data }: P & { data?: unknown }) {
 export function ResizeTableDialog({ onClose, data }: P & { data?: unknown }) {
   const app = useApp()
   const doc = app.doc
-  const t = doc.sheet.x.tables.find((x) => x.id === data)
-  const [ref, setRef] = useState(t ? '=' + rangeName(t.range).replace(/([A-Z]+)(\d+)/g, '$$$1$$$2') : '')
-  if (!t) return null
+  const table = doc.sheet.x.tables.find((x) => x.id === data)
+  const [ref, setRef] = useState(table ? '=' + rangeName(table.range).replace(/([A-Z]+)(\d+)/g, '$$$1$$$2') : '')
+  if (!table) return null
   const ok = () => {
     const res = parseRef(app, ref)
-    if (!res) return app.alert('The reference isn’t valid.')
-    const err = resizeTable(doc, t.id, res.range)
+    if (!res) return app.alert(t('The reference isn’t valid.'))
+    const err = resizeTable(doc, table.id, res.range)
     if (err) return app.alert(err)
     onClose()
   }
   return (
-    <Modal title="Resize Table" onClose={onClose} width={360} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Resize Table')} onClose={onClose} width={360} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label>Select the new data range for your table: <input autoFocus value={ref} onChange={(e) => setRef(e.target.value)} /></label>
-        <p className="dlg-hint">The headers must remain in the same row, and the resulting table range must overlap the original table range.</p>
+        <label>{t('Select the new data range for your table:')}{' '}<input autoFocus value={ref} onChange={(e) => setRef(e.target.value)} /></label>
+        <p className="dlg-hint">{t('The headers must remain in the same row, and the resulting table range must overlap the original table range.')}</p>
       </div>
     </Modal>
   )
@@ -339,11 +342,11 @@ export function CreatePivotDialog({ onClose, data }: P & { data?: unknown }) {
   const [loc, setLoc] = useState('')
   const ok = () => {
     const res = parseRef(app, source)
-    if (!res || res.range.r2 <= res.range.r1) return app.alert('The data range must have a header row and at least one row of data.')
+    if (!res || res.range.r2 <= res.range.r1) return app.alert(t('The data range must have a header row and at least one row of data.'))
     let target: Parameters<typeof createPivot>[2] = { sheet: 'new', r: 2, c: 0 }
     if (where === 'existing') {
       const l = parseRef(app, loc || 'A1')
-      if (!l) return app.alert('The destination reference is not valid.')
+      if (!l) return app.alert(t('The destination reference is not valid.'))
       target = { sheet: l.sheet, r: l.range.r1, c: l.range.c1 }
     }
     const err = createPivot(doc, absRef(res.sheet, res.range), target)
@@ -353,14 +356,14 @@ export function CreatePivotDialog({ onClose, data }: P & { data?: unknown }) {
     app.setTab('pivotAnalyze')
   }
   return (
-    <Modal title="Create PivotTable" onClose={onClose} width={420} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Create PivotTable')} onClose={onClose} width={420} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label>Table/Range: <input autoFocus value={source} onChange={(e) => setSource(e.target.value)} /></label>
+        <label>{t('Table/Range:')}{' '}<input autoFocus value={source} onChange={(e) => setSource(e.target.value)} /></label>
         <fieldset className="dlg-fieldset">
-          <legend>Choose where you want the PivotTable to be placed</legend>
-          <label className="check-item"><input type="radio" checked={where === 'new'} onChange={() => setWhere('new')} /> New Worksheet</label>
-          <label className="check-item"><input type="radio" checked={where === 'existing'} onChange={() => setWhere('existing')} /> Existing Worksheet</label>
-          {where === 'existing' && <label>Location: <input value={loc} placeholder={`${doc.sheet.name}!$A$1`} onChange={(e) => setLoc(e.target.value)} /></label>}
+          <legend>{t('Choose where you want the PivotTable to be placed')}</legend>
+          <label className="check-item"><input type="radio" checked={where === 'new'} onChange={() => setWhere('new')} />{' '}{t('New Worksheet')}</label>
+          <label className="check-item"><input type="radio" checked={where === 'existing'} onChange={() => setWhere('existing')} />{' '}{t('Existing Worksheet')}</label>
+          {where === 'existing' && <label>{t('Location:')}{' '}<input value={loc} placeholder={`${doc.sheet.name}!$A$1`} onChange={(e) => setLoc(e.target.value)} /></label>}
         </fieldset>
       </div>
     </Modal>
@@ -375,19 +378,19 @@ export function PivotSourceDialog({ onClose, data, move }: P & { data?: unknown;
   if (!p) return null
   const ok = () => {
     const res = parseRef(app, text)
-    if (!res) return app.alert('The reference is not valid.')
+    if (!res) return app.alert(t('The reference is not valid.'))
     updatePivot(doc, p.id, (x) => {
       if (move) {
         x.r = res.range.r1
         x.c = res.range.c1
       } else x.source = absRef(res.sheet, res.range)
-    }, move ? 'Move PivotTable' : 'Change Data Source')
+    }, move ? t('Move PivotTable') : t('Change Data Source'))
     onClose()
   }
   return (
-    <Modal title={move ? 'Move PivotTable' : 'Change PivotTable Data Source'} onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={move ? t('Move PivotTable') : t('Change PivotTable Data Source')} onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label>{move ? 'Location:' : 'Table/Range:'} <input autoFocus value={text} onChange={(e) => setText(e.target.value)} /></label>
+        <label>{move ? t('Location:') : t('Table/Range:')} <input autoFocus value={text} onChange={(e) => setText(e.target.value)} /></label>
       </div>
     </Modal>
   )
@@ -403,7 +406,7 @@ export function CustomFilterDialog({ onClose, data }: P & { data?: unknown }) {
   const [and, setAnd] = useState(true)
   const [op2, setOp2] = useState<FilterOp>(d.op === 'ge' ? 'le' : 'eq')
   const [v2, setV2] = useState('')
-  const ops: [FilterOp, string][] = [...NUMBER_OPS, ...TEXT_OPS.filter(([o]) => o !== 'eq' && o !== 'ne'), ['notBegins', 'Does Not Begin With'], ['notEnds', 'Does Not End With']]
+  const ops: [FilterOp, string][] = [...NUMBER_OPS, ...TEXT_OPS.filter(([o]) => o !== 'eq' && o !== 'ne'), ['notBegins', tx('Does Not Begin With')], ['notEnds', tx('Does Not End With')]]
   const ok = () => {
     setColumnFilter(app.doc, d.target, d.col, { kind: 'custom', and, c1: { op: op1, value: v1 }, c2: v2 ? { op: op2, value: v2 } : undefined })
     onClose()
@@ -412,22 +415,22 @@ export function CustomFilterDialog({ onClose, data }: P & { data?: unknown }) {
     <div className="dlg-inline">
       <select value={op} onChange={(e) => setOp(e.target.value as FilterOp)}>
         {ops.map(([o, l]) => (
-          <option key={o} value={o}>{l.toLowerCase()}</option>
+          <option key={o} value={o}>{t(l).toLowerCase()}</option>
         ))}
       </select>
       <input value={v} onChange={(e) => setV(e.target.value)} />
     </div>
   )
   return (
-    <Modal title="Custom AutoFilter" onClose={onClose} width={460} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
-      <p className="dlg-hint">Show rows where:</p>
+    <Modal title={t('Custom AutoFilter')} onClose={onClose} width={460} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+      <p className="dlg-hint">{t('Show rows where:')}</p>
       {row(op1, setOp1, v1, setV1)}
       <div className="dlg-inline">
-        <label className="check-item"><input type="radio" checked={and} onChange={() => setAnd(true)} /> And</label>
-        <label className="check-item"><input type="radio" checked={!and} onChange={() => setAnd(false)} /> Or</label>
+        <label className="check-item"><input type="radio" checked={and} onChange={() => setAnd(true)} />{' '}{t('And')}</label>
+        <label className="check-item"><input type="radio" checked={!and} onChange={() => setAnd(false)} />{' '}{t('Or')}</label>
       </div>
       {row(op2, setOp2, v2, setV2)}
-      <p className="dlg-hint">Use ? to represent any single character. Use * to represent any series of characters.</p>
+      <p className="dlg-hint">{t('Use ? to represent any single character. Use * to represent any series of characters.')}</p>
     </Modal>
   )
 }
@@ -443,16 +446,16 @@ export function Top10Dialog({ onClose, data }: P & { data?: unknown }) {
     onClose()
   }
   return (
-    <Modal title="Top 10 AutoFilter" onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Top 10 AutoFilter')} onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="dlg-inline">
         <select value={top ? 'top' : 'bottom'} onChange={(e) => setTop(e.target.value === 'top')}>
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
+          <option value="top">{t('Top')}</option>
+          <option value="bottom">{t('Bottom')}</option>
         </select>
         <input type="number" min={1} max={500} value={n} onChange={(e) => setN(Number(e.target.value))} style={{ width: 70 }} />
         <select value={percent ? 'p' : 'i'} onChange={(e) => setPercent(e.target.value === 'p')}>
-          <option value="i">Items</option>
-          <option value="p">Percent</option>
+          <option value="i">{t('Items')}</option>
+          <option value="p">{t('Percent')}</option>
         </select>
       </div>
     </Modal>
@@ -464,24 +467,24 @@ export function Top10Dialog({ onClose, data }: P & { data?: unknown }) {
 export type CFQuickKind = 'greaterThan' | 'lessThan' | 'between' | 'equal' | 'text' | 'date' | 'duplicate' | 'top' | 'bottom' | 'topPct' | 'bottomPct' | 'aboveAvg' | 'belowAvg'
 
 const QUICK_TITLES: Record<CFQuickKind, [string, string]> = {
-  greaterThan: ['Greater Than', 'Format cells that are GREATER THAN:'],
-  lessThan: ['Less Than', 'Format cells that are LESS THAN:'],
-  between: ['Between', 'Format cells that are BETWEEN:'],
-  equal: ['Equal To', 'Format cells that are EQUAL TO:'],
-  text: ['Text That Contains', 'Format cells that contain the text:'],
-  date: ['A Date Occurring', 'Format cells that contain a date occurring:'],
-  duplicate: ['Duplicate Values', 'Format cells that contain:'],
-  top: ['Top 10 Items', 'Format cells that rank in the TOP:'],
-  bottom: ['Bottom 10 Items', 'Format cells that rank in the BOTTOM:'],
-  topPct: ['Top 10%', 'Format cells that rank in the TOP:'],
-  bottomPct: ['Bottom 10%', 'Format cells that rank in the BOTTOM:'],
-  aboveAvg: ['Above Average', 'Format cells that are ABOVE AVERAGE:'],
-  belowAvg: ['Below Average', 'Format cells that are BELOW AVERAGE:'],
+  greaterThan: [tx('Greater Than'), tx('Format cells that are GREATER THAN:')],
+  lessThan: [tx('Less Than'), tx('Format cells that are LESS THAN:')],
+  between: [tx('Between'), tx('Format cells that are BETWEEN:')],
+  equal: [tx('Equal To'), tx('Format cells that are EQUAL TO:')],
+  text: [tx('Text That Contains'), tx('Format cells that contain the text:')],
+  date: [tx('A Date Occurring'), tx('Format cells that contain a date occurring:')],
+  duplicate: [tx('Duplicate Values'), tx('Format cells that contain:')],
+  top: [tx('Top 10 Items'), tx('Format cells that rank in the TOP:')],
+  bottom: [tx('Bottom 10 Items'), tx('Format cells that rank in the BOTTOM:')],
+  topPct: [tx('Top 10%'), tx('Format cells that rank in the TOP:')],
+  bottomPct: [tx('Bottom 10%'), tx('Format cells that rank in the BOTTOM:')],
+  aboveAvg: [tx('Above Average'), tx('Format cells that are ABOVE AVERAGE:')],
+  belowAvg: [tx('Below Average'), tx('Format cells that are BELOW AVERAGE:')],
 }
 
 const PERIODS: [DatePeriod, string][] = [
-  ['yesterday', 'Yesterday'], ['today', 'Today'], ['tomorrow', 'Tomorrow'], ['last7Days', 'In the last 7 days'], ['lastWeek', 'Last week'], ['thisWeek', 'This week'],
-  ['nextWeek', 'Next week'], ['lastMonth', 'Last month'], ['thisMonth', 'This month'], ['nextMonth', 'Next month'],
+  ['yesterday', tx('Yesterday')], ['today', tx('Today')], ['tomorrow', tx('Tomorrow')], ['last7Days', tx('In the last 7 days')], ['lastWeek', tx('Last week')], ['thisWeek', tx('This week')],
+  ['nextWeek', tx('Next week')], ['lastMonth', tx('Last month')], ['thisMonth', tx('This month')], ['nextMonth', tx('Next month')],
 ]
 
 function suggestValue(app: ReturnType<typeof useApp>) {
@@ -503,7 +506,7 @@ function suggestValue(app: ReturnType<typeof useApp>) {
 export function CFQuickDialog({ onClose, data }: P & { data?: unknown }) {
   const app = useApp()
   const kind = data as CFQuickKind
-  const [title, prompt] = QUICK_TITLES[kind]
+  const [title, prompt] = QUICK_TITLES[kind].map((s) => t(s))
   const [v1, setV1] = useState(kind === 'top' || kind === 'bottom' || kind === 'topPct' || kind === 'bottomPct' ? '10' : kind === 'text' ? '' : suggestValue(app))
   const [v2, setV2] = useState(suggestValue(app))
   const [period, setPeriod] = useState<DatePeriod>('yesterday')
@@ -538,27 +541,28 @@ export function CFQuickDialog({ onClose, data }: P & { data?: unknown }) {
       <p className="dlg-hint">{prompt}</p>
       <div className="dlg-inline">
         {(kind === 'greaterThan' || kind === 'lessThan' || kind === 'equal' || kind === 'between' || kind === 'text') && <input autoFocus value={v1} onChange={(e) => setV1(e.target.value)} />}
-        {kind === 'between' && <span>and</span>}
+        {kind === 'between' && <span>{t('and')}</span>}
         {kind === 'between' && <input value={v2} onChange={(e) => setV2(e.target.value)} />}
         {(kind === 'top' || kind === 'bottom' || kind === 'topPct' || kind === 'bottomPct') && <input type="number" min={1} value={v1} onChange={(e) => setV1(e.target.value)} style={{ width: 70 }} />}
         {(kind === 'topPct' || kind === 'bottomPct') && <span>%</span>}
         {kind === 'date' && (
           <select value={period} onChange={(e) => setPeriod(e.target.value as DatePeriod)}>
             {PERIODS.map(([p, l]) => (
-              <option key={p} value={p}>{l}</option>
+              <option key={p} value={p}>{t(l)}</option>
             ))}
           </select>
         )}
         {kind === 'duplicate' && (
           <select value={dup} onChange={(e) => setDup(e.target.value as 'duplicate' | 'unique')}>
-            <option value="duplicate">Duplicate</option>
-            <option value="unique">Unique</option>
+            {/* "{values}" is always empty: these keys are adjectives here ("Duplicate" alone is the command). */}
+            <option value="duplicate">{t('Duplicate {values}', { values: '' }).trim()}</option>
+            <option value="unique">{t('Unique {values}', { values: '' }).trim()}</option>
           </select>
         )}
-        <span>with</span>
+        <span>{t('with')}</span>
         <select value={preset} onChange={(e) => setPreset(Number(e.target.value))}>
           {CF_PRESETS.map((p, i) => (
-            <option key={i} value={i}>{p.label}</option>
+            <option key={i} value={i}>{t(p.label)}</option>
           ))}
         </select>
       </div>
@@ -567,12 +571,12 @@ export function CFQuickDialog({ onClose, data }: P & { data?: unknown }) {
 }
 
 const RULE_TYPES = [
-  ['all', 'Format all cells based on their values'],
-  ['cell', 'Format only cells that contain'],
-  ['top', 'Format only top or bottom ranked values'],
-  ['avg', 'Format only values that are above or below average'],
-  ['unique', 'Format only unique or duplicate values'],
-  ['formula', 'Use a formula to determine which cells to format'],
+  ['all', tx('Format all cells based on their values')],
+  ['cell', tx('Format only cells that contain')],
+  ['top', tx('Format only top or bottom ranked values')],
+  ['avg', tx('Format only values that are above or below average')],
+  ['unique', tx('Format only unique or duplicate values')],
+  ['formula', tx('Use a formula to determine which cells to format')],
 ] as const
 
 type RuleKind = (typeof RULE_TYPES)[number][0]
@@ -580,15 +584,15 @@ type RuleKind = (typeof RULE_TYPES)[number][0]
 function FormatPicker({ style, onChange }: { style: CFStyle; onChange: (s: CFStyle) => void }) {
   return (
     <div className="cf-format">
-      <label>Fill <input type="color" value={style.fill ?? '#ffffff'} onChange={(e) => onChange({ ...style, fill: e.target.value.toUpperCase() })} /></label>
-      <label>Font <input type="color" value={style.color ?? '#000000'} onChange={(e) => onChange({ ...style, color: e.target.value.toUpperCase() })} /></label>
-      <label className="check-item"><input type="checkbox" checked={!!style.bold} onChange={(e) => onChange({ ...style, bold: e.target.checked || undefined })} /> Bold</label>
-      <label className="check-item"><input type="checkbox" checked={!!style.italic} onChange={(e) => onChange({ ...style, italic: e.target.checked || undefined })} /> Italic</label>
-      <label className="check-item"><input type="checkbox" checked={!!style.underline} onChange={(e) => onChange({ ...style, underline: e.target.checked || undefined })} /> Underline</label>
-      <label className="check-item"><input type="checkbox" checked={!!style.strike} onChange={(e) => onChange({ ...style, strike: e.target.checked || undefined })} /> Strikethrough</label>
-      <label className="check-item"><input type="checkbox" checked={!!style.border} onChange={(e) => onChange({ ...style, border: e.target.checked ? '#000000' : undefined })} /> Border</label>
-      <label>Number format <input value={style.fmt ?? ''} placeholder="General" onChange={(e) => onChange({ ...style, fmt: e.target.value || undefined })} style={{ width: 110 }} /></label>
-      <button type="button" className="btn btn-small" onClick={() => onChange({})}>Clear</button>
+      <label>{t('Fill')}{' '}<input type="color" value={style.fill ?? '#ffffff'} onChange={(e) => onChange({ ...style, fill: e.target.value.toUpperCase() })} /></label>
+      <label>{t('Font')}{' '}<input type="color" value={style.color ?? '#000000'} onChange={(e) => onChange({ ...style, color: e.target.value.toUpperCase() })} /></label>
+      <label className="check-item"><input type="checkbox" checked={!!style.bold} onChange={(e) => onChange({ ...style, bold: e.target.checked || undefined })} />{' '}{t('Bold')}</label>
+      <label className="check-item"><input type="checkbox" checked={!!style.italic} onChange={(e) => onChange({ ...style, italic: e.target.checked || undefined })} />{' '}{t('Italic')}</label>
+      <label className="check-item"><input type="checkbox" checked={!!style.underline} onChange={(e) => onChange({ ...style, underline: e.target.checked || undefined })} />{' '}{t('Underline')}</label>
+      <label className="check-item"><input type="checkbox" checked={!!style.strike} onChange={(e) => onChange({ ...style, strike: e.target.checked || undefined })} />{' '}{t('Strikethrough')}</label>
+      <label className="check-item"><input type="checkbox" checked={!!style.border} onChange={(e) => onChange({ ...style, border: e.target.checked ? '#000000' : undefined })} />{' '}{t('Border')}</label>
+      <label>{t('Number format')}{' '}<input value={style.fmt ?? ''} placeholder={t('General')} onChange={(e) => onChange({ ...style, fmt: e.target.value || undefined })} style={{ width: 110 }} /></label>
+      <button type="button" className="btn btn-small" onClick={() => onChange({})}>{t('Clear')}</button>
       <span className="cf-sample" style={{ background: style.fill, color: style.color, fontWeight: style.bold ? 700 : 400, fontStyle: style.italic ? 'italic' : undefined, textDecoration: `${style.underline ? 'underline' : ''} ${style.strike ? 'line-through' : ''}`, outline: style.border ? `1px solid ${style.border}` : undefined }}>AaBbCcYyZz</span>
     </div>
   )
@@ -619,7 +623,17 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
   const [c3, setC3] = useState(editing?.type === 'colorScale' ? editing.stops[2]?.color ?? '#63BE7B' : '#63BE7B')
   const [barColor, setBarColor] = useState(editing?.type === 'dataBar' ? editing.color : DATA_BAR_COLORS[0])
   const [gradient, setGradient] = useState(editing?.type === 'dataBar' ? editing.gradient : true)
-  const [iconSet, setIconSet] = useState<IconSetId>(editing?.type === 'iconSet' ? editing.set : '3TrafficLights1')
+  const [barMin, setBarMin] = useState<CFValue>(editing?.type === 'dataBar' ? editing.min : { type: 'auto' })
+  const [barMax, setBarMax] = useState<CFValue>(editing?.type === 'dataBar' ? editing.max : { type: 'auto' })
+  const [barAxis, setBarAxis] = useState<'auto' | 'middle' | 'none'>(editing?.type === 'dataBar' ? editing.axis ?? 'auto' : 'auto')
+  const [negColor, setNegColor] = useState(editing?.type === 'dataBar' ? editing.negColor ?? '#E04B3A' : '#E04B3A')
+  const [axisColor, setAxisColor] = useState(editing?.type === 'dataBar' ? editing.axisColor ?? '#000000' : '#000000')
+  const [iconSet, setIconSetRaw] = useState<IconSetId>(editing?.type === 'iconSet' ? editing.set : '3TrafficLights1')
+  const [thresholds, setThresholds] = useState<CFValue[]>(editing?.type === 'iconSet' ? editing.thresholds : defaultThresholds('3TrafficLights1'))
+  const setIconSet = (set: IconSetId) => {
+    setIconSetRaw(set)
+    if (ICON_COUNTS[set] !== thresholds.length + 1) setThresholds(defaultThresholds(set))
+  }
   const [reverse, setReverse] = useState(editing?.type === 'iconSet' ? editing.reverse : false)
   const [showValue, setShowValue] = useState(editing && 'showValue' in editing ? editing.showValue : true)
   // cell value
@@ -644,8 +658,9 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
     const base = { ranges, stop: editing?.stop ?? false }
     switch (kind) {
       case 'all': {
-        if (visual === 'bar') return { ...base, type: 'dataBar', color: barColor, gradient, min: { type: 'auto' }, max: { type: 'auto' }, showValue }
-        if (visual === 'icon') return { ...base, type: 'iconSet', set: iconSet, reverse, showValue, thresholds: defaultThresholds(iconSet) }
+        if (visual === 'bar')
+          return { ...base, type: 'dataBar', color: barColor, gradient, min: barMin, max: barMax, showValue, ...(barAxis !== 'auto' ? { axis: barAxis } : {}), negColor, axisColor }
+        if (visual === 'icon') return { ...base, type: 'iconSet', set: iconSet, reverse, showValue, thresholds }
         const stops: { v: CFValue; color: string }[] = visual === '2scale' ? [{ v: { type: 'min' }, color: c1 }, { v: { type: 'max' }, color: c3 }] : [{ v: { type: 'min' }, color: c1 }, { v: { type: 'percentile', value: 50 }, color: c2 }, { v: { type: 'max' }, color: c3 }]
         return { ...base, type: 'colorScale', stops }
       }
@@ -662,57 +677,88 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
   }
   const ok = () => {
     const rule = build()
-    if (!rule) return app.alert('Enter a formula.')
+    if (!rule) return app.alert(t('Enter a formula.'))
     if (editing) setRules(doc, doc.sheet.x.cf.map((r) => (r.id === editing.id ? ({ ...rule, id: r.id, priority: r.priority } as CFRule) : r)))
     else addRule(doc, rule)
     onClose()
   }
   return (
-    <Modal title={editing ? 'Edit Formatting Rule' : 'New Formatting Rule'} onClose={onClose} width={560} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
-      <p className="dlg-hint">Select a Rule Type:</p>
+    <Modal title={editing ? t('Edit Formatting Rule') : t('New Formatting Rule')} onClose={onClose} width={560} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+      <p className="dlg-hint">{t('Select a Rule Type:')}</p>
       <div className="rule-types">
         {RULE_TYPES.map(([k, label]) => (
-          <button key={k} type="button" className={cls('rule-type', kind === k && 'is-active')} onClick={() => setKind(k)}>► {label}</button>
+          <button key={k} type="button" className={cls('rule-type', kind === k && 'is-active')} onClick={() => setKind(k)}>► {t(label)}</button>
         ))}
       </div>
       <fieldset className="dlg-fieldset">
-        <legend>Edit the Rule Description</legend>
+        <legend>{t('Edit the Rule Description')}</legend>
         {kind === 'all' && (
           <div className="form">
-            <label>Format Style:
+            <label>{t('Format Style:')}
               <select value={visual} onChange={(e) => setVisual(e.target.value as typeof visual)}>
-                <option value="2scale">2-Color Scale</option>
-                <option value="3scale">3-Color Scale</option>
-                <option value="bar">Data Bar</option>
-                <option value="icon">Icon Sets</option>
+                <option value="2scale">{t('2-Color Scale')}</option>
+                <option value="3scale">{t('3-Color Scale')}</option>
+                <option value="bar">{t('Data Bar')}</option>
+                <option value="icon">{t('Icon Sets')}</option>
               </select>
             </label>
             {(visual === '2scale' || visual === '3scale') && (
               <div className="dlg-inline">
-                <label>Minimum <input type="color" value={c1} onChange={(e) => setC1(e.target.value)} /></label>
-                {visual === '3scale' && <label>Midpoint <input type="color" value={c2} onChange={(e) => setC2(e.target.value)} /></label>}
-                <label>Maximum <input type="color" value={c3} onChange={(e) => setC3(e.target.value)} /></label>
+                <label>{t('Minimum')}{' '}<input type="color" value={c1} onChange={(e) => setC1(e.target.value)} /></label>
+                {visual === '3scale' && <label>{t('Midpoint')}{' '}<input type="color" value={c2} onChange={(e) => setC2(e.target.value)} /></label>}
+                <label>{t('Maximum')}{' '}<input type="color" value={c3} onChange={(e) => setC3(e.target.value)} /></label>
               </div>
             )}
             {visual === 'bar' && (
               <div className="dlg-inline">
-                <label>Bar color <input type="color" value={barColor} onChange={(e) => setBarColor(e.target.value)} /></label>
-                <label className="check-item"><input type="checkbox" checked={gradient} onChange={(e) => setGradient(e.target.checked)} /> Gradient fill</label>
+                <label>{t('Bar color')}{' '}<input type="color" value={barColor} onChange={(e) => setBarColor(e.target.value)} /></label>
+                <label className="check-item"><input type="checkbox" checked={gradient} onChange={(e) => setGradient(e.target.checked)} />{' '}{t('Gradient fill')}</label>
+              </div>
+            )}
+            {visual === 'bar' && (
+              <div className="form">
+                <CFValueInput label={t('Minimum:')} value={barMin} onChange={setBarMin} allowAuto />
+                <CFValueInput label={t('Maximum:')} value={barMax} onChange={setBarMax} allowAuto />
+                <div className="dlg-inline">
+                  <label>
+                    {t('Axis position:')}{' '}
+                    <select value={barAxis} onChange={(e) => setBarAxis(e.target.value as typeof barAxis)}>
+                      <option value="auto">{t('Automatic (display at variable position based on negative values)')}</option>
+                      <option value="middle">{t('Cell midpoint')}</option>
+                      <option value="none">{t('None (show negative value bars in same direction as positive)')}</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="dlg-inline">
+                  <label>{t('Negative bar fill color:')} <input type="color" value={negColor} onChange={(e) => setNegColor(e.target.value.toUpperCase())} /></label>
+                  <label>{t('Axis color:')} <input type="color" value={axisColor} onChange={(e) => setAxisColor(e.target.value.toUpperCase())} /></label>
+                </div>
               </div>
             )}
             {visual === 'icon' && (
               <div className="dlg-inline">
                 <select value={iconSet} onChange={(e) => setIconSet(e.target.value as IconSetId)}>
                   {ICON_SETS.map((s) => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
+                    <option key={s.id} value={s.id}>{t(s.label)}</option>
                   ))}
                 </select>
-                <label className="check-item"><input type="checkbox" checked={reverse} onChange={(e) => setReverse(e.target.checked)} /> Reverse Icon Order</label>
-                <span className="dlg-hint">{ICON_COUNTS[iconSet]} icons, split by percent</span>
+                <label className="check-item"><input type="checkbox" checked={reverse} onChange={(e) => setReverse(e.target.checked)} />{' '}{t('Reverse Icon Order')}</label>
+              </div>
+            )}
+            {visual === 'icon' && (
+              <div className="form">
+                {thresholds.map((th, i) => (
+                  <CFValueInput
+                    key={i}
+                    label={t('Icon {n} when value is >=', { n: ICON_COUNTS[iconSet] - 1 - i })}
+                    value={th}
+                    onChange={(v) => setThresholds(thresholds.map((x, j) => (j === i ? v : x)))}
+                  />
+                ))}
               </div>
             )}
             {(visual === 'bar' || visual === 'icon') && (
-              <label className="check-item"><input type="checkbox" checked={!showValue} onChange={(e) => setShowValue(!e.target.checked)} /> Show {visual === 'bar' ? 'Bar' : 'Icon'} Only</label>
+              <label className="check-item"><input type="checkbox" checked={!showValue} onChange={(e) => setShowValue(!e.target.checked)} />{' '}{t('Show')}{' '}{visual === 'bar' ? t('Bar') : t('Icon')}{' '}{t('Only')}</label>
             )}
           </div>
         )}
@@ -720,13 +766,13 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
           <div className="form">
             <div className="dlg-inline">
               <select value={cellMode} onChange={(e) => setCellMode(e.target.value as typeof cellMode)}>
-                <option value="value">Cell Value</option>
-                <option value="text">Specific Text</option>
-                <option value="date">Dates Occurring</option>
-                <option value="blanks">Blanks</option>
-                <option value="noBlanks">No Blanks</option>
-                <option value="errors">Errors</option>
-                <option value="noErrors">No Errors</option>
+                <option value="value">{t('Cell Value')}</option>
+                <option value="text">{t('Specific Text')}</option>
+                <option value="date">{t('Dates Occurring')}</option>
+                <option value="blanks">{t('Blanks')}</option>
+                <option value="noBlanks">{t('No Blanks')}</option>
+                <option value="errors">{t('Errors')}</option>
+                <option value="noErrors">{t('No Errors')}</option>
               </select>
               {cellMode === 'value' && (
                 <>
@@ -736,16 +782,16 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
                     ))}
                   </select>
                   <input value={f1} onChange={(e) => setF1(e.target.value)} style={{ width: 90 }} />
-                  {(op === 'between' || op === 'notBetween') && <><span>and</span><input value={f2} onChange={(e) => setF2(e.target.value)} style={{ width: 90 }} /></>}
+                  {(op === 'between' || op === 'notBetween') && <><span>{t('and')}</span><input value={f2} onChange={(e) => setF2(e.target.value)} style={{ width: 90 }} /></>}
                 </>
               )}
               {cellMode === 'text' && (
                 <>
                   <select value={textOp} onChange={(e) => setTextOp(e.target.value as typeof textOp)}>
-                    <option value="contains">containing</option>
-                    <option value="notContains">not containing</option>
-                    <option value="beginsWith">beginning with</option>
-                    <option value="endsWith">ending with</option>
+                    <option value="contains">{t('containing')}</option>
+                    <option value="notContains">{t('not containing')}</option>
+                    <option value="beginsWith">{t('beginning with')}</option>
+                    <option value="endsWith">{t('ending with')}</option>
                   </select>
                   <input value={text} onChange={(e) => setText(e.target.value)} />
                 </>
@@ -753,7 +799,7 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
               {cellMode === 'date' && (
                 <select value={period} onChange={(e) => setPeriod(e.target.value as DatePeriod)}>
                   {PERIODS.map(([p, l]) => (
-                    <option key={p} value={p}>{l}</option>
+                    <option key={p} value={p}>{t(l)}</option>
                   ))}
                 </select>
               )}
@@ -763,41 +809,41 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
         {kind === 'top' && (
           <div className="dlg-inline">
             <select value={bottom ? 'b' : 't'} onChange={(e) => setBottom(e.target.value === 'b')}>
-              <option value="t">Top</option>
-              <option value="b">Bottom</option>
+              <option value="t">{t('Top')}</option>
+              <option value="b">{t('Bottom')}</option>
             </select>
             <input type="number" min={1} value={rank} onChange={(e) => setRank(Number(e.target.value))} style={{ width: 70 }} />
-            <label className="check-item"><input type="checkbox" checked={pct} onChange={(e) => setPct(e.target.checked)} /> % of the selected range</label>
+            <label className="check-item"><input type="checkbox" checked={pct} onChange={(e) => setPct(e.target.checked)} />{' '}{t('% of the selected range')}</label>
           </div>
         )}
         {kind === 'avg' && (
           <div className="dlg-inline">
-            <span>Format values that are</span>
+            <span>{t('Format values that are')}</span>
             <select value={above ? 'a' : 'b'} onChange={(e) => setAbove(e.target.value === 'a')}>
-              <option value="a">above</option>
-              <option value="b">below</option>
+              <option value="a">{t('above')}</option>
+              <option value="b">{t('below')}</option>
             </select>
-            <span>the average for the selected range</span>
+            <span>{t('the average for the selected range')}</span>
           </div>
         )}
         {kind === 'unique' && (
           <div className="dlg-inline">
-            <span>Format all:</span>
+            <span>{t('Format all:')}</span>
             <select value={uniq} onChange={(e) => setUniq(e.target.value as 'duplicate' | 'unique')}>
-              <option value="duplicate">duplicate</option>
-              <option value="unique">unique</option>
+              <option value="duplicate">{t('duplicate')}</option>
+              <option value="unique">{t('unique')}</option>
             </select>
-            <span>values in the selected range</span>
+            <span>{t('values in the selected range')}</span>
           </div>
         )}
         {kind === 'formula' && (
           <div className="form">
-            <label>Format values where this formula is true: <input value={formula} onChange={(e) => setFormula(e.target.value)} /></label>
+            <label>{t('Format values where this formula is true:')}{' '}<input value={formula} onChange={(e) => setFormula(e.target.value)} /></label>
           </div>
         )}
         {kind !== 'all' && (
           <>
-            <p className="dlg-hint">Format:</p>
+            <p className="dlg-hint">{t('Format:')}</p>
             <FormatPicker style={style} onChange={setStyle} />
           </>
         )}
@@ -829,28 +875,28 @@ export function CFManageDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title="Conditional Formatting Rules Manager" onClose={onClose} width={700} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Conditional Formatting Rules Manager')} onClose={onClose} width={700} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="dlg-inline">
-        <span>Show formatting rules for:</span>
+        <span>{t('Show formatting rules for:')}</span>
         <select value={scope} onChange={(e) => setScope(e.target.value as 'sel' | 'sheet')}>
-          <option value="sel">Current Selection</option>
-          <option value="sheet">This Worksheet</option>
+          <option value="sel">{t('Current Selection')}</option>
+          <option value="sheet">{t('This Worksheet')}</option>
         </select>
       </div>
       <div className="dlg-inline">
-        <button type="button" className="btn" onClick={() => { setRules(doc, rules); onClose(); app.dialog({ kind: 'cfRule' }) }}><Plus size={13} /> New Rule…</button>
-        <button type="button" className="btn" disabled={sel === null} onClick={() => { const r = rules.find((x) => x.id === sel); if (r) { setRules(doc, rules); onClose(); app.dialog({ kind: 'cfRule', data: r }) } }}>Edit Rule…</button>
-        <button type="button" className="btn" disabled={sel === null} onClick={() => { setLocal(rules.filter((r) => r.id !== sel)); setSel(null) }}><Trash2 size={13} /> Delete Rule</button>
+        <button type="button" className="btn" onClick={() => { setRules(doc, rules); onClose(); app.dialog({ kind: 'cfRule' }) }}><Plus size={13} />{' '}{t('New Rule…')}</button>
+        <button type="button" className="btn" disabled={sel === null} onClick={() => { const r = rules.find((x) => x.id === sel); if (r) { setRules(doc, rules); onClose(); app.dialog({ kind: 'cfRule', data: r }) } }}>{t('Edit Rule…')}</button>
+        <button type="button" className="btn" disabled={sel === null} onClick={() => { setLocal(rules.filter((r) => r.id !== sel)); setSel(null) }}><Trash2 size={13} />{' '}{t('Delete Rule')}</button>
         <button type="button" className="btn" disabled={sel === null} onClick={() => move(-1)}><ArrowUp size={13} /></button>
         <button type="button" className="btn" disabled={sel === null} onClick={() => move(1)}><ArrowDown size={13} /></button>
       </div>
       <table className="rules-table">
         <thead>
           <tr>
-            <th>Rule (applied in order shown)</th>
-            <th>Format</th>
-            <th>Applies to</th>
-            <th>Stop If True</th>
+            <th>{t('Rule (applied in order shown)')}</th>
+            <th>{t('Format')}</th>
+            <th>{t('Applies to')}</th>
+            <th>{t('Stop If True')}</th>
           </tr>
         </thead>
         <tbody>
@@ -876,7 +922,7 @@ export function CFManageDialog({ onClose }: P) {
           ))}
         </tbody>
       </table>
-      {!shown.length && <p className="dlg-hint">No rules to show.</p>}
+      {!shown.length && <p className="dlg-hint">{t('No rules to show.')}</p>}
     </Modal>
   )
 }
@@ -905,39 +951,39 @@ export function ValidationDialog({ onClose }: P) {
   const ranges = doc.sel.ranges.map((r) => doc.boundToUsed(r))
   const needs2 = op === 'between' || op === 'notBetween'
   const ok = () => {
-    if (type === 'list' && !f1.trim()) return app.alert('You must enter a value for Source.')
-    if ((type === 'whole' || type === 'decimal' || type === 'date' || type === 'time' || type === 'textLength') && !f1.trim()) return app.alert('You must enter a value.')
-    if (type === 'custom' && !f1.trim()) return app.alert('You must enter a formula.')
+    if (type === 'list' && !f1.trim()) return app.alert(t('You must enter a value for Source.'))
+    if ((type === 'whole' || type === 'decimal' || type === 'date' || type === 'time' || type === 'textLength') && !f1.trim()) return app.alert(t('You must enter a value.'))
+    if (type === 'custom' && !f1.trim()) return app.alert(t('You must enter a formula.'))
     setValidation(doc, ranges, { type, op, f1: f1.trim() || undefined, f2: needs2 ? f2.trim() || undefined : undefined, allowBlank: blank, dropdown, showInput, inputTitle, inputMessage, showError, errorStyle, errorTitle, errorMessage })
     onClose()
   }
-  const label1 = type === 'list' ? 'Source:' : type === 'custom' ? 'Formula:' : needs2 ? 'Minimum:' : op.includes('greater') ? 'Minimum:' : op.includes('less') ? 'Maximum:' : 'Value:'
+  const label1 = type === 'list' ? t('Source:') : type === 'custom' ? t('Formula:') : needs2 ? t('Minimum:') : op.includes('greater') ? t('Minimum:') : op.includes('less') ? t('Maximum:') : t('Value:')
   return (
     <Modal
-      title="Data Validation"
+      title={t('Data Validation')}
       onClose={onClose}
       width={460}
-      footer={<OkCancel onOk={ok} onCancel={onClose} extra={<button type="button" className="btn" onClick={() => { setValidation(doc, ranges, null); onClose() }}>Clear All</button>} />}
+      footer={<OkCancel onOk={ok} onCancel={onClose} extra={<button type="button" className="btn" onClick={() => { setValidation(doc, ranges, null); onClose() }}>{t('Clear All')}</button>} />}
     >
-      <DialogTabs tabs={[{ id: 'settings', label: 'Settings' }, { id: 'input', label: 'Input Message' }, { id: 'error', label: 'Error Alert' }]} active={tab} onChange={setTab} />
+      <DialogTabs tabs={[{ id: 'settings', label: t('Settings') }, { id: 'input', label: t('Input Message') }, { id: 'error', label: t('Error Alert') }]} active={tab} onChange={setTab} />
       {tab === 'settings' && (
         <div className="form">
-          <label>Allow:
+          <label>{t('Allow:')}
             <select value={type} onChange={(e) => setType(e.target.value as ValidationType)}>
-              <option value="any">Any value</option>
-              <option value="whole">Whole number</option>
-              <option value="decimal">Decimal</option>
-              <option value="list">List</option>
-              <option value="date">Date</option>
-              <option value="time">Time</option>
-              <option value="textLength">Text length</option>
-              <option value="custom">Custom</option>
+              <option value="any">{t('Any value')}</option>
+              <option value="whole">{t('Whole number')}</option>
+              <option value="decimal">{t('Decimal')}</option>
+              <option value="list">{t('List')}</option>
+              <option value="date">{t('Date')}</option>
+              <option value="time">{t('Time')}</option>
+              <option value="textLength">{t('Text length')}</option>
+              <option value="custom">{t('Custom')}</option>
             </select>
           </label>
-          {type !== 'any' && <label className="check-item"><input type="checkbox" checked={blank} onChange={(e) => setBlank(e.target.checked)} /> Ignore blank</label>}
-          {type === 'list' && <label className="check-item"><input type="checkbox" checked={dropdown} onChange={(e) => setDropdown(e.target.checked)} /> In-cell dropdown</label>}
+          {type !== 'any' && <label className="check-item"><input type="checkbox" checked={blank} onChange={(e) => setBlank(e.target.checked)} />{' '}{t('Ignore blank')}</label>}
+          {type === 'list' && <label className="check-item"><input type="checkbox" checked={dropdown} onChange={(e) => setDropdown(e.target.checked)} />{' '}{t('In-cell dropdown')}</label>}
           {type !== 'any' && type !== 'list' && type !== 'custom' && (
-            <label>Data:
+            <label>{t('Data:')}
               <select value={op} onChange={(e) => setOp(e.target.value as CellOp)}>
                 {(['between', 'notBetween', 'equal', 'notEqual', 'greaterThan', 'lessThan', 'greaterThanOrEqual', 'lessThanOrEqual'] as CellOp[]).map((o) => (
                   <option key={o} value={o}>{o.replace(/([A-Z])/g, ' $1').toLowerCase()}</option>
@@ -945,29 +991,29 @@ export function ValidationDialog({ onClose }: P) {
               </select>
             </label>
           )}
-          {type !== 'any' && <label>{label1} <input value={f1} placeholder={type === 'list' ? 'Yes,No,Maybe  or  =$A$1:$A$5' : type === 'date' ? '1/1/2026 or =A1' : ''} onChange={(e) => setF1(e.target.value)} /></label>}
-          {type !== 'any' && type !== 'list' && type !== 'custom' && needs2 && <label>Maximum: <input value={f2} onChange={(e) => setF2(e.target.value)} /></label>}
+          {type !== 'any' && <label>{label1} <input value={f1} placeholder={type === 'list' ? t('Yes,No,Maybe  or  =$A$1:$A$5') : type === 'date' ? t('1/1/2026 or =A1') : ''} onChange={(e) => setF1(e.target.value)} /></label>}
+          {type !== 'any' && type !== 'list' && type !== 'custom' && needs2 && <label>{t('Maximum:')}{' '}<input value={f2} onChange={(e) => setF2(e.target.value)} /></label>}
         </div>
       )}
       {tab === 'input' && (
         <div className="form">
-          <label className="check-item"><input type="checkbox" checked={showInput} onChange={(e) => setShowInput(e.target.checked)} /> Show input message when cell is selected</label>
-          <label>Title: <input value={inputTitle} onChange={(e) => setInputTitle(e.target.value)} /></label>
-          <label>Input message: <textarea rows={4} value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} /></label>
+          <label className="check-item"><input type="checkbox" checked={showInput} onChange={(e) => setShowInput(e.target.checked)} />{' '}{t('Show input message when cell is selected')}</label>
+          <label>{t('Title:')}{' '}<input value={inputTitle} onChange={(e) => setInputTitle(e.target.value)} /></label>
+          <label>{t('Input message:')}{' '}<textarea rows={4} value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} /></label>
         </div>
       )}
       {tab === 'error' && (
         <div className="form">
-          <label className="check-item"><input type="checkbox" checked={showError} onChange={(e) => setShowError(e.target.checked)} /> Show error alert after invalid data is entered</label>
-          <label>Style:
+          <label className="check-item"><input type="checkbox" checked={showError} onChange={(e) => setShowError(e.target.checked)} />{' '}{t('Show error alert after invalid data is entered')}</label>
+          <label>{t('Style:')}
             <select value={errorStyle} onChange={(e) => setErrorStyle(e.target.value as Validation['errorStyle'])}>
-              <option value="stop">Stop</option>
-              <option value="warning">Warning</option>
-              <option value="information">Information</option>
+              <option value="stop">{t('Stop')}</option>
+              <option value="warning">{t('Warning')}</option>
+              <option value="information">{t('Information')}</option>
             </select>
           </label>
-          <label>Title: <input value={errorTitle} onChange={(e) => setErrorTitle(e.target.value)} /></label>
-          <label>Error message: <textarea rows={4} value={errorMessage} onChange={(e) => setErrorMessage(e.target.value)} /></label>
+          <label>{t('Title:')}{' '}<input value={errorTitle} onChange={(e) => setErrorTitle(e.target.value)} /></label>
+          <label>{t('Error message:')}{' '}<textarea rows={4} value={errorMessage} onChange={(e) => setErrorMessage(e.target.value)} /></label>
         </div>
       )}
     </Modal>
@@ -978,7 +1024,38 @@ export function circleInvalid(app: ReturnType<typeof useApp>) {
   const doc = app.doc
   doc.circles = invalidCells(doc, doc.sheet)
   doc.emit()
-  if (!doc.circles.length) app.alert('There are no invalid entries on this sheet.')
+  if (!doc.circles.length) app.alert(t('There are no invalid entries on this sheet.'))
 }
 
 void selectedObject
+
+/** Type and value of a rule threshold (Lowest/Highest value, Number, Percent, Percentile, Formula). */
+function CFValueInput({ label, value, onChange, allowAuto }: { label: string; value: CFValue; onChange: (v: CFValue) => void; allowAuto?: boolean }) {
+  const types: [CFValue['type'], string][] = [
+    ...(allowAuto ? ([['auto', t('Automatic')], ['min', t('Lowest Value')], ['max', t('Highest Value')]] as [CFValue['type'], string][]) : []),
+    ['num', t('Number')],
+    ['percent', t('Percent')],
+    ['percentile', t('Percentile')],
+    ['formula', t('Formula')],
+  ]
+  const needsValue = value.type === 'num' || value.type === 'percent' || value.type === 'percentile' || value.type === 'formula'
+  return (
+    <div className="dlg-inline">
+      <span>{label}</span>
+      <select value={value.type} onChange={(e) => onChange({ type: e.target.value as CFValue['type'], value: value.value ?? (e.target.value === 'formula' ? '' : 0) })}>
+        {types.map(([id, name]) => (
+          <option key={id} value={id}>
+            {name}
+          </option>
+        ))}
+      </select>
+      {needsValue && (
+        <input
+          value={value.value ?? ''}
+          style={{ width: 90 }}
+          onChange={(e) => onChange({ ...value, value: value.type === 'formula' ? e.target.value.replace(/^=/, '') : Number(e.target.value) || 0 })}
+        />
+      )}
+    </div>
+  )
+}

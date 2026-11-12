@@ -28,6 +28,10 @@ export type Line = {
   alpha?: number
   head?: ArrowHead
   tail?: ArrowHead
+  /** Compound line: double, thick-thin, thin-thick or triple (OOXML names). */
+  compound?: 'sng' | 'dbl' | 'thickThin' | 'thinThick' | 'tri'
+  /** Sketched line style (hand-drawn look). */
+  sketch?: 'curved' | 'freehand' | 'scribble' | null
 } | null
 
 export type Shadow = {
@@ -46,6 +50,12 @@ export type Effects = {
   glow?: { color: ColorRef; size: number; alpha: number } | null
   softEdge?: number
   reflection?: boolean
+  /** Shadow inside the shape's edge. */
+  innerShadow?: Shadow
+  /** Top bevel preset (OOXML names: circle, relaxedInset, cross, coolSlant, angle, softRound, convex, slope, divot, riblet, hardEdge, artDeco). */
+  bevel?: string | null
+  /** 3-D rotation around the x and y axes in degrees, with or without perspective. */
+  rot3d?: { x: number; y: number; perspective?: boolean } | null
 }
 
 // ---------- Rich text (stored as ProseMirror JSON, see editor/schema.ts) ----------
@@ -66,6 +76,12 @@ export type ParaAttrs = {
   lineHeight?: number | null
   spaceBefore?: number | null
   spaceAfter?: number | null
+  /** Exact line spacing in points (overrides lineHeight). */
+  lineExact?: number | null
+  /** Indentation before text in px (overrides the list level indent). */
+  indent?: number | null
+  /** First line indent in px; negative values make a hanging indent. */
+  firstLine?: number | null
 }
 
 export type Mark =
@@ -81,6 +97,19 @@ export type Mark =
         letterSpacing?: number | null
         shadow?: boolean | null
         caps?: 'all' | 'small' | null
+        /** Underline style other than a plain single line (OOXML names: dbl, heavy, dotted, dash, wavy …). */
+        uStyle?: string | null
+        /** Underline color (otherwise the text color). */
+        uColor?: ColorRef | null
+        /** Double strikethrough. */
+        strike2?: boolean | null
+        /** Baseline offset in percent of the font size (superscript > 0, subscript < 0). */
+        baseline?: number | null
+        /** Equalize character height (all characters as tall as capitals). */
+        equalize?: boolean | null
+        /** Text glow color and size (pt). */
+        glow?: ColorRef | null
+        glowSize?: number | null
       }
     }
 
@@ -110,6 +139,10 @@ export type TextBody = {
   /** WordArt-style text fill/outline (applies to the whole body). */
   textFill?: ColorRef | null
   textOutline?: { color: ColorRef; width: number } | null
+  /** Text Effects > Reflection: a mirrored copy of the text below it. */
+  textReflection?: boolean
+  /** Text Effects > Transform: text warp preset (OOXML names such as textArchUp, textWave1). */
+  warp?: string | null
 }
 
 // ---------- Elements ----------
@@ -206,6 +239,8 @@ export type ShapeElement = ElementBase & {
   ringsBox?: { w: number; h: number }
   /** The free-form outline is an open line (Freeform/Scribble drawn without closing it). */
   open?: boolean
+  /** Connector ends glued to connection sites of other objects (site: 0 top, 1 right, 2 bottom, 3 left). */
+  conn?: { start?: { id: string; site: number } | null; end?: { id: string; site: number } | null }
 }
 
 export type ImageAdjust = {
@@ -523,6 +558,8 @@ export type Presentation = {
   lang?: string
   handout?: HandoutSettings
   notesMaster?: NotesMasterSettings
+  /** Design > Variants > Effects: the theme effect scheme (see model/effectSchemes.ts). */
+  effectScheme?: string | null
 }
 
 export type CustomShow = { id: string; name: string; slideIds: string[] }

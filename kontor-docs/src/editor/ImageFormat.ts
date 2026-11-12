@@ -1,16 +1,17 @@
 import { Extension } from '@tiptap/core'
+import { tx } from '../i18n'
 
 // Picture Format options stored on the image node: picture style (frame), rotation and flips.
 
 export const PICTURE_STYLES: { id: string; label: string }[] = [
-  { id: 'none', label: 'No Style' },
-  { id: 'thin', label: 'Simple Frame, Black' },
-  { id: 'white', label: 'Simple Frame, White' },
-  { id: 'shadow', label: 'Drop Shadow Rectangle' },
-  { id: 'rounded', label: 'Rounded Diagonal Corner' },
-  { id: 'soft', label: 'Soft Edge Rectangle' },
-  { id: 'oval', label: 'Oval' },
-  { id: 'thick', label: 'Thick Matte, Black' },
+  { id: 'none', label: tx('No Style') },
+  { id: 'thin', label: tx('Simple Frame, Black') },
+  { id: 'white', label: tx('Simple Frame, White') },
+  { id: 'shadow', label: tx('Drop Shadow Rectangle') },
+  { id: 'rounded', label: tx('Rounded Diagonal Corner') },
+  { id: 'soft', label: tx('Soft Edge Rectangle') },
+  { id: 'oval', label: tx('Oval') },
+  { id: 'thick', label: tx('Thick Matte, Black') },
 ]
 
 export const ImageFormat = Extension.create({

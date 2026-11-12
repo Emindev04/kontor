@@ -4,6 +4,7 @@ import * as A from '../../store/actions'
 import { MenuButton, NumberField, RibbonButton, RibbonGroup, pickFile } from '../ui'
 import { ArrangeButtons, ArrangeExtraButtons } from './common'
 import type { TabProps } from './types'
+import { t, formatNumber } from '../../i18n'
 
 function useMedia() {
   return useStore((s) => {
@@ -26,61 +27,61 @@ export function PlaybackTab({ ui }: TabProps) {
   const vol = m?.volume ?? 1
   return (
     <>
-      <RibbonGroup label="Preview">
-        <RibbonButton icon={Play} label="Play" large disabled={!m} onClick={playSelected} />
+      <RibbonGroup label={t('Preview')}>
+        <RibbonButton icon={Play} label={t('Play')} large disabled={!m} onClick={playSelected} />
       </RibbonGroup>
-      <RibbonGroup label="Editing">
-        <RibbonButton icon={Scissors} label={video ? 'Trim Video' : 'Trim Audio'} large disabled={!m} onClick={() => ui.openDialog('trimMedia')} />
+      <RibbonGroup label={t('Editing')}>
+        <RibbonButton icon={Scissors} label={video ? t('Trim Video') : t('Trim Audio')} large disabled={!m} onClick={() => ui.openDialog('trimMedia')} />
       </RibbonGroup>
-      <RibbonGroup label={video ? 'Video Options' : 'Audio Options'}>
+      <RibbonGroup label={video ? t('Video Options') : t('Audio Options')}>
         <MenuButton
           icon={vol === 0 ? VolumeX : vol < 0.5 ? Volume1 : Volume2}
-          label="Volume"
+          label={t('Volume')}
           large
           disabled={!m}
           items={[
-            { label: 'Low', active: vol > 0 && vol <= 0.34, onClick: () => A.updateMedia({ volume: 0.33 }) },
-            { label: 'Medium', active: vol > 0.34 && vol <= 0.67, onClick: () => A.updateMedia({ volume: 0.66 }) },
-            { label: 'High', active: vol > 0.67, onClick: () => A.updateMedia({ volume: 1 }) },
-            { label: 'Mute', active: vol === 0, onClick: () => A.updateMedia({ volume: 0 }) },
+            { label: t('Low'), active: vol > 0 && vol <= 0.34, onClick: () => A.updateMedia({ volume: 0.33 }) },
+            { label: t('Medium'), active: vol > 0.34 && vol <= 0.67, onClick: () => A.updateMedia({ volume: 0.66 }) },
+            { label: t('High'), active: vol > 0.67, onClick: () => A.updateMedia({ volume: 1 }) },
+            { label: t('Mute'), active: vol === 0, onClick: () => A.updateMedia({ volume: 0 }) },
           ]}
         />
         <div className="col timing">
           <label className="field-row">
-            <span>Start:</span>
+            <span>{t('Start:')}</span>
             <select value={m?.autoPlay ? 'auto' : 'click'} disabled={!m} onChange={(e) => A.updateMedia({ autoPlay: e.target.value === 'auto' })}>
-              <option value="click">When Clicked On</option>
-              <option value="auto">Automatically</option>
+              <option value="click">{t('When Clicked On')}</option>
+              <option value="auto">{t('Automatically')}</option>
             </select>
           </label>
           {video && (
             <label className="check">
-              <input type="checkbox" checked={!!m?.fullScreen} onChange={(e) => A.updateMedia({ fullScreen: e.target.checked })} /> Play Full Screen
+              <input type="checkbox" checked={!!m?.fullScreen} onChange={(e) => A.updateMedia({ fullScreen: e.target.checked })} /> {t('Play Full Screen')}
             </label>
           )}
           <label className="check">
-            <input type="checkbox" checked={!!m?.hideWhenNotPlaying} disabled={!m} onChange={(e) => A.updateMedia({ hideWhenNotPlaying: e.target.checked })} /> Hide While Not Playing
+            <input type="checkbox" checked={!!m?.hideWhenNotPlaying} disabled={!m} onChange={(e) => A.updateMedia({ hideWhenNotPlaying: e.target.checked })} /> {t('Hide While Not Playing')}
           </label>
         </div>
         <div className="col checks">
           <label>
-            <input type="checkbox" checked={!!m?.loop} disabled={!m} onChange={(e) => A.updateMedia({ loop: e.target.checked })} /> <Repeat size={12} /> Loop until Stopped
+            <input type="checkbox" checked={!!m?.loop} disabled={!m} onChange={(e) => A.updateMedia({ loop: e.target.checked })} /> <Repeat size={12} /> {t('Loop until Stopped')}
           </label>
           <label>
-            <input type="checkbox" checked={!!m?.rewind} disabled={!m} onChange={(e) => A.updateMedia({ rewind: e.target.checked })} /> <RotateCcw size={12} /> Rewind after Playing
+            <input type="checkbox" checked={!!m?.rewind} disabled={!m} onChange={(e) => A.updateMedia({ rewind: e.target.checked })} /> <RotateCcw size={12} /> {t('Rewind after Playing')}
           </label>
         </div>
       </RibbonGroup>
       {video && (
-        <RibbonGroup label="Adjust">
+        <RibbonGroup label={t('Adjust')}>
           <MenuButton
             icon={ImageIcon}
-            label="Poster Frame"
+            label={t('Poster Frame')}
             large
             disabled={!m}
             items={[
               {
-                label: 'Current Frame',
+                label: t('Current Frame'),
                 icon: Film,
                 onClick: async () => {
                   const cur = A.currentMedia()
@@ -92,7 +93,7 @@ export function PlaybackTab({ ui }: TabProps) {
                 },
               },
               {
-                label: 'Image from File…',
+                label: t('Image from File…'),
                 icon: ImagePlus,
                 onClick: async () => {
                   const [file] = await pickFile('image/*')
@@ -102,12 +103,12 @@ export function PlaybackTab({ ui }: TabProps) {
                   r.readAsDataURL(file)
                 },
               },
-              { label: 'Reset', icon: Clapperboard, onClick: async () => { const cur = A.currentMedia(); if (cur) A.updateMedia({ poster: (await A.captureFrame(cur.src)).poster }) } },
+              { label: t('Reset'), icon: Clapperboard, onClick: async () => { const cur = A.currentMedia(); if (cur) A.updateMedia({ poster: (await A.captureFrame(cur.src)).poster }) } },
             ]}
           />
         </RibbonGroup>
       )}
-      <RibbonGroup label="Arrange">
+      <RibbonGroup label={t('Arrange')}>
         <ArrangeButtons ui={ui} />
         <ArrangeExtraButtons />
       </RibbonGroup>
@@ -118,17 +119,17 @@ export function PlaybackTab({ ui }: TabProps) {
 export function TrimBody({ start, end, duration, onChange }: { start: number; end: number; duration: number; onChange: (s: number, e: number) => void }) {
   return (
     <div className="form">
-      <p className="hint">Duration: {duration.toFixed(2)} s</p>
+      <p className="hint">{t('Duration: {n} s', { n: formatNumber(duration, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</p>
       <label className="field-row form-row">
-        <span>Start Time:</span>
-        <NumberField label="Start time" value={start} min={0} max={Math.max(0, end - 0.1)} step={0.1} suffix=" s" onChange={(v) => onChange(v, end)} />
+        <span>{t('Start Time:')}</span>
+        <NumberField label={t('Start time')} value={start} min={0} max={Math.max(0, end - 0.1)} step={0.1} suffix={t(' s')} onChange={(v) => onChange(v, end)} />
       </label>
       <label className="field-row form-row">
-        <span>End Time:</span>
-        <NumberField label="End time" value={end} min={start + 0.1} max={duration || 36000} step={0.1} suffix=" s" onChange={(v) => onChange(start, v)} />
+        <span>{t('End Time:')}</span>
+        <NumberField label={t('End time')} value={end} min={start + 0.1} max={duration || 36000} step={0.1} suffix={t(' s')} onChange={(v) => onChange(start, v)} />
       </label>
-      <input type="range" min={0} max={duration || 1} step={0.05} value={start} aria-label="Start" onChange={(e) => onChange(Math.min(Number(e.target.value), end - 0.1), end)} />
-      <input type="range" min={0} max={duration || 1} step={0.05} value={end} aria-label="End" onChange={(e) => onChange(start, Math.max(Number(e.target.value), start + 0.1))} />
+      <input type="range" min={0} max={duration || 1} step={0.05} value={start} aria-label={t('Start')} onChange={(e) => onChange(Math.min(Number(e.target.value), end - 0.1), end)} />
+      <input type="range" min={0} max={duration || 1} step={0.05} value={end} aria-label={t('End')} onChange={(e) => onChange(start, Math.max(Number(e.target.value), start + 0.1))} />
     </div>
   )
 }

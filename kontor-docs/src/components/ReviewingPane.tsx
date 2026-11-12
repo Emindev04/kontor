@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import { authorColor, collectChanges, commentRanges, describeFormat, type Comments } from '../editor/Review'
 import { relativeDate } from './CommentsPane'
+import { t } from '../i18n'
 
 type Props = { editor: Editor; comments: Comments; onClose: () => void; onNavigate: (pos: number) => void; onActivateComment: (id: string) => void }
 
@@ -12,7 +13,7 @@ export function ReviewingPane({ editor, comments, onClose, onNavigate, onActivat
   const items = [
     ...changes.map((c) => ({
       pos: c.from,
-      kind: c.kind === 'insertion' ? 'Inserted' : c.kind === 'deletion' ? 'Deleted' : 'Formatted',
+      kind: c.kind === 'insertion' ? t('Inserted') : c.kind === 'deletion' ? t('Deleted') : t('Formatted'),
       author: c.author,
       date: c.date,
       text: c.kind === 'format' ? `${describeFormat(c.old, editor.state.doc.nodeAt(c.from)?.marks ?? [])}: ${c.text}` : c.text,
@@ -28,17 +29,17 @@ export function ReviewingPane({ editor, comments, onClose, onNavigate, onActivat
   const commentCount = items.length - changes.length
 
   return (
-    <aside className="nav-pane review-pane" aria-label="Revisions">
+    <aside className="nav-pane review-pane" aria-label={t('Revisions')}>
       <div className="nav-head">
-        <strong>Revisions</strong>
-        <button type="button" className="sb-btn" aria-label="Close reviewing pane" onClick={onClose}>
+        <strong>{t('Revisions')}</strong>
+        <button type="button" className="sb-btn" aria-label={t('Close reviewing pane')} onClick={onClose}>
           <X size={14} />
         </button>
       </div>
       <div className="review-summary">
-        <strong>{items.length} revision{items.length === 1 ? '' : 's'}</strong>
+        <strong>{items.length === 1 ? t('1 revision') : t('{n} revisions', { n: items.length })}</strong>
         <span>
-          {insertions} insertion{insertions === 1 ? '' : 's'}, {deletions} deletion{deletions === 1 ? '' : 's'}, {formats} formatting, {commentCount} comment{commentCount === 1 ? '' : 's'}
+          {t('{insertions} insertions, {deletions} deletions, {formats} formatting, {comments} comments', { insertions, deletions, formats, comments: commentCount })}
         </span>
       </div>
       <div className="nav-list">
@@ -54,14 +55,14 @@ export function ReviewingPane({ editor, comments, onClose, onNavigate, onActivat
               }}
             >
               <span className="review-meta">
-                <strong style={{ color: authorColor(item.author) }}>{item.author || 'Unknown'}</strong> {item.kind}
+                <strong style={{ color: authorColor(item.author) }}>{item.author || t('Unknown')}</strong> {item.kind}
                 <small>{relativeDate(item.date)}</small>
               </span>
               <span className={`review-text review-${item.kind.toLowerCase()}`}>{item.text.length > 140 ? `${item.text.slice(0, 140)}…` : item.text}</span>
             </button>
           ))
         ) : (
-          <p className="nav-empty">No revisions. Turn on Track Changes to record insertions and deletions, or add a comment.</p>
+          <p className="nav-empty">{t('No revisions. Turn on Track Changes to record insertions and deletions, or add a comment.')}</p>
         )}
       </div>
     </aside>

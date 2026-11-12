@@ -2,20 +2,21 @@ import { Node, mergeAttributes } from '@tiptap/core'
 import { DrawingView, drawingAttributes, wrapStyle, type DrawingRenderer } from './Drawing'
 import { shapeSvg } from './Shape'
 import { SHAPES } from './shapePaths'
+import { t, tx } from '../i18n'
 
 // Text boxes (Insert > Text Box) and WordArt: a drawing object whose content is ordinary,
 // editable document text. WordArt is a text box without fill or outline and a text style preset.
 // A shape with text is a text box with a shape outline (`kind`), so its text has full formatting.
 
 export const WORDART_STYLES: { id: string; label: string }[] = [
-  { id: 'fill-dark', label: 'Fill: Black, Text Color 1; Shadow' },
-  { id: 'fill-accent', label: 'Fill: Blue, Accent Color 1; Shadow' },
-  { id: 'outline-accent', label: 'Fill: White; Outline: Blue, Accent Color 1' },
-  { id: 'gradient-gold', label: 'Gradient Fill: Gold; Outline: Brown' },
-  { id: 'gradient-blue', label: 'Gradient Fill: Blue; Reflection' },
-  { id: 'fill-orange', label: 'Fill: Orange, Accent Color 2; Outline' },
-  { id: 'glow-green', label: 'Fill: Green; Glow' },
-  { id: 'pattern-gray', label: 'Pattern Fill: Gray; Hard Shadow' },
+  { id: 'fill-dark', label: tx('Fill: Black, Text Color 1; Shadow') },
+  { id: 'fill-accent', label: tx('Fill: Blue, Accent Color 1; Shadow') },
+  { id: 'outline-accent', label: tx('Fill: White; Outline: Blue, Accent Color 1') },
+  { id: 'gradient-gold', label: tx('Gradient Fill: Gold; Outline: Brown') },
+  { id: 'gradient-blue', label: tx('Gradient Fill: Blue; Reflection') },
+  { id: 'fill-orange', label: tx('Fill: Orange, Accent Color 2; Outline') },
+  { id: 'glow-green', label: tx('Fill: Green; Glow') },
+  { id: 'pattern-gray', label: tx('Pattern Fill: Gray; Hard Shadow') },
 ]
 
 export type TextBoxAttrs = {
@@ -153,7 +154,7 @@ export const TextBox = Node.create({
           const node = {
             type: this.name,
             attrs: rest,
-            content: [{ type: 'paragraph', content: [{ type: 'text', text: text ?? 'Type your text here.' }] }],
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: text ?? t('Type your text here.') }] }],
           }
           const $from = state.selection.$from
           const pos = at ?? ($from.depth >= 1 ? $from.before(1) : state.selection.from)

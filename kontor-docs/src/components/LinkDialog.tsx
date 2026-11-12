@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { Modal } from './ui'
+import { t } from '../i18n'
 
 export function LinkDialog({ editor, onClose }: { editor: Editor; onClose: () => void }) {
   const { from, to, empty } = editor.state.selection
@@ -27,7 +28,7 @@ export function LinkDialog({ editor, onClose }: { editor: Editor; onClose: () =>
 
   return (
     <Modal
-      title={existing ? "Edit Link" : "Insert Link"}
+      title={existing ? t('Edit Link') : t('Insert Link')}
       onClose={close}
       footer={
         <>
@@ -40,16 +41,13 @@ export function LinkDialog({ editor, onClose }: { editor: Editor; onClose: () =>
                 onClose()
               }}
             >
-              Remove Link
-            </button>
+              {t('Remove Link')}</button>
           )}
           <span className="spacer" />
           <button type="button" className="btn btn-primary" onClick={apply}>
-            OK
-          </button>
+            {t('OK')}</button>
           <button type="button" className="btn" onClick={close}>
-            Cancel
-          </button>
+            {t('Cancel')}</button>
         </>
       }
     >
@@ -61,12 +59,10 @@ export function LinkDialog({ editor, onClose }: { editor: Editor; onClose: () =>
         }}
       >
         <label>
-          Text to display
-          <input value={text} disabled={!empty || !!existing} onChange={(e) => setText(e.target.value)} />
+          {t('Text to display')}<input value={text} disabled={!empty || !!existing} onChange={(e) => setText(e.target.value)} />
         </label>
         <label>
-          Address
-          <input autoFocus value={href} placeholder="https://" onChange={(e) => setHref(e.target.value)} />
+          {t('Address')}<input autoFocus value={href} placeholder="https://" onChange={(e) => setHref(e.target.value)} />
         </label>
         <button type="submit" hidden />
       </form>

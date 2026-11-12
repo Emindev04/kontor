@@ -33,6 +33,10 @@ declare module '@tiptap/core' {
       distributeRows: () => ReturnType
       splitTable: () => ReturnType
       deleteCellsShiftLeft: () => ReturnType
+      /** Deletes the selected cells; the cells below move up and empty cells fill the bottom. */
+      deleteCellsShiftUp: () => ReturnType
+      /** Sets the width (CSS px, null = automatic) of the selected columns. */
+      setColumnWidth: (width: number | null) => ReturnType
       convertTextToTable: (separator: 'tab' | 'comma' | 'paragraph') => ReturnType
     }
   }
@@ -274,6 +278,64 @@ export const TableExtras = Extension.create({
             rows.push(row.type.create(row.attrs, cells))
           })
           tr.replaceWith(t.pos, t.pos + t.node.nodeSize, t.node.type.create(t.node.attrs, rows))
+          return true
+        },
+      deleteCellsShiftUp:
+        () =>
+        ({ state, tr }) => {
+          const t = tableInfo(state)
+          if (!t) return false
+          const sel = selectedRect(state, t)
+          if (!sel) return false
+          // Only plain grids: merged cells would not line up after moving.
+          let merged = false
+          t.node.descendants((n) => {
+            if ((n.type.name === 'tableCell' || n.type.name === 'tableHeader') && ((n.attrs.colspan ?? 1) > 1 || (n.attrs.rowspan ?? 1) > 1)) merged = true
+            return !merged && n.type.name !== 'tableCell' && n.type.name !== 'tableHeader'
+          })
+          if (merged) return false
+          const grid: PMNode[][] = []
+          t.node.forEach((row) => {
+            const cells: PMNode[] = []
+            row.forEach((c) => cells.push(c))
+            grid.push(cells)
+          })
+          const removed = sel.bottom - sel.top
+          for (let col = sel.left; col < sel.right; col++) {
+            for (let r = sel.top; r < grid.length; r++) {
+              const below = grid[r + removed]?.[col]
+              if (grid[r][col]) grid[r][col] = below ?? state.schema.nodes.tableCell.createAndFill()!
+            }
+          }
+          const rows: PMNode[] = []
+          t.node.forEach((row, _o, i) => rows.push(row.type.create(row.attrs, grid[i])))
+          tr.replaceWith(t.pos, t.pos + t.node.nodeSize, t.node.type.create(t.node.attrs, rows))
+          return true
+        },
+      setColumnWidth:
+        (width) =>
+        ({ state, tr }) => {
+          const t = tableInfo(state)
+          if (!t) return false
+          const sel = selectedRect(state, t)
+          if (!sel) return false
+          const { map } = sel
+          const seen = new Set<number>()
+          for (let row = 0; row < map.height; row++) {
+            for (let col = sel.left; col < sel.right; col++) {
+              const rel = map.map[row * map.width + col]
+              if (seen.has(rel * 100 + col)) continue
+              seen.add(rel * 100 + col)
+              const cell = t.node.nodeAt(rel)
+              if (!cell) continue
+              const rect = map.findCell(rel)
+              const span = cell.attrs.colspan ?? 1
+              const widths: (number | null)[] = Array.isArray(cell.attrs.colwidth) ? [...cell.attrs.colwidth] : Array(span).fill(null)
+              widths[col - rect.left] = width
+              const colwidth = widths.every((w) => w == null) ? null : widths.map((w) => w ?? 0)
+              tr.setNodeMarkup(t.start + rel, undefined, { ...cell.attrs, colwidth })
+            }
+          }
           return true
         },
       convertTextToTable:

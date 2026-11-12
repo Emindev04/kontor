@@ -4,6 +4,7 @@ import { cls, keepFocus, RibbonScaleContext, useRibbonScale } from './ui'
 import { HomeTab } from './tabs/HomeTab'
 import { HandoutMasterTab, NotesMasterTab, SlideMasterTab } from './MasterViews'
 import type { UiApi } from './tabs/types'
+import { t, tx } from '../i18n'
 
 type TabComponent = ComponentType<{ ui: UiApi }>
 
@@ -51,23 +52,23 @@ function useTab(id: string): TabComponent | null {
 }
 
 const TABS: { id: string; label: string }[] = [
-  { id: 'home', label: 'Home' },
-  { id: 'insert', label: 'Insert' },
-  { id: 'draw', label: 'Draw' },
-  { id: 'design', label: 'Design' },
-  { id: 'transitions', label: 'Transitions' },
-  { id: 'animations', label: 'Animations' },
-  { id: 'slideshow', label: 'Slide Show' },
-  { id: 'record', label: 'Record' },
-  { id: 'review', label: 'Review' },
-  { id: 'view', label: 'View' },
-  { id: 'help', label: 'Help' },
+  { id: 'home', label: tx('Home') },
+  { id: 'insert', label: tx('Insert') },
+  { id: 'draw', label: tx('Draw') },
+  { id: 'design', label: tx('Design') },
+  { id: 'transitions', label: tx('Transitions') },
+  { id: 'animations', label: tx('Animations') },
+  { id: 'slideshow', label: tx('Slide Show') },
+  { id: 'record', label: tx('Record') },
+  { id: 'review', label: tx('Review') },
+  { id: 'view', label: tx('View') },
+  { id: 'help', label: tx('Help') },
 ]
 
 const MASTER_TABS: Record<string, { id: string; label: string }> = {
-  master: { id: 'slideMaster', label: 'Slide Master' },
-  handoutMaster: { id: 'handoutMaster', label: 'Handout Master' },
-  notesMaster: { id: 'notesMaster', label: 'Notes Master' },
+  master: { id: 'slideMaster', label: tx('Slide Master') },
+  handoutMaster: { id: 'handoutMaster', label: tx('Handout Master') },
+  notesMaster: { id: 'notesMaster', label: tx('Notes Master') },
 }
 
 export function Ribbon({ ui, onFile }: { ui: UiApi; onFile: () => void }) {
@@ -120,56 +121,56 @@ export function Ribbon({ ui, onFile }: { ui: UiApi; onFile: () => void }) {
     <div className="ribbon-wrap">
       <nav className="tabs" role="tablist">
         <button type="button" className="tab tab-file" onMouseDown={keepFocus} onClick={onFile}>
-          File
+          {t('File')}
         </button>
         {masterTab && (
           <button type="button" role="tab" aria-selected={current === masterTab.id} className={cls('tab', current === masterTab.id && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: masterTab.id })}>
-            {masterTab.label}
+            {t(masterTab.label)}
           </button>
         )}
-        {TABS.filter((t) => !masterTab || view === 'master' || ['view', 'help'].includes(t.id)).map((t) => (
-          <button key={t.id} type="button" role="tab" aria-selected={current === t.id} className={cls('tab', current === t.id && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: t.id })}>
-            {t.label}
+        {TABS.filter((tb) => !masterTab || view === 'master' || ['view', 'help'].includes(tb.id)).map((tb) => (
+          <button key={tb.id} type="button" role="tab" aria-selected={current === tb.id} className={cls('tab', current === tb.id && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: tb.id })}>
+            {t(tb.label)}
           </button>
         ))}
         {hasShape && (
           <button type="button" role="tab" aria-selected={current === 'shapeFormat'} className={cls('tab tab-context', current === 'shapeFormat' && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: 'shapeFormat' })}>
-            Shape Format
+            {t('Shape Format')}
           </button>
         )}
         {hasTable && (
           <>
             <button type="button" role="tab" aria-selected={current === 'tableDesign'} className={cls('tab tab-context', current === 'tableDesign' && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: 'tableDesign' })}>
-              Table Design
+              {t('Table Design')}
             </button>
             <button type="button" role="tab" aria-selected={current === 'tableLayout'} className={cls('tab tab-context', current === 'tableLayout' && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: 'tableLayout' })}>
-              Layout
+              {t('Layout')}
             </button>
           </>
         )}
         {hasChart && (
           <>
             <button type="button" role="tab" aria-selected={current === 'chartDesign'} className={cls('tab tab-context', current === 'chartDesign' && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: 'chartDesign' })}>
-              Chart Design
+              {t('Chart Design')}
             </button>
             <button type="button" role="tab" aria-selected={current === 'chartFormat'} className={cls('tab tab-context', current === 'chartFormat' && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: 'chartFormat' })}>
-              Format
+              {t('Format')}
             </button>
           </>
         )}
         {hasDiagram && (
           <button type="button" role="tab" aria-selected={current === 'diagramDesign'} className={cls('tab tab-context', current === 'diagramDesign' && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: 'diagramDesign' })}>
-            Diagram Design
+            {t('Diagram Design')}
           </button>
         )}
         {hasMedia && (
           <button type="button" role="tab" aria-selected={current === 'playback'} className={cls('tab tab-context', current === 'playback' && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: 'playback' })}>
-            Playback
+            {t('Playback')}
           </button>
         )}
         {hasPicture && (
           <button type="button" role="tab" aria-selected={current === 'pictureFormat'} className={cls('tab tab-context', current === 'pictureFormat' && 'is-active')} onMouseDown={keepFocus} onClick={() => store.set({ tab: 'pictureFormat' })}>
-            Picture Format
+            {t('Picture Format')}
           </button>
         )}
       </nav>

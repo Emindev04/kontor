@@ -4,5 +4,5 @@ module.exports = {
   name: 'Kontor Sheets',
   website: 'https://github.com/',
   // Files the app opens when the system hands them over (double-click, Open With).
-  extensions: ['xlsx', 'xlsm', 'ods', 'csv', 'tsv', 'txt'],
+  extensions: ['xlsx', 'xlsm', 'xls', 'xlsb', 'ods', 'csv', 'tsv', 'txt'],
 }

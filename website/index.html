@@ -191,6 +191,10 @@
         <p>Click <b>More info</b> and then <b>Run anyway</b>. The warning appears because the installer is not signed with a paid certificate yet.</p>
       </details>
       <details>
+        <summary>How can our IT department roll Kontor out?</summary>
+        <p>Every release also has installers for managed deployment: a Windows <b>.msi</b> (installs for all users and works with common software deployment tools) and a macOS <b>.pkg</b> (installs into Applications and works with device management tools). Download them from the <a class="repo-releases" href="#">releases page</a>.</p>
+      </details>
+      <details>
         <summary>Which Mac download do I need?</summary>
         <p>Macs with an M1 chip or newer use <b>Apple Silicon</b>. Older Macs with an Intel processor use <b>Intel</b>. You can check under Apple menu › About This Mac.</p>
       </details>
@@ -218,6 +222,7 @@
     const file = (app, name) => `${releases}/latest/download/${app}-${name}`
     document.getElementById('repo-link').href = `https://github.com/${repo}`
     document.getElementById('repo-link-footer').href = releases
+    document.querySelectorAll('.repo-releases').forEach((a) => (a.href = releases))
 
     // Picks the download that fits this computer; the other platforms stay one click away.
     const ua = navigator.userAgent

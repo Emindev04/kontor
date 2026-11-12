@@ -2,6 +2,7 @@
 // A pattern is a sequence of pieces: words taken from source columns (by position from the start
 // or the end, with a case change or only the first letters) and literal text in between.
 import type { Doc } from './doc'
+import { t, tx } from '../i18n'
 
 type Piece =
   | { kind: 'lit'; text: string }
@@ -100,11 +101,11 @@ export function learn(examples: { sources: string[]; output: string }[]): Patter
 export function flashFill(doc: Doc): number | string {
   const sheet = doc.sheet
   const { r, c } = doc.sel.active
-  if (c === 0) return 'Flash Fill needs data in the columns to the left of the active cell.'
+  if (c === 0) return t('Flash Fill needs data in the columns to the left of the active cell.')
   // source columns: the contiguous block of filled columns to the left
   let c0 = c - 1
   while (c0 > 0 && sheet.hasValue(r, c0 - 1)) c0--
-  if (!sheet.hasValue(r, c - 1) && !sheet.hasValue(Math.max(0, r - 1), c - 1)) return 'Flash Fill couldn’t find data next to the active cell.'
+  if (!sheet.hasValue(r, c - 1) && !sheet.hasValue(Math.max(0, r - 1), c - 1)) return t('Flash Fill couldn’t find data next to the active cell.')
   const cols: number[] = []
   for (let x = c0; x < c; x++) cols.push(x)
   const text = (rr: number, cc: number) => {
@@ -129,7 +130,7 @@ export function flashFill(doc: Doc): number | string {
     usable = examples.slice(1)
     pattern = learn(usable)
   }
-  if (!pattern) return 'Flash Fill didn’t recognize a pattern. Type a few more examples and try again.'
+  if (!pattern) return t('Flash Fill didn’t recognize a pattern. Type a few more examples and try again.')
   const start = usable[0].row
   const writes: { row: number; v: string }[] = []
   for (let rr = start; rr <= bottom; rr++) {
@@ -137,8 +138,8 @@ export function flashFill(doc: Doc): number | string {
     const v = apply(pattern, cols.map((cc) => text(rr, cc)))
     if (v !== null && v !== '') writes.push({ row: rr, v })
   }
-  if (!writes.length) return 'Flash Fill didn’t find any cells to fill.'
-  doc.transact('Flash Fill', () => {
+  if (!writes.length) return t('Flash Fill didn’t find any cells to fill.')
+  doc.transact(tx('Flash Fill'), () => {
     for (const w of writes) {
       const old = sheet.get(w.row, c)
       doc.write(sheet, w.row, c, { ...(old?.s ? { s: old.s } : {}), v: w.v })

@@ -130,9 +130,24 @@ function createWindow() {
   })
 
   // Links open in the normal browser; the app itself never navigates away.
+  // View > New Window opens the program itself again (same origin) in another app window.
+  const own = (url) => url.startsWith(ORIGIN) || (DEV_URL && url.startsWith(DEV_URL))
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (own(url)) return { action: 'allow', overrideBrowserWindowOptions: { minWidth: 720, minHeight: 480, title: config.name, backgroundColor: '#f3f3f3' } }
     if (/^https?:\/\//i.test(url) || /^mailto:/i.test(url)) shell.openExternal(url)
     return { action: 'deny' }
+  })
+  win.webContents.on('did-create-window', (child) => {
+    child.webContents.setWindowOpenHandler(({ url }) => {
+      if (/^https?:\/\//i.test(url) || /^mailto:/i.test(url)) shell.openExternal(url)
+      return { action: 'deny' }
+    })
+    child.webContents.on('will-navigate', (event, url) => {
+      if (!own(url)) {
+        event.preventDefault()
+        if (/^https?:\/\//i.test(url)) shell.openExternal(url)
+      }
+    })
   })
   win.webContents.on('will-navigate', (event, url) => {
     if (!url.startsWith(ORIGIN) && !(DEV_URL && url.startsWith(DEV_URL))) {

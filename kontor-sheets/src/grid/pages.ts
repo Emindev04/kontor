@@ -8,12 +8,31 @@ export const PAPER_IN: Record<string, [number, number]> = { letter: [8.5, 11], l
 
 export type PageBreaks = { rows: number[]; cols: number[]; manualRows: Set<number>; manualCols: Set<number> }
 
+/** Print scale (1 = 100 %): the page setup's scale, or the scale that fits the used range on the chosen number of pages. */
+export function printScale(sheet: Sheet): number {
+  const p = sheet.page
+  if (!p.fitToPage) return p.scale / 100
+  const [pw, ph] = PAPER_IN[p.paper] ?? PAPER_IN.letter
+  const [w, h] = p.orientation === 'landscape' ? [ph, pw] : [pw, ph]
+  const usableW = (w - p.margins.left - p.margins.right) * 96
+  const usableH = (h - p.margins.top - p.margins.bottom) * 96
+  const used = sheet.used()
+  const totalW = sheet.cols.offset(Math.max(0, used.c) + 2)
+  const totalH = sheet.rows.offset(Math.max(0, used.r) + 2)
+  const wide = p.fitWide ?? 1
+  const tall = p.fitTall ?? 0
+  let scale = 1
+  if (wide > 0) scale = Math.min(scale, (wide * usableW) / Math.max(1, totalW))
+  if (tall > 0) scale = Math.min(scale, (tall * usableH) / Math.max(1, totalH))
+  return Math.max(0.1, scale)
+}
+
 /** Where pages start (row/column indexes > 0), like printing would split the used range. */
 export function computePageBreaks(sheet: Sheet, limitR?: number, limitC?: number): PageBreaks {
   const p = sheet.page
   const [pw, ph] = PAPER_IN[p.paper] ?? PAPER_IN.letter
   const [w, h] = p.orientation === 'landscape' ? [ph, pw] : [pw, ph]
-  const scale = p.fitToPage ? 1 : p.scale / 100
+  const scale = printScale(sheet)
   const usableW = ((w - p.margins.left - p.margins.right) * 96) / scale
   const usableH = ((h - p.margins.top - p.margins.bottom) * 96) / scale
   const used = sheet.used()
@@ -25,7 +44,7 @@ export function computePageBreaks(sheet: Sheet, limitR?: number, limitC?: number
   let acc = 0
   for (let c = 0; c <= lastC; c++) {
     const s = sheet.cols.size(c)
-    if (c > 0 && (manualCols.has(c) || (!p.fitToPage && acc + s > usableW && acc > 0))) {
+    if (c > 0 && (manualCols.has(c) || (acc + s > usableW + 0.5 && acc > 0))) {
       cols.push(c)
       acc = 0
     }
@@ -35,7 +54,7 @@ export function computePageBreaks(sheet: Sheet, limitR?: number, limitC?: number
   acc = 0
   for (let r = 0; r <= lastR; r++) {
     const s = sheet.rows.size(r)
-    if (r > 0 && (manualRows.has(r) || (acc + s > usableH && acc > 0))) {
+    if (r > 0 && (manualRows.has(r) || (acc + s > usableH + 0.5 && acc > 0))) {
       rows.push(r)
       acc = 0
     }

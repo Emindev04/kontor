@@ -81,6 +81,22 @@
         "mimeType": "application/vnd.oasis.opendocument.text"
       },
       {
+        "role": "Editor",
+        "ext": [
+          "rtf"
+        ],
+        "name": "Rich Text Document",
+        "mimeType": "application/rtf"
+      },
+      {
+        "role": "Viewer",
+        "ext": [
+          "doc"
+        ],
+        "name": "Legacy DOC Document",
+        "mimeType": "application/msword"
+      },
+      {
         "role": "Viewer",
         "ext": [
           "md",
@@ -101,6 +117,13 @@
             "arm64",
             "x64"
           ]
+        },
+        {
+          "target": "pkg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         }
       ],
       "hardenedRuntime": false
@@ -113,6 +136,12 @@
       "target": [
         {
           "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "msi",
           "arch": [
             "x64"
           ]
@@ -149,6 +178,16 @@
     },
     "deb": {
       "artifactName": "Kontor-Docs-linux-x64.${ext}"
+    },
+    "msi": {
+      "artifactName": "Kontor-Docs-windows-x64.msi",
+      "perMachine": true,
+      "oneClick": false
+    },
+    "pkg": {
+      "artifactName": "Kontor-Docs-mac-${arch}.pkg",
+      "identity": null,
+      "installLocation": "/Applications"
     }
   }
 }

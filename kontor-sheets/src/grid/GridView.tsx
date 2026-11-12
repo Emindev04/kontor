@@ -23,6 +23,7 @@ import { filterButtonAt, type FilterTarget } from '../commands/filter'
 import { listItems, validationAt } from '../commands/validation'
 import { noteAt, threadAt } from '../commands/review'
 import { OUTLINE_STEP, outlineButtons, showLevel, toggleGroup } from '../commands/outline'
+import { t, tx } from '../i18n'
 
 type Drag =
   | { kind: 'cells' }
@@ -589,7 +590,7 @@ export function GridView({
       return false
     })
     if (hit < 0) return
-    doc.transact('Erase Ink', () => {
+    doc.transact(tx('Erase Ink'), () => {
       doc.noteProps(sheet)
       sheet.ink = sheet.ink.filter((_, i) => i !== hit)
     })
@@ -656,7 +657,7 @@ export function GridView({
       inkDraft.current = null
       if (canvas.current?.hasPointerCapture(e.pointerId)) canvas.current.releasePointerCapture(e.pointerId)
       if (stroke.points.length >= 4)
-        doc.transact('Ink', () => {
+        doc.transact(tx('Ink'), () => {
           doc.noteProps(sheet)
           sheet.ink = [...sheet.ink, stroke]
         })
@@ -670,7 +671,7 @@ export function GridView({
     switch (d.kind) {
       case 'pbreak': {
         if (d.at === d.from) break
-        doc.transact('Move Page Break', () => {
+        doc.transact(tx('Move Page Break'), () => {
           doc.noteProps(sheet)
           const key = d.axis === 'row' ? 'rowBreaks' : 'colBreaks'
           const list = sheet.x[key].filter((b) => b !== d.from)
@@ -694,7 +695,7 @@ export function GridView({
             shape.anchor = { x: s0.x, y: s0.y, w: dw, h: dh }
           } else shape.anchor = { x: a.x, y: a.y, w: Math.abs(dw), h: Math.abs(dh) }
         } else shape.anchor = { ...shape.anchor, x: a.x, y: a.y }
-        addObject(doc, shape, spec.textBox ? 'Insert Text Box' : 'Insert Shape')
+        addObject(doc, shape, spec.textBox ? tx('Insert Text Box') : tx('Insert Shape'))
         break
       }
       case 'resizeCol': {
@@ -818,7 +819,7 @@ export function GridView({
     const nudge = (dx: number, dy: number) => {
       e.preventDefault()
       const step = ctrl ? 1 : 8
-      updateObject(doc, o.id, { anchor: { ...o.anchor, x: Math.max(0, o.anchor.x + dx * step), y: Math.max(0, o.anchor.y + dy * step) } }, 'Move Object')
+      updateObject(doc, o.id, { anchor: { ...o.anchor, x: Math.max(0, o.anchor.x + dx * step), y: Math.max(0, o.anchor.y + dy * step) } }, tx('Move Object'))
     }
     if (k === 'Delete' || k === 'Backspace') {
       e.preventDefault()
@@ -1120,7 +1121,7 @@ export function GridView({
                 {it}
               </button>
             ))}
-            {!items.length && <div className="cell-list-empty">(no items)</div>}
+            {!items.length && <div className="cell-list-empty">{t('(no items)')}</div>}
           </div>,
         )
       }
@@ -1173,7 +1174,7 @@ export function GridView({
           onDoubleClick={onDoubleClick}
           onContextMenu={onContext}
         />
-        <textarea ref={sink} className="grid-sink" aria-label="Spreadsheet grid" onKeyDown={onKeyDown} onInput={(e) => {
+        <textarea ref={sink} className="grid-sink" aria-label={t('Spreadsheet grid')} onKeyDown={onKeyDown} onInput={(e) => {
             const v = e.currentTarget.value
             e.currentTarget.value = ''
             if (!v || (e.nativeEvent as InputEvent).isComposing) return

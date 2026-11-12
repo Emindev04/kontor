@@ -2,7 +2,7 @@ import JSZip from 'jszip'
 import type { JSONContent } from '@tiptap/core'
 
 // Other file formats: Markdown (open and save), OpenDocument Text (open and save) and Rich Text
-// Format (save). They keep the structure and basic character formatting.
+// Format (open and save, see rtf.ts). They keep the structure and basic character formatting.
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
 const has = (n: JSONContent, type: string) => !!n.marks?.some((m) => m.type === type)
@@ -273,64 +273,4 @@ export async function importOdt(file: Blob) {
 
 // ---- Rich Text Format ----
 
-function rtfText(s: string) {
-  return Array.from(s)
-    .map((ch) => {
-      const code = ch.codePointAt(0)!
-      if (ch === '\\' || ch === '{' || ch === '}') return `\\${ch}`
-      if (ch === '\t') return '\\tab '
-      if (code > 127) return `\\u${code > 32767 ? code - 65536 : code}?`
-      return ch
-    })
-    .join('')
-}
-
-function rtfInline(nodes: JSONContent[] = []): string {
-  return nodes
-    .map((n) => {
-      if (n.type === 'hardBreak') return '\\line '
-      if (n.type !== 'text' || n.marks?.some((m) => m.type === 'deletion')) return ''
-      const on = [has(n, 'bold') && '\\b', has(n, 'italic') && '\\i', has(n, 'underline') && '\\ul', has(n, 'strike') && '\\strike'].filter(Boolean).join('')
-      return on ? `{${on} ${rtfText(n.text ?? '')}}` : rtfText(n.text ?? '')
-    })
-    .join('')
-}
-
-function rtfBlocks(nodes: JSONContent[] = []): string {
-  return nodes
-    .map((n) => {
-      const align = { center: '\\qc', right: '\\qr', justify: '\\qj' }[n.attrs?.textAlign as string] ?? '\\ql'
-      switch (n.type) {
-        case 'heading': {
-          const size = [32, 26, 24, 22, 22, 22][(n.attrs?.level ?? 1) - 1]
-          return `{\\pard${align}\\sb240\\sa60\\b\\fs${size} ${rtfInline(n.content)}\\par}\n`
-        }
-        case 'paragraph':
-          return `{\\pard${align}\\sa160\\fs22 ${rtfInline(n.content)}\\par}\n`
-        case 'bulletList':
-        case 'orderedList':
-          return (n.content ?? []).map((item, i) => `{\\pard\\li720\\fi-360\\sa80\\fs22 ${n.type === 'orderedList' ? `${i + 1}.` : '\\bullet'}\\tab ${(item.content ?? []).map((c) => rtfInline(c.content)).join(' ')}\\par}\n`).join('')
-        case 'pageBreak':
-          return '\\page\n'
-        case 'table':
-          return (n.content ?? [])
-            .map((r) => {
-              const cells = r.content ?? []
-              const defs = cells.map((_, i) => `\\clbrdrt\\brdrs\\clbrdrl\\brdrs\\clbrdrb\\brdrs\\clbrdrr\\brdrs\\cellx${(i + 1) * Math.floor(9360 / Math.max(1, cells.length))}`).join('')
-              return `\\trowd${defs}${cells.map((c) => `\\pard\\intbl ${(c.content ?? []).map((p) => rtfInline(p.content)).join(' ')}\\cell`).join('')}\\row\n`
-            })
-            .join('') + '\\pard\n'
-        case 'blockquote':
-        case 'columns':
-        case 'textBox':
-          return rtfBlocks(n.content)
-        default:
-          return ''
-      }
-    })
-    .join('')
-}
-
-export function exportRtf(doc: JSONContent) {
-  return `{\\rtf1\\ansi\\ansicpg1252\\deff0{\\fonttbl{\\f0\\fswiss Calibri;}}\\viewkind4\\uc1\n${rtfBlocks(doc.content)}}`
-}
+export { exportRtf, importRtf } from './rtf'

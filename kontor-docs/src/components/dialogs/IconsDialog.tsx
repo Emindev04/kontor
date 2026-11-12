@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { icons } from 'lucide-react'
 import { Modal, OkCancel, cls } from '../ui'
+import { t } from '../../i18n'
 
 // Insert > Icons: the bundled icon set, inserted as pictures. Loaded on demand (it is large).
 
@@ -31,8 +32,8 @@ export default function IconsDialog({ editor, onClose }: { editor: Editor; onClo
     onClose()
   }
   return (
-    <Modal title="Insert Icons" onClose={onClose} width={640} footer={<OkCancel okLabel={picked.length ? `Insert (${picked.length})` : 'Insert'} onOk={insert} onCancel={onClose} />}>
-      <input className="icon-search" autoFocus placeholder="Search icons" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search icons" />
+    <Modal title={t('Insert Icons')} onClose={onClose} width={640} footer={<OkCancel okLabel={picked.length ? t('Insert ({n})', { n: picked.length }) : t('Insert')} onOk={insert} onCancel={onClose} />}>
+      <input className="icon-search" autoFocus placeholder={t('Search icons')} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t('Search icons')} />
       <div className="icon-grid" ref={grid}>
         {list.map((name) => {
           const Icon = icons[name as keyof typeof icons]
@@ -50,7 +51,7 @@ export default function IconsDialog({ editor, onClose }: { editor: Editor; onClo
           )
         })}
       </div>
-      <p className="dlg-hint">{list.length === 240 ? 'Showing the first 240 matches. ' : ''}Icons are inserted as pictures you can resize and recolor with Picture Format.</p>
+      <p className="dlg-hint">{list.length === 240 ? t('Showing the first 240 matches. ') : ''}{t('Icons are inserted as pictures you can resize and recolor with Picture Format.')}</p>
     </Modal>
   )
 }

@@ -41,6 +41,8 @@ jobs:
           path: |
             kontor-${{ matrix.app }}/release/*.dmg
             kontor-${{ matrix.app }}/release/*.exe
+            kontor-${{ matrix.app }}/release/*.msi
+            kontor-${{ matrix.app }}/release/*.pkg
             kontor-${{ matrix.app }}/release/*.AppImage
             kontor-${{ matrix.app }}/release/*.deb
           if-no-files-found: error

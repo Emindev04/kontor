@@ -3,6 +3,7 @@ import { MAX_COLS, MAX_ROWS, colName, type Range } from '../model/address'
 import type { Sheet } from '../model/sheet'
 import type { Doc } from './doc'
 import { insertDelete } from './ops'
+import { t, tx } from '../i18n'
 
 type Axis = 'row' | 'col'
 
@@ -43,20 +44,20 @@ function setLevels(doc: Doc, axis: Axis, from: number, to: number, delta: number
 export function group(doc: Doc, axis: Axis, rg: Range = doc.activeRange): string | null {
   const from = axis === 'row' ? rg.r1 : rg.c1
   const to = axis === 'row' ? Math.min(rg.r2, Math.max(rg.r1, doc.sheet.used().r)) : Math.min(rg.c2, Math.max(rg.c1, doc.sheet.used().c))
-  for (let i = from; i <= to; i++) if (levelAt(doc.sheet, axis, i) >= 7) return 'You cannot group more than seven levels.'
-  setLevels(doc, axis, from, to, 1, 'Group')
+  for (let i = from; i <= to; i++) if (levelAt(doc.sheet, axis, i) >= 7) return t('You cannot group more than seven levels.')
+  setLevels(doc, axis, from, to, 1, tx('Group'))
   return null
 }
 
 export function ungroup(doc: Doc, axis: Axis, rg: Range = doc.activeRange) {
   const from = axis === 'row' ? rg.r1 : rg.c1
   const to = axis === 'row' ? Math.min(rg.r2, MAX_ROWS - 1) : Math.min(rg.c2, MAX_COLS - 1)
-  setLevels(doc, axis, from, Math.min(to, from + 100000), -1, 'Ungroup')
+  setLevels(doc, axis, from, Math.min(to, from + 100000), -1, tx('Ungroup'))
 }
 
 export function clearOutline(doc: Doc) {
   const sheet = doc.sheet
-  doc.transact('Clear Outline', () => {
+  doc.transact(tx('Clear Outline'), () => {
     doc.noteProps(sheet)
     for (const k of Object.keys(sheet.x.outline.rows)) sheet.rows.hidden.delete(Number(k))
     for (const k of Object.keys(sheet.x.outline.cols)) sheet.cols.hidden.delete(Number(k))
@@ -69,7 +70,7 @@ export function clearOutline(doc: Doc) {
 /** Clicking an outline level button: show everything up to `level`. */
 export function showLevel(doc: Doc, axis: Axis, level: number) {
   const sheet = doc.sheet
-  doc.transact('Show Level', () => {
+  doc.transact(tx('Show Level'), () => {
     doc.noteProps(sheet)
     const m = axis === 'row' ? sheet.x.outline.rows : sheet.x.outline.cols
     const ax = axis === 'row' ? sheet.rows : sheet.cols
@@ -100,7 +101,7 @@ export function toggleGroup(doc: Doc, axis: Axis, summary: number, level: number
   const ax = axis === 'row' ? sheet.rows : sheet.cols
   let anyVisible = false
   for (let i = run[0]; i <= run[1]; i++) if (!ax.hidden.has(i)) anyVisible = true
-  doc.transact(anyVisible ? 'Hide Detail' : 'Show Detail', () => {
+  doc.transact(anyVisible ? tx('Hide Detail') : tx('Show Detail'), () => {
     doc.noteProps(sheet)
     for (let i = run[0]; i <= run[1]; i++) {
       if (anyVisible) ax.hidden.add(i)
@@ -148,16 +149,16 @@ export function outlineButtons(sheet: Sheet, axis: Axis, from: number, to: numbe
 // ---------- Subtotal ----------
 
 export const SUBTOTAL_FNS: [number, string][] = [
-  [9, 'Sum'], [3, 'Count'], [1, 'Average'], [4, 'Max'], [5, 'Min'], [6, 'Product'], [2, 'Count Numbers'], [7, 'StdDev'], [8, 'StdDevp'], [10, 'Var'], [11, 'Varp'],
+  [9, tx('Sum')], [3, tx('Count')], [1, tx('Average')], [4, tx('Max')], [5, tx('Min')], [6, tx('Product')], [2, tx('Count Numbers')], [7, tx('StdDev')], [8, tx('StdDevp')], [10, tx('Var')], [11, tx('Varp')],
 ]
 
 /** Data → Subtotal: inserts a total row after each change in `byCol` and an outline. */
 export function subtotal(doc: Doc, rg0: Range, byCol: number, fn: number, cols: number[], opts: { replace: boolean; below: boolean }) {
   const sheet = doc.sheet
   const rg = doc.boundToUsed(rg0)
-  if (rg.r2 <= rg.r1) return 'Select a range with a header row and data.'
+  if (rg.r2 <= rg.r1) return t('Select a range with a header row and data.')
   const label = SUBTOTAL_FNS.find((f) => f[0] === fn)?.[1] ?? 'Total'
-  doc.transact('Subtotal', () => {
+  doc.transact(tx('Subtotal'), () => {
     if (opts.replace) removeSubtotals(doc, rg)
     const r1 = rg.r1 + 1
     let r2 = Math.max(r1, sheet.used().r)
@@ -205,7 +206,7 @@ export function subtotal(doc: Doc, rg0: Range, byCol: number, fn: number, cols: 
 export function removeSubtotals(doc: Doc, rg0: Range) {
   const sheet = doc.sheet
   const rg = doc.boundToUsed(rg0)
-  doc.transact('Remove Subtotals', () => {
+  doc.transact(tx('Remove Subtotals'), () => {
     for (let r = Math.min(sheet.used().r, rg.r2 + 1000); r > rg.r1; r--) {
       let isTotal = false
       for (let c = rg.c1; c <= rg.c2; c++) if (/^SUBTOTAL\(/i.test(sheet.get(r, c)?.f ?? '')) isTotal = true

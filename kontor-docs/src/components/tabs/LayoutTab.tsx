@@ -9,6 +9,7 @@ import { ArrangeGroup } from './DrawingGroups'
 import type { TabProps } from './types'
 import { hyphenateManually } from '../../editor/hyphenate'
 import type { ColumnsAttrs } from '../../editor/Sections'
+import { t } from '../../i18n'
 
 const pt = (n: number) => `${Math.round(n * 10) / 10} pt`
 const parsePt = (s: string) => {
@@ -30,120 +31,120 @@ export function LayoutTab({ editor, app }: TabProps) {
 
   return (
     <>
-      <RibbonGroup label="Page Setup" priority={4} onLauncher={() => app.openDialog('pageSetup')} launcherTitle="Page Setup">
+      <RibbonGroup label={t('Page Setup')} priority={4} onLauncher={() => app.openDialog('pageSetup')} launcherTitle={t('Page Setup')}>
         <MenuButton
           large
           wide
           icon={Square}
-          label="Margins"
+          label={t('Margins')}
           items={[
             ...MARGIN_PRESETS.map((p) => ({
-              label: p.label,
+              label: t(p.label),
               detail: p.mirrored
-                ? `Top: ${fmt(p.margins.top)}  Bottom: ${fmt(p.margins.bottom)}  Inside: ${fmt(p.margins.left)}  Outside: ${fmt(p.margins.right)}`
-                : `Top: ${fmt(p.margins.top)}  Bottom: ${fmt(p.margins.bottom)}  Left: ${fmt(p.margins.left)}  Right: ${fmt(p.margins.right)}`,
+                ? t('Top: {top}  Bottom: {bottom}  Inside: {inside}  Outside: {outside}', { top: fmt(p.margins.top), bottom: fmt(p.margins.bottom), inside: fmt(p.margins.left), outside: fmt(p.margins.right) })
+                : t('Top: {top}  Bottom: {bottom}  Left: {left}  Right: {right}', { top: fmt(p.margins.top), bottom: fmt(p.margins.bottom), left: fmt(p.margins.left), right: fmt(p.margins.right) }),
               active: same(p.margins) && !!p.mirrored === setup.mirrored,
               onClick: () => setSetup({ ...setup, margins: p.margins, mirrored: !!p.mirrored }),
             })),
             'separator' as const,
-            { label: 'Custom Margins…', onClick: () => app.openDialog('pageSetup') },
+            { label: t('Custom Margins…'), onClick: () => app.openDialog('pageSetup') },
           ]}
         />
         <MenuButton
           large
           icon={setup.orientation === 'portrait' ? RectangleVertical : RectangleHorizontal}
-          label="Orientation"
+          label={t('Orientation')}
           items={[
-            { label: 'Portrait', icon: RectangleVertical, active: setup.orientation === 'portrait', onClick: () => setSetup({ ...setup, orientation: 'portrait' }) },
-            { label: 'Landscape', icon: RectangleHorizontal, active: setup.orientation === 'landscape', onClick: () => setSetup({ ...setup, orientation: 'landscape' }) },
+            { label: t('Portrait'), icon: RectangleVertical, active: setup.orientation === 'portrait', onClick: () => setSetup({ ...setup, orientation: 'portrait' }) },
+            { label: t('Landscape'), icon: RectangleHorizontal, active: setup.orientation === 'landscape', onClick: () => setSetup({ ...setup, orientation: 'landscape' }) },
           ]}
         />
         <MenuButton
           large
           wide
           icon={File}
-          label="Size"
+          label={t('Size')}
           items={[
             ...(Object.keys(PAPER) as PaperSize[]).map((key) => ({
-              label: PAPER[key].label,
+              label: t(PAPER[key].label),
               detail: `${fmt(PAPER[key].w)} × ${fmt(PAPER[key].h)}`,
               active: setup.size === key,
               onClick: () => setSetup({ ...setup, size: key }),
             })),
             'separator' as const,
-            { label: 'More Paper Sizes…', onClick: () => app.openDialog('pageSetup') },
+            { label: t('More Paper Sizes…'), onClick: () => app.openDialog('pageSetup') },
           ]}
         />
         <MenuButton
           large
           icon={cols && cols.count >= 3 ? Columns3 : Columns2}
-          label="Columns"
+          label={t('Columns')}
           items={[
-            { label: 'One', active: !cols, onClick: () => setCols(1) },
-            { label: 'Two', active: cols?.count === 2 && cols.preset === 'equal', onClick: () => setCols(2) },
-            { label: 'Three', active: cols?.count === 3, onClick: () => setCols(3) },
-            { label: 'Left', detail: 'Two columns, the left one narrower', active: cols?.preset === 'left', onClick: () => setCols(2, 'left') },
-            { label: 'Right', detail: 'Two columns, the right one narrower', active: cols?.preset === 'right', onClick: () => setCols(2, 'right') },
+            { label: t('One'), active: !cols, onClick: () => setCols(1) },
+            { label: t('Two'), active: cols?.count === 2 && cols.preset === 'equal', onClick: () => setCols(2) },
+            { label: t('Three'), active: cols?.count === 3, onClick: () => setCols(3) },
+            { label: t('Left'), detail: t('Two columns, the left one narrower'), active: cols?.preset === 'left', onClick: () => setCols(2, 'left') },
+            { label: t('Right'), detail: t('Two columns, the right one narrower'), active: cols?.preset === 'right', onClick: () => setCols(2, 'right') },
             'separator' as const,
-            { label: 'More Columns…', onClick: () => app.openDialog('columns') },
+            { label: t('More Columns…'), onClick: () => app.openDialog('columns') },
           ]}
         />
         <div className="col">
           <MenuButton
             icon={SeparatorHorizontal}
-            label="Breaks"
+            label={t('Breaks')}
             showLabel
             wide
             items={[
-              { heading: 'Page Breaks' },
-              { label: 'Page', detail: 'Mark the point at which one page ends and the next page begins (Ctrl+Enter).', onClick: () => chain().setPageBreak().run() },
-              { label: 'Column', detail: 'Indicate that the text following the column break will begin in the next column (Ctrl+Shift+Enter).', onClick: () => chain().insertColumnBreak().run() },
-              { label: 'Text Wrapping', detail: 'Start a new line in the same paragraph (Shift+Enter).', onClick: () => chain().setHardBreak().run() },
-              { heading: 'Section Breaks' },
-              { label: 'Next Page', detail: 'Insert a section break and start the new section on the next page.', onClick: () => chain().insertSectionBreak('nextPage').run() },
-              { label: 'Continuous', detail: 'Insert a section break and start the new section on the same page.', onClick: () => chain().insertSectionBreak('continuous').run() },
-              { label: 'Even Page', detail: 'Insert a section break and start the new section on the next even-numbered page.', onClick: () => chain().insertSectionBreak('evenPage').run() },
-              { label: 'Odd Page', detail: 'Insert a section break and start the new section on the next odd-numbered page.', onClick: () => chain().insertSectionBreak('oddPage').run() },
+              { heading: t('Page Breaks') },
+              { label: t('Page'), detail: t('Mark the point at which one page ends and the next page begins (Ctrl+Enter).'), onClick: () => chain().setPageBreak().run() },
+              { label: t('Column'), detail: t('Indicate that the text following the column break will begin in the next column (Ctrl+Shift+Enter).'), onClick: () => chain().insertColumnBreak().run() },
+              { label: t('Text Wrapping'), detail: t('Start a new line in the same paragraph (Shift+Enter).'), onClick: () => chain().setHardBreak().run() },
+              { heading: t('Section Breaks') },
+              { label: t('Next Page'), detail: t('Insert a section break and start the new section on the next page.'), onClick: () => chain().insertSectionBreak('nextPage').run() },
+              { label: t('Continuous'), detail: t('Insert a section break and start the new section on the same page.'), onClick: () => chain().insertSectionBreak('continuous').run() },
+              { label: t('Even Page'), detail: t('Insert a section break and start the new section on the next even-numbered page.'), onClick: () => chain().insertSectionBreak('evenPage').run() },
+              { label: t('Odd Page'), detail: t('Insert a section break and start the new section on the next odd-numbered page.'), onClick: () => chain().insertSectionBreak('oddPage').run() },
             ]}
           />
           <MenuButton
             icon={ListOrdered}
-            label="Line Numbers"
+            label={t('Line Numbers')}
             showLabel
             items={[
-              { label: 'None', active: setup.lineNumbers === 'none', onClick: () => setSetup({ ...setup, lineNumbers: 'none' }) },
-              { label: 'Continuous', active: setup.lineNumbers === 'continuous', onClick: () => setSetup({ ...setup, lineNumbers: 'continuous' }) },
-              { label: 'Restart Each Page', active: setup.lineNumbers === 'restartPage', onClick: () => setSetup({ ...setup, lineNumbers: 'restartPage' }) },
-              { label: 'Suppress for Current Paragraph', checked: !!para.suppressLineNumbers, onClick: () => chain().setParagraphFormat({ suppressLineNumbers: !para.suppressLineNumbers || null }).run() },
+              { label: t('None'), active: setup.lineNumbers === 'none', onClick: () => setSetup({ ...setup, lineNumbers: 'none' }) },
+              { label: t('Continuous'), active: setup.lineNumbers === 'continuous', onClick: () => setSetup({ ...setup, lineNumbers: 'continuous' }) },
+              { label: t('Restart Each Page'), active: setup.lineNumbers === 'restartPage', onClick: () => setSetup({ ...setup, lineNumbers: 'restartPage' }) },
+              { label: t('Suppress for Current Paragraph'), checked: !!para.suppressLineNumbers, onClick: () => chain().setParagraphFormat({ suppressLineNumbers: !para.suppressLineNumbers || null }).run() },
             ]}
           />
           <MenuButton
             icon={WrapText}
-            label="Hyphenation"
+            label={t('Hyphenation')}
             showLabel
             items={[
-              { label: 'None', active: !app.design.hyphenation, onClick: () => app.setDesign({ ...app.design, hyphenation: false }) },
-              { label: 'Automatic', active: app.design.hyphenation, onClick: () => app.setDesign({ ...app.design, hyphenation: true }) },
-              { label: 'Manual', detail: 'Add optional hyphens to the long words of the selection or document', onClick: () => {
+              { label: t('None'), active: !app.design.hyphenation, onClick: () => app.setDesign({ ...app.design, hyphenation: false }) },
+              { label: t('Automatic'), active: app.design.hyphenation, onClick: () => app.setDesign({ ...app.design, hyphenation: true }) },
+              { label: t('Manual'), detail: t('Add optional hyphens to the long words of the selection or document'), onClick: () => {
                 const n = hyphenateManually(editor)
-                alert(n ? `Optional hyphens were added to ${n} word${n === 1 ? '' : 's'}. They show only where a word breaks at the end of a line.` : 'No words long enough to hyphenate were found.')
+                alert(n === 1 ? t('Optional hyphens were added to 1 word. They show only where a word breaks at the end of a line.') : n ? t('Optional hyphens were added to {n} words. They show only where a word breaks at the end of a line.', { n }) : t('No words long enough to hyphenate were found.'))
               } },
               'separator',
-              { label: 'Hyphenation Options…', onClick: () => app.openDialog('hyphenation') },
+              { label: t('Hyphenation Options…'), onClick: () => app.openDialog('hyphenation') },
             ]}
           />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Paragraph" priority={3} onLauncher={() => app.openDialog('paragraph')} launcherTitle="Paragraph Settings">
+      <RibbonGroup label={t('Paragraph')} priority={3} onLauncher={() => app.openDialog('paragraph')} launcherTitle={t('Paragraph Settings')}>
         <div className="col spinners">
-          <div className="spinner-heading">Indent</div>
-          <Spinner icon={IndentIncrease} label="Left" value={(para.indentLeft as number) ?? 0} step={0.1} min={-5} max={10} format={fmt} parse={parse} onChange={(v) => chain().setParagraphFormat({ indentLeft: v }).run()} />
-          <Spinner icon={IndentDecrease} label="Right" value={(para.indentRight as number) ?? 0} step={0.1} min={-5} max={10} format={fmt} parse={parse} onChange={(v) => chain().setParagraphFormat({ indentRight: v }).run()} />
+          <div className="spinner-heading">{t('Indent')}</div>
+          <Spinner icon={IndentIncrease} label={t('Left')} value={(para.indentLeft as number) ?? 0} step={0.1} min={-5} max={10} format={fmt} parse={parse} onChange={(v) => chain().setParagraphFormat({ indentLeft: v }).run()} />
+          <Spinner icon={IndentDecrease} label={t('Right')} value={(para.indentRight as number) ?? 0} step={0.1} min={-5} max={10} format={fmt} parse={parse} onChange={(v) => chain().setParagraphFormat({ indentRight: v }).run()} />
         </div>
         <div className="col spinners">
-          <div className="spinner-heading">Spacing</div>
-          <Spinner icon={ArrowUpToLine} label="Before" value={(para.spaceBefore as number) ?? 0} step={6} max={1584} format={pt} parse={parsePt} onChange={(v) => chain().setParagraphFormat({ spaceBefore: v }).run()} />
-          <Spinner icon={ArrowDownToLine} label="After" value={(para.spaceAfter as number) ?? 8} step={6} max={1584} format={pt} parse={parsePt} onChange={(v) => chain().setParagraphFormat({ spaceAfter: v }).run()} />
+          <div className="spinner-heading">{t('Spacing')}</div>
+          <Spinner icon={ArrowUpToLine} label={t('Before')} value={(para.spaceBefore as number) ?? 0} step={6} max={1584} format={pt} parse={parsePt} onChange={(v) => chain().setParagraphFormat({ spaceBefore: v }).run()} />
+          <Spinner icon={ArrowDownToLine} label={t('After')} value={(para.spaceAfter as number) ?? 8} step={6} max={1584} format={pt} parse={parsePt} onChange={(v) => chain().setParagraphFormat({ spaceAfter: v }).run()} />
         </div>
       </RibbonGroup>
       <ArrangeGroup editor={editor} app={app} />

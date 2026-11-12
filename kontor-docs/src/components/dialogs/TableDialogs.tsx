@@ -6,6 +6,7 @@ import { evaluateFormula, type BorderPen } from '../../editor/TableExtras'
 import { formatLength, parseLength, PX_PER_IN, type Unit } from '../../units'
 import type { AppApi } from '../tabs/types'
 import type { PageBorder } from '../../pageSetup'
+import { t } from '../../i18n'
 
 /** Table Properties: Table, Row, Cell and Alt Text tabs. */
 export function TablePropertiesDialog({ editor, unit, onClose }: { editor: Editor; unit: Unit; onClose: () => void }) {
@@ -42,20 +43,20 @@ export function TablePropertiesDialog({ editor, unit, onClose }: { editor: Edito
     onClose()
   }
   return (
-    <Modal title="Table Properties" onClose={onClose} width={440} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Table Properties')} onClose={onClose} width={440} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <DialogTabs
         tabs={[
-          { id: 'table', label: 'Table' },
-          { id: 'row', label: 'Row' },
-          { id: 'cell', label: 'Cell' },
-          { id: 'alt', label: 'Alt Text' },
+          { id: 'table', label: t('Table') },
+          { id: 'row', label: t('Row') },
+          { id: 'cell', label: t('Cell') },
+          { id: 'alt', label: t('Alt Text') },
         ]}
         active={tab}
         onChange={setTab}
       />
       {tab === 'table' && (
         <fieldset className="dlg-fieldset">
-          <legend>Alignment</legend>
+          <legend>{t('Alignment')}</legend>
           <div className="dlg-inline">
             {(['left', 'center', 'right'] as const).map((a) => (
               <label key={a}>
@@ -67,21 +68,21 @@ export function TablePropertiesDialog({ editor, unit, onClose }: { editor: Edito
       )}
       {tab === 'row' && (
         <fieldset className="dlg-fieldset">
-          <legend>Size</legend>
+          <legend>{t('Size')}</legend>
           <label className="dlg-inline">
-            Specify height: <input placeholder="Auto" value={height} onChange={(e) => setHeight(e.target.value)} />
+            {t('Specify height:')}{' '}<input placeholder={t('Auto')} value={height} onChange={(e) => setHeight(e.target.value)} />
           </label>
-          <label><input type="checkbox" checked={!cantSplit} onChange={(e) => setCantSplit(!e.target.checked)} /> Allow row to break across pages</label>
-          <label><input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /> Repeat as header row at the top of each page</label>
+          <label><input type="checkbox" checked={!cantSplit} onChange={(e) => setCantSplit(!e.target.checked)} /> {t('Allow row to break across pages')}</label>
+          <label><input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /> {t('Repeat as header row at the top of each page')}</label>
         </fieldset>
       )}
       {tab === 'cell' && (
         <fieldset className="dlg-fieldset">
-          <legend>Vertical alignment</legend>
+          <legend>{t('Vertical alignment')}</legend>
           <div className="dlg-inline">
             {(['top', 'middle', 'bottom'] as const).map((a) => (
               <label key={a}>
-                <input type="radio" checked={vAlign === a} onChange={() => setVAlign(a)} /> {a === 'middle' ? 'Center' : a[0].toUpperCase() + a.slice(1)}
+                <input type="radio" checked={vAlign === a} onChange={() => setVAlign(a)} /> {a === 'middle' ? t('Center') : a[0].toUpperCase() + a.slice(1)}
               </label>
             ))}
           </div>
@@ -89,8 +90,7 @@ export function TablePropertiesDialog({ editor, unit, onClose }: { editor: Edito
       )}
       {tab === 'alt' && (
         <label className="dlg-stack">
-          Title:
-          <input value={title} onChange={(e) => setTitle(e.target.value)} />
+          {t('Title:')}<input value={title} onChange={(e) => setTitle(e.target.value)} />
         </label>
       )}
     </Modal>
@@ -128,12 +128,12 @@ export function BordersShadingDialog({ editor, app, onClose }: { editor: Editor;
     onClose()
   }
   return (
-    <Modal title="Borders and Shading" onClose={onClose} width={480} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Borders and Shading')} onClose={onClose} width={480} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <DialogTabs
         tabs={[
-          { id: 'borders', label: 'Borders' },
-          { id: 'page', label: 'Page Border' },
-          { id: 'shading', label: 'Shading' },
+          { id: 'borders', label: t('Borders') },
+          { id: 'page', label: t('Page Border') },
+          { id: 'shading', label: t('Shading') },
         ]}
         active={tab}
         onChange={setTab}
@@ -143,76 +143,69 @@ export function BordersShadingDialog({ editor, app, onClose }: { editor: Editor;
           <div className="dlg-stack">
             {(['none', 'box', 'all', 'custom'] as const).map((s) => (
               <label key={s}>
-                <input type="radio" checked={setting === s} onChange={() => setSetting(s)} /> {s === 'all' ? (inTable ? 'All' : 'Shadow') : s[0].toUpperCase() + s.slice(1)}
+                <input type="radio" checked={setting === s} onChange={() => setSetting(s)} /> {s === 'all' ? (inTable ? t('All') : t('Shadow')) : s[0].toUpperCase() + s.slice(1)}
               </label>
             ))}
           </div>
           <div className="dlg-stack">
             <label className="dlg-inline">
-              Style:
-              <select value={pen.style} onChange={(e) => setPen({ ...pen, style: e.target.value as BorderPen['style'] })}>
-                <option value="solid">Single</option>
-                <option value="dashed">Dashed</option>
-                <option value="dotted">Dotted</option>
-                <option value="double">Double</option>
+              {t('Style:')}<select value={pen.style} onChange={(e) => setPen({ ...pen, style: e.target.value as BorderPen['style'] })}>
+                <option value="solid">{t('Single')}</option>
+                <option value="dashed">{t('Dashed')}</option>
+                <option value="dotted">{t('Dotted')}</option>
+                <option value="double">{t('Double')}</option>
               </select>
             </label>
             <label className="dlg-inline">
-              Color: <input type="color" value={pen.color} onChange={(e) => setPen({ ...pen, color: e.target.value.toUpperCase() })} />
+              {t('Color:')}{' '}<input type="color" value={pen.color} onChange={(e) => setPen({ ...pen, color: e.target.value.toUpperCase() })} />
             </label>
             <label className="dlg-inline">
-              Width:
-              <select value={pen.width} onChange={(e) => setPen({ ...pen, width: Number(e.target.value) })}>
+              {t('Width:')}<select value={pen.width} onChange={(e) => setPen({ ...pen, width: Number(e.target.value) })}>
                 {[0.25, 0.5, 0.75, 1, 1.5, 2.25, 3, 4.5, 6].map((w) => (
                   <option key={w} value={w}>
-                    {w} pt
-                  </option>
+                    {w} {t('pt')}</option>
                 ))}
               </select>
             </label>
           </div>
           <div className="border-preview">
-            <span className="dlg-hint">Click to apply borders</span>
+            <span className="dlg-hint">{t('Click to apply borders')}</span>
             <div className="border-box" style={{ borderTop: sides.includes('t') || setting === 'box' || setting === 'all' ? `2px ${pen.style} ${pen.color}` : '1px dashed #ccc', borderBottom: sides.includes('b') || setting === 'box' || setting === 'all' ? `2px ${pen.style} ${pen.color}` : '1px dashed #ccc', borderLeft: sides.includes('l') || setting === 'box' || setting === 'all' ? `2px ${pen.style} ${pen.color}` : '1px dashed #ccc', borderRight: sides.includes('r') || setting === 'box' || setting === 'all' ? `2px ${pen.style} ${pen.color}` : '1px dashed #ccc' }}>
               {(['t', 'b', 'l', 'r'] as const).map((s) => (
-                <button key={s} type="button" className={cls('border-side', `bs-${s}`, sides.includes(s) && 'is-active')} aria-label={`Toggle ${s === 't' ? 'top' : s === 'b' ? 'bottom' : s === 'l' ? 'left' : 'right'} border`} onClick={() => toggle(s)} />
+                <button key={s} type="button" className={cls('border-side', `bs-${s}`, sides.includes(s) && 'is-active')} aria-label={s === 't' ? t('Toggle top border') : s === 'b' ? t('Toggle bottom border') : s === 'l' ? t('Toggle left border') : t('Toggle right border')} onClick={() => toggle(s)} />
               ))}
             </div>
-            <span className="dlg-hint">Apply to: {inTable ? 'Cell' : 'Paragraph'}</span>
+            <span className="dlg-hint">{t('Apply to:')}{' '}{inTable ? t('Cell') : t('Paragraph')}</span>
           </div>
         </div>
       )}
       {tab === 'page' && (
         <div className="dlg-stack">
           <label className="dlg-inline">
-            Setting:
-            <select value={page ? page.style : 'none'} onChange={(e) => setPage(e.target.value === 'none' ? null : { style: e.target.value as PageBorder['style'], color: page?.color ?? '#000000', widthPt: page?.widthPt ?? 0.5, offsetPt: page?.offsetPt ?? 24 })}>
-              <option value="none">None</option>
-              <option value="single">Box – Single</option>
-              <option value="double">Box – Double</option>
-              <option value="thick">Box – Thick</option>
-              <option value="dotted">Box – Dotted</option>
-              <option value="dashed">Box – Dashed</option>
+            {t('Setting:')}<select value={page ? page.style : 'none'} onChange={(e) => setPage(e.target.value === 'none' ? null : { style: e.target.value as PageBorder['style'], color: page?.color ?? '#000000', widthPt: page?.widthPt ?? 0.5, offsetPt: page?.offsetPt ?? 24 })}>
+              <option value="none">{t('None')}</option>
+              <option value="single">{t('Box – Single')}</option>
+              <option value="double">{t('Box – Double')}</option>
+              <option value="thick">{t('Box – Thick')}</option>
+              <option value="dotted">{t('Box – Dotted')}</option>
+              <option value="dashed">{t('Box – Dashed')}</option>
             </select>
           </label>
           {page && (
             <>
               <label className="dlg-inline">
-                Color: <input type="color" value={page.color} onChange={(e) => setPage({ ...page, color: e.target.value.toUpperCase() })} />
+                {t('Color:')}{' '}<input type="color" value={page.color} onChange={(e) => setPage({ ...page, color: e.target.value.toUpperCase() })} />
               </label>
               <label className="dlg-inline">
-                Width:
-                <select value={page.widthPt} onChange={(e) => setPage({ ...page, widthPt: Number(e.target.value) })}>
+                {t('Width:')}<select value={page.widthPt} onChange={(e) => setPage({ ...page, widthPt: Number(e.target.value) })}>
                   {[0.25, 0.5, 0.75, 1, 1.5, 2.25, 3, 4.5, 6].map((w) => (
                     <option key={w} value={w}>
-                      {w} pt
-                    </option>
+                      {w} {t('pt')}</option>
                   ))}
                 </select>
               </label>
               <label className="dlg-inline">
-                Distance from page edge: <input type="number" min={0} max={31} value={page.offsetPt} onChange={(e) => setPage({ ...page, offsetPt: Number(e.target.value) })} /> pt
-              </label>
+                {t('Distance from page edge:')}{' '}<input type="number" min={0} max={31} value={page.offsetPt} onChange={(e) => setPage({ ...page, offsetPt: Number(e.target.value) })} /> {t('pt')}</label>
             </>
           )}
         </div>
@@ -220,13 +213,11 @@ export function BordersShadingDialog({ editor, app, onClose }: { editor: Editor;
       {tab === 'shading' && (
         <div className="dlg-stack">
           <label className="dlg-inline">
-            Fill:
-            <input type="color" value={fill || '#FFFFFF'} onChange={(e) => setFill(e.target.value.toUpperCase())} />
+            {t('Fill:')}<input type="color" value={fill || '#FFFFFF'} onChange={(e) => setFill(e.target.value.toUpperCase())} />
             <button type="button" className="btn" onClick={() => setFill('')}>
-              No Color
-            </button>
+              {t('No Color')}</button>
           </label>
-          <span className="dlg-hint">Apply to: {inTable ? 'Cell' : 'Paragraph'}</span>
+          <span className="dlg-hint">{t('Apply to:')}{' '}{inTable ? t('Cell') : t('Paragraph')}</span>
         </div>
       )}
     </Modal>
@@ -254,31 +245,30 @@ export function FormulaDialog({ editor, onClose }: { editor: Editor; onClose: ()
     onClose()
   }
   return (
-    <Modal title="Formula" onClose={onClose} width={380} footer={<OkCancel onOk={insert} onCancel={onClose} />}>
+    <Modal title={t('Formula')} onClose={onClose} width={380} footer={<OkCancel onOk={insert} onCancel={onClose} />}>
       <div className="dlg-stack">
         <label className="dlg-stack">
-          Formula:
-          <input autoFocus value={formula} onChange={(e) => setFormula(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && insert()} />
+          {t('Formula:')}<input autoFocus value={formula} onChange={(e) => setFormula(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && insert()} />
         </label>
         <div className="dlg-inline">
-          <select aria-label="Number format" value={format} onChange={(e) => setFormat(e.target.value)}>
-            <option value="">Number format…</option>
+          <select aria-label={t('Number format')} value={format} onChange={(e) => setFormat(e.target.value)}>
+            <option value="">{t('Number format…')}</option>
             {NUMBER_FORMATS.map((f) => (
               <option key={f}>{f}</option>
             ))}
           </select>
           <select
-            aria-label="Paste function"
+            aria-label={t('Paste function')}
             value=""
             onChange={(e) => e.target.value && setFormula(`=${e.target.value}(ABOVE)`)}
           >
-            <option value="">Paste function…</option>
+            <option value="">{t('Paste function…')}</option>
             {['SUM', 'AVERAGE', 'COUNT', 'MAX', 'MIN', 'PRODUCT'].map((f) => (
               <option key={f}>{f}</option>
             ))}
           </select>
         </div>
-        <p className="dlg-hint">{result == null ? 'Use FUNCTION(ABOVE | BELOW | LEFT | RIGHT), for example =SUM(ABOVE).' : `Result: ${format ? formatNumber(result, format) : Math.round(result * 100) / 100}`}</p>
+        <p className="dlg-hint">{result == null ? t('Use FUNCTION(ABOVE | BELOW | LEFT | RIGHT), for example =SUM(ABOVE).') : t('Result: {value}', { value: format ? formatNumber(result, format) : Math.round(result * 100) / 100 })}</p>
       </div>
     </Modal>
   )
@@ -287,14 +277,14 @@ export function FormulaDialog({ editor, onClose }: { editor: Editor; onClose: ()
 export function TextToTableDialog({ editor, onClose }: { editor: Editor; onClose: () => void }) {
   const [sep, setSep] = useState<'tab' | 'comma' | 'paragraph'>('tab')
   return (
-    <Modal title="Convert Text to Table" onClose={onClose} width={360} footer={<OkCancel onOk={() => (editor.chain().focus().convertTextToTable(sep).run(), onClose())} onCancel={onClose} />}>
+    <Modal title={t('Convert Text to Table')} onClose={onClose} width={360} footer={<OkCancel onOk={() => (editor.chain().focus().convertTextToTable(sep).run(), onClose())} onCancel={onClose} />}>
       <fieldset className="dlg-fieldset">
-        <legend>Separate text at</legend>
-        <label><input type="radio" checked={sep === 'tab'} onChange={() => setSep('tab')} /> Tabs</label>
-        <label><input type="radio" checked={sep === 'comma'} onChange={() => setSep('comma')} /> Commas</label>
-        <label><input type="radio" checked={sep === 'paragraph'} onChange={() => setSep('paragraph')} /> Paragraphs</label>
+        <legend>{t('Separate text at')}</legend>
+        <label><input type="radio" checked={sep === 'tab'} onChange={() => setSep('tab')} /> {t('Tabs')}</label>
+        <label><input type="radio" checked={sep === 'comma'} onChange={() => setSep('comma')} /> {t('Commas')}</label>
+        <label><input type="radio" checked={sep === 'paragraph'} onChange={() => setSep('paragraph')} /> {t('Paragraphs')}</label>
       </fieldset>
-      <p className="dlg-hint">Each selected paragraph becomes a row.</p>
+      <p className="dlg-hint">{t('Each selected paragraph becomes a row.')}</p>
     </Modal>
   )
 }
@@ -308,11 +298,11 @@ export function CellMarginsDialog({ editor, unit, onClose }: { editor: Editor; u
     onClose()
   }
   return (
-    <Modal title="Table Options" onClose={onClose} width={340} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Table Options')} onClose={onClose} width={340} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <fieldset className="dlg-fieldset">
-        <legend>Default cell margins</legend>
+        <legend>{t('Default cell margins')}</legend>
         <label className="dlg-inline">
-          Left and right: <input autoFocus value={value} onChange={(e) => setValue(e.target.value)} />
+          {t('Left and right:')}{' '}<input autoFocus value={value} onChange={(e) => setValue(e.target.value)} />
         </label>
       </fieldset>
     </Modal>

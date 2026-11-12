@@ -3,6 +3,7 @@ import type { Node as PMNode } from '@tiptap/pm/model'
 import { NodeRange } from '@tiptap/pm/model'
 import type { EditorState, Transaction } from '@tiptap/pm/state'
 import { liftTarget } from '@tiptap/pm/transform'
+import { t, tx } from '../i18n'
 
 // Sections and columns.
 //
@@ -15,10 +16,10 @@ export type SectionKind = 'nextPage' | 'continuous' | 'evenPage' | 'oddPage'
 export type ColumnsAttrs = { count: number; gap: number; line: boolean; preset: 'equal' | 'left' | 'right' }
 
 export const SECTION_LABEL: Record<SectionKind, string> = {
-  nextPage: 'Section Break (Next Page)',
-  continuous: 'Section Break (Continuous)',
-  evenPage: 'Section Break (Even Page)',
-  oddPage: 'Section Break (Odd Page)',
+  nextPage: tx('Section Break (Next Page)'),
+  continuous: tx('Section Break (Continuous)'),
+  evenPage: tx('Section Break (Even Page)'),
+  oddPage: tx('Section Break (Odd Page)'),
 }
 
 declare module '@tiptap/core' {
@@ -39,7 +40,7 @@ export const SectionBreak = Node.create({
 
   addAttributes() {
     return {
-      kind: { default: 'nextPage', parseHTML: (el) => el.getAttribute('data-kind') ?? 'nextPage', renderHTML: (a) => ({ 'data-kind': a.kind, 'data-label': SECTION_LABEL[a.kind as SectionKind] }) },
+      kind: { default: 'nextPage', parseHTML: (el) => el.getAttribute('data-kind') ?? 'nextPage', renderHTML: (a) => ({ 'data-kind': a.kind, 'data-label': t(SECTION_LABEL[a.kind as SectionKind]) }) },
     }
   },
 

@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRi
 import type { Editor } from '@tiptap/react'
 import { CheckItem, RibbonButton, RibbonGroup } from '../ui'
 import type { TabProps } from './types'
+import { t } from '../../i18n'
 
 /** Outline level of the block at the cursor: 1–6 for headings, 0 for body text. */
 const levelAt = (editor: Editor) => (editor.isActive('heading') ? (editor.getAttributes('heading').level as number) : 0)
@@ -38,38 +39,37 @@ export function OutlineTab({ editor, app }: TabProps) {
   const o = app.outline
   return (
     <>
-      <RibbonGroup label="Outline Tools" priority={4}>
+      <RibbonGroup label={t('Outline Tools')} priority={4}>
         <div className="col">
           <div className="row">
-            <RibbonButton icon={ChevronsLeft} label="Promote to Heading 1" onClick={() => setLevel(editor, 1)} />
-            <RibbonButton icon={ChevronLeft} label="Promote" disabled={level === 1} onClick={() => setLevel(editor, level === 0 ? 6 : level - 1)} />
-            <span className="outline-level-box">{level ? `Level ${level}` : 'Body Text'}</span>
-            <RibbonButton icon={ChevronRight} label="Demote" disabled={level === 0} onClick={() => setLevel(editor, level >= 6 ? 0 : level + 1)} />
-            <RibbonButton icon={ChevronsRight} label="Demote to Body Text" onClick={() => setLevel(editor, 0)} />
+            <RibbonButton icon={ChevronsLeft} label={t('Promote to Heading 1')} onClick={() => setLevel(editor, 1)} />
+            <RibbonButton icon={ChevronLeft} label={t('Promote')} disabled={level === 1} onClick={() => setLevel(editor, level === 0 ? 6 : level - 1)} />
+            <span className="outline-level-box">{level ? t('Level {n}', { n: level }) : t('Body Text')}</span>
+            <RibbonButton icon={ChevronRight} label={t('Demote')} disabled={level === 0} onClick={() => setLevel(editor, level >= 6 ? 0 : level + 1)} />
+            <RibbonButton icon={ChevronsRight} label={t('Demote to Body Text')} onClick={() => setLevel(editor, 0)} />
           </div>
           <div className="row">
-            <RibbonButton icon={ArrowUp} label="Move Up" onClick={() => moveBlock(editor, -1)} />
-            <RibbonButton icon={ArrowDown} label="Move Down" onClick={() => moveBlock(editor, 1)} />
+            <RibbonButton icon={ArrowUp} label={t('Move Up')} onClick={() => moveBlock(editor, -1)} />
+            <RibbonButton icon={ArrowDown} label={t('Move Down')} onClick={() => moveBlock(editor, 1)} />
           </div>
         </div>
         <div className="col checks">
           <label className="check-item">
-            Show Level:
-            <select value={o.level} onChange={(e) => app.setOutline({ ...o, level: Number(e.target.value) })}>
-              <option value={0}>All Levels</option>
+            {t('Show Level:')}<select value={o.level} onChange={(e) => app.setOutline({ ...o, level: Number(e.target.value) })}>
+              <option value={0}>{t('All Levels')}</option>
               {[1, 2, 3, 4, 5, 6].map((l) => (
                 <option key={l} value={l}>
-                  Level {l}
+                  {t('Level')}{' '}{l}
                 </option>
               ))}
             </select>
           </label>
-          <CheckItem label="Show Text Formatting" checked={o.showFormatting} onChange={(v) => app.setOutline({ ...o, showFormatting: v })} />
-          <CheckItem label="Show First Line Only" checked={o.firstLineOnly} onChange={(v) => app.setOutline({ ...o, firstLineOnly: v })} />
+          <CheckItem label={t('Show Text Formatting')} checked={o.showFormatting} onChange={(v) => app.setOutline({ ...o, showFormatting: v })} />
+          <CheckItem label={t('Show First Line Only')} checked={o.firstLineOnly} onChange={(v) => app.setOutline({ ...o, firstLineOnly: v })} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Close" priority={5}>
-        <RibbonButton large icon={X} label="Close Outline View" onClick={() => app.setViewMode('print')} />
+      <RibbonGroup label={t('Close')} priority={5}>
+        <RibbonButton large icon={X} label={t('Close Outline View')} onClick={() => app.setViewMode('print')} />
       </RibbonGroup>
     </>
   )

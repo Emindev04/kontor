@@ -43,18 +43,32 @@ export function lineXml(line: Line, colors: ThemeColors, round = false) {
   if (!line) return '<a:ln><a:noFill/></a:ln>'
   const head = line.head && line.head !== 'none' ? `<a:headEnd type="${line.head}" w="med" len="med"/>` : ''
   const tail = line.tail && line.tail !== 'none' ? `<a:tailEnd type="${line.tail}" w="med" len="med"/>` : ''
-  return `<a:ln w="${Math.round(line.width * EMU_PER_PT)}"${round ? ' cap="rnd"' : ''}><a:solidFill>${colorXml(line.color, colors, line.alpha)}</a:solidFill><a:prstDash val="${line.dash}"/><a:round/>${head}${tail}</a:ln>`
+  const cmpd = line.compound && line.compound !== 'sng' ? ` cmpd="${line.compound}"` : ''
+  return `<a:ln w="${Math.round(line.width * EMU_PER_PT)}"${round ? ' cap="rnd"' : ''}${cmpd}><a:solidFill>${colorXml(line.color, colors, line.alpha)}</a:solidFill><a:prstDash val="${line.dash}"/><a:round/>${head}${tail}</a:ln>`
 }
 
 export function effectsXml(fx: Effects | undefined, colors: ThemeColors) {
   if (!fx) return ''
   let out = ''
   if (fx.glow) out += `<a:glow rad="${Math.round(fx.glow.size * EMU_PER_PT)}">${colorXml(fx.glow.color, colors, fx.glow.alpha)}</a:glow>`
+  const ins = fx.innerShadow
+  if (ins) out += `<a:innerShdw blurRad="${Math.round(ins.blur * EMU_PER_PT)}" dist="${Math.round(ins.dist * EMU_PER_PT)}" dir="${Math.round(ins.angle * 60000)}">${colorXml(ins.color, colors, ins.alpha)}</a:innerShdw>`
   if (fx.shadow)
     out += `<a:outerShdw blurRad="${Math.round(fx.shadow.blur * EMU_PER_PT)}" dist="${Math.round(fx.shadow.dist * EMU_PER_PT)}" dir="${Math.round(fx.shadow.angle * 60000)}" algn="ctr" rotWithShape="0">${colorXml(fx.shadow.color, colors, fx.shadow.alpha)}</a:outerShdw>`
   if (fx.reflection) out += '<a:reflection blurRad="6350" stA="50000" endA="300" endPos="55000" dist="0" dir="5400000" sy="-100000" algn="bl" rotWithShape="0"/>'
   if (fx.softEdge) out += `<a:softEdge rad="${Math.round(fx.softEdge * EMU_PER_PT)}"/>`
-  return out ? `<a:effectLst>${out}</a:effectLst>` : ''
+  return (out ? `<a:effectLst>${out}</a:effectLst>` : '') + threeDXml(fx)
+}
+
+/** 3-D rotation (scene3d) and bevel (sp3d), written after the effect list. */
+export function threeDXml(fx: Effects | undefined) {
+  if (!fx?.bevel && !fx?.rot3d) return ''
+  const r = fx.rot3d
+  const deg = (v: number) => Math.round((((v % 360) + 360) % 360) * 60000)
+  const camera = r ? `<a:camera prst="${r.perspective ? 'perspectiveFront' : 'orthographicFront'}"><a:rot lat="${deg(r.x)}" lon="${deg(r.y)}" rev="0"/></a:camera>` : '<a:camera prst="orthographicFront"/>'
+  const scene = `<a:scene3d>${camera}<a:lightRig rig="threePt" dir="t"/></a:scene3d>`
+  const sp3d = fx.bevel ? `<a:sp3d><a:bevelT w="76200" h="76200" prst="${escXml(fx.bevel)}"/></a:sp3d>` : ''
+  return scene + sp3d
 }
 
 export function xfrmXml(el: { x: number; y: number; w: number; h: number; rot: number; flipH?: boolean; flipV?: boolean }) {
@@ -85,6 +99,8 @@ export type TextExportCtx = TextCtx & {
   linkRel: (href: string) => string
   /** Proofing language written on every run. */
   lang?: string
+  /** Text Effects > Reflection on the whole text body. */
+  reflection?: boolean
 }
 
 function runProps(marks: Mark[] | undefined, ctx: TextExportCtx, size: number, tag: 'a:rPr' | 'a:endParaRPr' = 'a:rPr') {
@@ -96,18 +112,26 @@ function runProps(marks: Mark[] | undefined, ctx: TextExportCtx, size: number, t
   let attrs = ` lang="${escXml(ctx.lang || 'en-US')}" sz="${sz}"`
   if (has('bold') || (ctx.bold && !has('bold'))) attrs += ' b="1"'
   if (has('italic')) attrs += ' i="1"'
-  if (has('underline')) attrs += ' u="sng"'
-  if (has('strike')) attrs += ' strike="sngStrike"'
-  if (has('superscript')) attrs += ' baseline="30000"'
-  if (has('subscript')) attrs += ' baseline="-25000"'
+  if (ts.uStyle && ts.uStyle !== 'none') attrs += ` u="${escXml(ts.uStyle)}"`
+  else if (has('underline')) attrs += ' u="sng"'
+  if (ts.strike2) attrs += ' strike="dblStrike"'
+  else if (has('strike')) attrs += ' strike="sngStrike"'
+  if (ts.baseline) attrs += ` baseline="${Math.round(ts.baseline * 1000)}"`
+  else if (has('superscript')) attrs += ' baseline="30000"'
+  else if (has('subscript')) attrs += ' baseline="-25000"'
+  if (ts.equalize) attrs += ' normalizeH="1"'
   if (ts.letterSpacing) attrs += ` spc="${Math.round(ts.letterSpacing * 100)}"`
   const caps = ts.caps ?? (ctx.caps ? 'all' : null)
   if (caps) attrs += ` cap="${caps}"`
   attrs += ' dirty="0"'
   let inner = ''
   inner += `<a:solidFill>${colorXml(ts.color ?? ctx.color, ctx.colors)}</a:solidFill>`
-  if (ts.shadow) inner += `<a:effectLst><a:outerShdw blurRad="38100" dist="38100" dir="2700000" algn="tl"><a:srgbClr val="000000"><a:alpha val="43137"/></a:srgbClr></a:outerShdw></a:effectLst>`
+  const glow = ts.glow ? `<a:glow rad="${Math.round((ts.glowSize ?? 5) * 12700)}">${colorXml(ts.glow, ctx.colors, 0.6)}</a:glow>` : ''
+  const shadow = ts.shadow ? `<a:outerShdw blurRad="38100" dist="38100" dir="2700000" algn="tl"><a:srgbClr val="000000"><a:alpha val="43137"/></a:srgbClr></a:outerShdw>` : ''
+  const reflection = ctx.reflection ? '<a:reflection blurRad="6350" stA="55000" endA="300" endPos="45500" dir="5400000" sy="-100000" algn="bl" rotWithShape="0"/>' : ''
+  if (glow || shadow || reflection) inner += `<a:effectLst>${glow}${shadow}${reflection}</a:effectLst>`
   if (hl?.attrs.color) inner += `<a:highlight>${colorXml(hl.attrs.color, ctx.colors)}</a:highlight>`
+  if (ts.uColor) inner += `<a:uFill><a:solidFill>${colorXml(ts.uColor, ctx.colors)}</a:solidFill></a:uFill>`
   const font = ts.fontFamily
   const face = !font ? (ctx.defaultFont === 'major' ? '+mj' : '+mn') : font === ctx.majorFont ? '+mj' : font === ctx.minorFont ? '+mn' : null
   if (face) inner += `<a:latin typeface="${face}-lt"/><a:ea typeface="${face}-ea"/><a:cs typeface="${face}-cs"/>`
@@ -144,7 +168,7 @@ export function paragraphXml(p: Para, ctx: TextExportCtx, marker: string | null)
   const lvl = m.level ? ` lvl="${m.level}"` : ''
   const ppr =
     `<a:pPr marL="${emu(m.marL)}" indent="${emu(m.indent)}"${lvl} algn="${algn}">` +
-    `<a:lnSpc><a:spcPct val="${Math.round((m.lineHeight / 1.2) * 100000)}"/></a:lnSpc>` +
+    (m.lineExact ? `<a:lnSpc><a:spcPts val="${Math.round(m.lineExact * 100)}"/></a:lnSpc>` : `<a:lnSpc><a:spcPct val="${Math.round((m.lineHeight / 1.2) * 100000)}"/></a:lnSpc>`) +
     `<a:spcBef><a:spcPts val="${Math.round(m.spaceBefore * 100)}"/></a:spcBef>` +
     `<a:spcAft><a:spcPts val="${Math.round(m.spaceAfter * 100)}"/></a:spcAft>` +
     bulletXml(marker, p.attrs, ctx.colors) +
@@ -160,8 +184,10 @@ export function txBodyXml(text: TextBody, ctx: TextExportCtx) {
   const vert = text.vert && text.vert !== 'horz' ? ` vert="${text.vert === 'stacked' ? 'wordArtVert' : text.vert}"` : ''
   const cols = text.columns && text.columns > 1 ? ` numCol="${text.columns}" spcCol="${emu(text.colSpacing ?? 24)}"` : ''
   const fit = text.autofit === 'shrink' ? `<a:normAutofit${text.fontScale && text.fontScale < 1 ? ` fontScale="${Math.round(text.fontScale * 100000)}"` : ''}${text.lnSpcReduction ? ` lnSpcReduction="${Math.round(text.lnSpcReduction * 100000)}"` : ''}/>` : text.autofit === 'resize' ? '<a:spAutoFit/>' : '<a:noAutofit/>'
-  const body = `<a:bodyPr wrap="${text.wrap ? 'square' : 'none'}" lIns="${emu(l)}" tIns="${emu(t)}" rIns="${emu(r)}" bIns="${emu(b)}" anchor="${anchor}" rtlCol="0"${vert}${cols}>${fit}</a:bodyPr>`
-  const paras = text.doc.content.map((p) => paragraphXml(p, ctx, effectiveBullet(p.attrs, ctx))).join('')
+  const warp = text.warp ? `<a:prstTxWarp prst="${escXml(text.warp)}"><a:avLst/></a:prstTxWarp>` : ''
+  const body = `<a:bodyPr wrap="${text.wrap ? 'square' : 'none'}" lIns="${emu(l)}" tIns="${emu(t)}" rIns="${emu(r)}" bIns="${emu(b)}" anchor="${anchor}" rtlCol="0"${vert}${cols}>${warp}${fit}</a:bodyPr>`
+  const pctx = text.textReflection ? { ...ctx, reflection: true } : ctx
+  const paras = text.doc.content.map((p) => paragraphXml(p, pctx, effectiveBullet(p.attrs, pctx))).join('')
   return `<p:txBody>${body}<a:lstStyle/>${paras || '<a:p><a:endParaRPr lang="en-US" dirty="0"/></a:p>'}</p:txBody>`
 }
 

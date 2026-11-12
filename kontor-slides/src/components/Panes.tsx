@@ -12,6 +12,7 @@ import { getOptions } from '../io/options'
 import { ColorPalette } from './palettes'
 import { NumberField, Popup, cls, keepFocus, pickFile, usePopover } from './ui'
 import { useThemeColors } from './tabs/common'
+import { t, tx, formatDate } from '../i18n'
 
 const IN = 96
 
@@ -20,7 +21,7 @@ export function PaneShell({ title, onClose, children }: { title: string; onClose
     <aside className="task-pane" aria-label={title}>
       <div className="tp-title">
         <span>{title}</span>
-        <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
+        <button type="button" className="modal-close" aria-label={t('Close')} onClick={onClose}>
           <X size={16} />
         </button>
       </div>
@@ -72,7 +73,7 @@ function Slider({ value, onChange, label, max = 100 }: { value: number; onChange
 /** Fill editor shared by the shape and background panes. */
 function FillEditor({ fill, onChange, allowNone, onPicture }: { fill: Fill; onChange: (f: Fill) => void; allowNone: boolean; onPicture: () => void }) {
   const colors = useThemeColors()
-  const kinds: [Fill['type'], string][] = [...(allowNone ? [['none', 'No fill'] as [Fill['type'], string]] : []), ['solid', 'Solid fill'], ['gradient', 'Gradient fill'], ['picture', 'Picture or texture fill'], ['pattern', 'Pattern fill']]
+  const kinds: [Fill['type'], string][] = [...(allowNone ? [['none', t('No fill')] as [Fill['type'], string]] : []), ['solid', t('Solid fill')], ['gradient', t('Gradient fill')], ['picture', t('Picture or texture fill')], ['pattern', t('Pattern fill')]]
   const baseColor = fill.type === 'solid' ? fill.color : fill.type === 'gradient' ? fill.stops[0].color : fill.type === 'pattern' ? fill.fg : 'theme:accent1'
   return (
     <>
@@ -95,44 +96,44 @@ function FillEditor({ fill, onChange, allowNone, onPicture }: { fill: Fill; onCh
       {fill.type === 'solid' && (
         <>
           <div className="tp-row">
-            <span>Color</span>
-            <ColorPickerButton label="Fill color" value={fill.color} onChange={(c) => onChange({ ...fill, color: c })} />
+            <span>{t('Color')}</span>
+            <ColorPickerButton label={t('Fill color')} value={fill.color} onChange={(c) => onChange({ ...fill, color: c })} />
           </div>
-          <Slider label="Transparency" value={(1 - (fill.alpha ?? 1)) * 100} onChange={(v) => onChange({ ...fill, alpha: 1 - v / 100 })} />
+          <Slider label={t('Transparency')} value={(1 - (fill.alpha ?? 1)) * 100} onChange={(v) => onChange({ ...fill, alpha: 1 - v / 100 })} />
         </>
       )}
       {fill.type === 'gradient' && (
         <>
           <div className="tp-row">
-            <span>Type</span>
+            <span>{t('Type')}</span>
             <select value={fill.kind} onChange={(e) => onChange({ ...fill, kind: e.target.value as 'linear' | 'radial' })}>
-              <option value="linear">Linear</option>
-              <option value="radial">Radial</option>
+              <option value="linear">{t('Linear')}</option>
+              <option value="radial">{t('Radial')}</option>
             </select>
           </div>
           {fill.kind === 'linear' && (
             <div className="tp-row">
-              <span>Angle</span>
-              <NumberField label="Gradient angle" value={fill.angle} step={15} min={0} max={359.9} suffix="°" onChange={(v) => onChange({ ...fill, angle: v })} />
+              <span>{t('Angle')}</span>
+              <NumberField label={t('Gradient angle')} value={fill.angle} step={15} min={0} max={359.9} suffix="°" onChange={(v) => onChange({ ...fill, angle: v })} />
             </div>
           )}
           <div className="tp-row">
-            <span>Gradient stops</span>
+            <span>{t('Gradient stops')}</span>
             <span className="gradient-bar" style={{ background: fillToCss({ ...fill, kind: 'linear', angle: 0 }, colors) }} />
           </div>
           {fill.stops.map((stop, i) => (
             <div key={i} className="tp-row">
-              <span>Stop {i + 1}</span>
-              <ColorPickerButton label={`Stop ${i + 1} color`} value={stop.color} onChange={(c) => onChange({ ...fill, stops: fill.stops.map((s, j) => (j === i ? { ...s, color: c } : s)) })} />
-              <NumberField label={`Stop ${i + 1} position`} value={stop.pos * 100} step={5} min={0} max={100} suffix="%" width={64} onChange={(v) => onChange({ ...fill, stops: fill.stops.map((s, j) => (j === i ? { ...s, pos: v / 100 } : s)) })} />
+              <span>{t('Stop {n}', { n: i + 1 })}</span>
+              <ColorPickerButton label={t('Stop {n} color', { n: i + 1 })} value={stop.color} onChange={(c) => onChange({ ...fill, stops: fill.stops.map((s, j) => (j === i ? { ...s, color: c } : s)) })} />
+              <NumberField label={t('Stop {n} position', { n: i + 1 })} value={stop.pos * 100} step={5} min={0} max={100} suffix="%" width={64} onChange={(v) => onChange({ ...fill, stops: fill.stops.map((s, j) => (j === i ? { ...s, pos: v / 100 } : s)) })} />
             </div>
           ))}
           <div className="tp-row">
             <button type="button" className="btn btn-small" onClick={() => onChange({ ...fill, stops: [...fill.stops, { pos: 1, color: fill.stops[fill.stops.length - 1].color }].sort((a, b) => a.pos - b.pos) })}>
-              Add stop
+              {t('Add stop')}
             </button>
             <button type="button" className="btn btn-small" disabled={fill.stops.length <= 2} onClick={() => onChange({ ...fill, stops: fill.stops.slice(0, -1) })}>
-              Remove stop
+              {t('Remove stop')}
             </button>
           </div>
         </>
@@ -141,25 +142,25 @@ function FillEditor({ fill, onChange, allowNone, onPicture }: { fill: Fill; onCh
         <>
           <div className="tp-row">
             <button type="button" className="btn btn-small" onClick={onPicture}>
-              Insert…
+              {t('Insert…')}
             </button>
           </div>
           <label className="tp-check">
-            <input type="checkbox" checked={!!fill.tile} onChange={(e) => onChange({ ...fill, tile: e.target.checked })} /> Tile picture as texture
+            <input type="checkbox" checked={!!fill.tile} onChange={(e) => onChange({ ...fill, tile: e.target.checked })} /> {t('Tile picture as texture')}
           </label>
-          <Slider label="Transparency" value={(1 - (fill.alpha ?? 1)) * 100} onChange={(v) => onChange({ ...fill, alpha: 1 - v / 100 })} />
+          <Slider label={t('Transparency')} value={(1 - (fill.alpha ?? 1)) * 100} onChange={(v) => onChange({ ...fill, alpha: 1 - v / 100 })} />
         </>
       )}
       {fill.type === 'pattern' && (
         <>
-          <div className="pattern-grid" role="listbox" aria-label="Pattern">
+          <div className="pattern-grid" role="listbox" aria-label={t('Pattern')}>
             {PATTERNS.map((p) => (
               <button
                 key={p.id}
                 type="button"
                 role="option"
                 aria-selected={fill.preset === p.id}
-                title={p.label}
+                title={t(p.label)}
                 className={cls('pattern-swatch', fill.preset === p.id && 'is-active')}
                 style={{ background: `url("${patternTile(p.id, resolveColor(fill.fg, colors), resolveColor(fill.bg, colors), 2)}") repeat` }}
                 onClick={() => onChange({ ...fill, preset: p.id })}
@@ -167,12 +168,12 @@ function FillEditor({ fill, onChange, allowNone, onPicture }: { fill: Fill; onCh
             ))}
           </div>
           <div className="tp-row">
-            <span>Foreground</span>
-            <ColorPickerButton label="Pattern foreground color" value={fill.fg} onChange={(c) => onChange({ ...fill, fg: c })} />
+            <span>{t('Foreground')}</span>
+            <ColorPickerButton label={t('Pattern foreground color')} value={fill.fg} onChange={(c) => onChange({ ...fill, fg: c })} />
           </div>
           <div className="tp-row">
-            <span>Background</span>
-            <ColorPickerButton label="Pattern background color" value={fill.bg} onChange={(c) => onChange({ ...fill, bg: c })} />
+            <span>{t('Background')}</span>
+            <ColorPickerButton label={t('Pattern background color')} value={fill.bg} onChange={(c) => onChange({ ...fill, bg: c })} />
           </div>
         </>
       )}
@@ -192,24 +193,24 @@ function LineEditor({ line, onChange }: { line: Line; onChange: (l: Line) => voi
   return (
     <>
       <label className="tp-radio">
-        <input type="radio" checked={!line} onChange={() => onChange(null)} /> No line
+        <input type="radio" checked={!line} onChange={() => onChange(null)} /> {t('No line')}
       </label>
       <label className="tp-radio">
-        <input type="radio" checked={!!line} onChange={() => onChange(l)} /> Solid line
+        <input type="radio" checked={!!line} onChange={() => onChange(l)} /> {t('Solid line')}
       </label>
       {line && (
         <>
           <div className="tp-row">
-            <span>Color</span>
-            <ColorPickerButton label="Line color" value={line.color} onChange={(c) => onChange({ ...line, color: c })} />
+            <span>{t('Color')}</span>
+            <ColorPickerButton label={t('Line color')} value={line.color} onChange={(c) => onChange({ ...line, color: c })} />
           </div>
-          <Slider label="Transparency" value={(1 - (line.alpha ?? 1)) * 100} onChange={(v) => onChange({ ...line, alpha: 1 - v / 100 })} />
+          <Slider label={t('Transparency')} value={(1 - (line.alpha ?? 1)) * 100} onChange={(v) => onChange({ ...line, alpha: 1 - v / 100 })} />
           <div className="tp-row">
-            <span>Width</span>
-            <NumberField label="Line width" value={line.width} step={0.25} min={0} max={1584} suffix=" pt" onChange={(v) => onChange({ ...line, width: v })} />
+            <span>{t('Width')}</span>
+            <NumberField label={t('Line width')} value={line.width} step={0.25} min={0} max={1584} suffix={t(' pt')} onChange={(v) => onChange({ ...line, width: v })} />
           </div>
           <div className="tp-row">
-            <span>Dash type</span>
+            <span>{t('Dash type')}</span>
             <select value={line.dash} onChange={(e) => onChange({ ...line, dash: e.target.value as NonNullable<Line>['dash'] })}>
               {['solid', 'sysDot', 'sysDash', 'dash', 'dashDot', 'lgDash', 'lgDashDot', 'lgDashDotDot'].map((d) => (
                 <option key={d} value={d}>
@@ -220,7 +221,7 @@ function LineEditor({ line, onChange }: { line: Line; onChange: (l: Line) => voi
           </div>
           {(['head', 'tail'] as const).map((end) => (
             <div key={end} className="tp-row">
-              <span>{end === 'head' ? 'Begin arrow' : 'End arrow'}</span>
+              <span>{end === 'head' ? t('Begin arrow') : t('End arrow')}</span>
               <select value={line[end] ?? 'none'} onChange={(e) => onChange({ ...line, [end]: e.target.value })}>
                 {['none', 'triangle', 'arrow', 'stealth', 'diamond', 'oval'].map((a) => (
                   <option key={a} value={a}>
@@ -241,8 +242,8 @@ export function FormatShapePane({ onClose }: { onClose: () => void }) {
   const el = sel[0]
   if (!el)
     return (
-      <PaneShell title="Format Shape" onClose={onClose}>
-        <p className="tp-hint">Select a shape, picture or text box to format it.</p>
+      <PaneShell title={t('Format Shape')} onClose={onClose}>
+        <p className="tp-hint">{t('Select a shape, picture or text box to format it.')}</p>
       </PaneShell>
     )
   const update = (fn: (e: SlideElement) => SlideElement) => A.updateSelected(fn)
@@ -252,9 +253,9 @@ export function FormatShapePane({ onClose }: { onClose: () => void }) {
   const setText = (patch: Partial<TextBody>) => update((e) => (e.type === 'shape' && e.text ? { ...e, text: { ...e.text, ...patch } } : e))
   const shadow = (el.type === 'shape' || el.type === 'image') ? el.effects?.shadow : null
   return (
-    <PaneShell title={image ? 'Format Picture' : 'Format Shape'} onClose={onClose}>
+    <PaneShell title={image ? t('Format Picture') : t('Format Shape')} onClose={onClose}>
       {shape && (
-        <Section title="Fill">
+        <Section title={t('Fill')}>
           <FillEditor fill={shape.fill} allowNone onChange={(f) => update((e) => (e.type === 'shape' ? { ...e, fill: f } : e))} onPicture={async () => {
             const f = await pickPictureFill()
             if (f) update((e) => (e.type === 'shape' ? { ...e, fill: f } : e))
@@ -262,31 +263,31 @@ export function FormatShapePane({ onClose }: { onClose: () => void }) {
         </Section>
       )}
       {(shape || image) && (
-        <Section title={image ? 'Border' : 'Line'}>
+        <Section title={image ? t('Border') : t('Line')}>
           <LineEditor line={(shape ?? image)!.line} onChange={(l) => update((e) => (e.type === 'shape' || e.type === 'image' ? ({ ...e, line: l } as SlideElement) : e))} />
         </Section>
       )}
       {(shape || image) && (
-        <Section title="Shadow" open={false}>
+        <Section title={t('Shadow')} open={false}>
           <label className="tp-check">
             <input
               type="checkbox"
               checked={!!shadow}
               onChange={(e) => update((x) => (x.type === 'shape' || x.type === 'image' ? ({ ...x, effects: { ...x.effects, shadow: e.target.checked ? { color: '#000000', alpha: 0.4, blur: 4, dist: 3, angle: 45 } : null } } as SlideElement) : x))}
             />
-            Shadow
+            {t('Shadow')}
           </label>
           {shadow && (
             <>
               <div className="tp-row">
-                <span>Color</span>
-                <ColorPickerButton label="Shadow color" value={shadow.color} onChange={(c) => update((x) => (x.type === 'shape' || x.type === 'image' ? ({ ...x, effects: { ...x.effects, shadow: { ...shadow, color: c } } } as SlideElement) : x))} />
+                <span>{t('Color')}</span>
+                <ColorPickerButton label={t('Shadow color')} value={shadow.color} onChange={(c) => update((x) => (x.type === 'shape' || x.type === 'image' ? ({ ...x, effects: { ...x.effects, shadow: { ...shadow, color: c } } } as SlideElement) : x))} />
               </div>
-              <Slider label="Transparency" value={(1 - shadow.alpha) * 100} onChange={(v) => update((x) => (x.type === 'shape' || x.type === 'image' ? ({ ...x, effects: { ...x.effects, shadow: { ...shadow, alpha: 1 - v / 100 } } } as SlideElement) : x))} />
+              <Slider label={t('Transparency')} value={(1 - shadow.alpha) * 100} onChange={(v) => update((x) => (x.type === 'shape' || x.type === 'image' ? ({ ...x, effects: { ...x.effects, shadow: { ...shadow, alpha: 1 - v / 100 } } } as SlideElement) : x))} />
               {(['blur', 'dist', 'angle'] as const).map((k) => (
                 <div key={k} className="tp-row">
-                  <span>{{ blur: 'Blur', dist: 'Distance', angle: 'Angle' }[k]}</span>
-                  <NumberField label={`Shadow ${k}`} value={shadow[k]} step={k === 'angle' ? 15 : 1} min={0} max={k === 'angle' ? 359 : 100} suffix={k === 'angle' ? '°' : ' pt'} onChange={(v) => update((x) => (x.type === 'shape' || x.type === 'image' ? ({ ...x, effects: { ...x.effects, shadow: { ...shadow, [k]: v } } } as SlideElement) : x))} />
+                  <span>{{ blur: t('Blur'), dist: t('Distance'), angle: t('Angle') }[k]}</span>
+                  <NumberField label={{ blur: t('Shadow blur'), dist: t('Shadow distance'), angle: t('Shadow angle') }[k]} value={shadow[k]} step={k === 'angle' ? 15 : 1} min={0} max={k === 'angle' ? 359 : 100} suffix={k === 'angle' ? '°' : t(' pt')} onChange={(v) => update((x) => (x.type === 'shape' || x.type === 'image' ? ({ ...x, effects: { ...x.effects, shadow: { ...shadow, [k]: v } } } as SlideElement) : x))} />
                 </div>
               ))}
             </>
@@ -294,21 +295,21 @@ export function FormatShapePane({ onClose }: { onClose: () => void }) {
         </Section>
       )}
       {image && (
-        <Section title="Picture Corrections" open={false}>
+        <Section title={t('Picture Corrections')} open={false}>
           {(['brightness', 'contrast', 'saturation'] as const).map((k) => (
             <div key={k} className="tp-row">
-              <span>{k[0].toUpperCase() + k.slice(1)}</span>
-              <NumberField label={k} value={(image.adjust?.[k] ?? 0) * 100} step={5} min={-100} max={100} suffix="%" onChange={(v) => update((x) => (x.type === 'image' ? { ...x, adjust: { ...x.adjust, [k]: v / 100 } } : x))} />
+              <span>{{ brightness: t('Brightness'), contrast: t('Contrast'), saturation: t('Saturation') }[k]}</span>
+              <NumberField label={{ brightness: t('Brightness'), contrast: t('Contrast'), saturation: t('Saturation') }[k]} value={(image.adjust?.[k] ?? 0) * 100} step={5} min={-100} max={100} suffix="%" onChange={(v) => update((x) => (x.type === 'image' ? { ...x, adjust: { ...x.adjust, [k]: v / 100 } } : x))} />
             </div>
           ))}
-          <Slider label="Transparency" value={(image.adjust?.transparency ?? 0) * 100} onChange={(v) => update((x) => (x.type === 'image' ? { ...x, adjust: { ...x.adjust, transparency: v / 100 } } : x))} />
+          <Slider label={t('Transparency')} value={(image.adjust?.transparency ?? 0) * 100} onChange={(v) => update((x) => (x.type === 'image' ? { ...x, adjust: { ...x.adjust, transparency: v / 100 } } : x))} />
         </Section>
       )}
-      <Section title="Size & Position">
+      <Section title={t('Size & Position')}>
         {(
           [
-            ['h', 'Height'],
-            ['w', 'Width'],
+            ['h', t('Height')],
+            ['w', t('Width')],
           ] as const
         ).map(([k, label]) => (
           <div key={k} className="tp-row">
@@ -317,16 +318,16 @@ export function FormatShapePane({ onClose }: { onClose: () => void }) {
           </div>
         ))}
         <label className="tp-check">
-          <input type="checkbox" checked={!!el.lockAspect} onChange={(e) => update((x) => ({ ...x, lockAspect: e.target.checked || undefined }))} /> Lock aspect ratio
+          <input type="checkbox" checked={!!el.lockAspect} onChange={(e) => update((x) => ({ ...x, lockAspect: e.target.checked || undefined }))} /> {t('Lock aspect ratio')}
         </label>
         <div className="tp-row">
-          <span>Rotation</span>
-          <NumberField label="Rotation" value={el.rot} step={1} min={-3600} max={3600} suffix="°" onChange={(v) => update((e) => ({ ...e, rot: ((v % 360) + 360) % 360 }))} />
+          <span>{t('Rotation')}</span>
+          <NumberField label={t('Rotation')} value={el.rot} step={1} min={-3600} max={3600} suffix="°" onChange={(v) => update((e) => ({ ...e, rot: ((v % 360) + 360) % 360 }))} />
         </div>
         {(
           [
-            ['x', 'Horizontal position'],
-            ['y', 'Vertical position'],
+            ['x', t('Horizontal position')],
+            ['y', t('Vertical position')],
           ] as const
         ).map(([k, label]) => (
           <div key={k} className="tp-row">
@@ -336,51 +337,51 @@ export function FormatShapePane({ onClose }: { onClose: () => void }) {
         ))}
       </Section>
       {text && (
-        <Section title="Text Box">
+        <Section title={t('Text Box')}>
           <div className="tp-row">
-            <span>Vertical alignment</span>
+            <span>{t('Vertical alignment')}</span>
             <select value={text.anchor} onChange={(e) => setText({ anchor: e.target.value as TextBody['anchor'] })}>
-              <option value="top">Top</option>
-              <option value="middle">Middle</option>
-              <option value="bottom">Bottom</option>
+              <option value="top">{t('Top')}</option>
+              <option value="middle">{t('Middle')}</option>
+              <option value="bottom">{t('Bottom')}</option>
             </select>
           </div>
           <div className="tp-row">
-            <span>Text direction</span>
+            <span>{t('Text direction')}</span>
             <select value={text.vert ?? 'horz'} onChange={(e) => setText({ vert: e.target.value as TextBody['vert'] })}>
-              <option value="horz">Horizontal</option>
-              <option value="vert">Rotate all text 90°</option>
-              <option value="vert270">Rotate all text 270°</option>
+              <option value="horz">{t('Horizontal')}</option>
+              <option value="vert">{t('Rotate all text 90°')}</option>
+              <option value="vert270">{t('Rotate all text 270°')}</option>
             </select>
           </div>
           {(
             [
-              ['none', 'Do not Autofit'],
-              ['shrink', 'Shrink text on overflow'],
-              ['resize', 'Resize shape to fit text'],
+              ['none', t('Do not Autofit')],
+              ['shrink', t('Shrink text on overflow')],
+              ['resize', t('Resize shape to fit text')],
             ] as const
           ).map(([v, label]) => (
             <label key={v} className="tp-radio">
               <input type="radio" checked={text.autofit === v} onChange={() => setText({ autofit: v, fontScale: v === 'shrink' ? text.fontScale : 1, lnSpcReduction: v === 'shrink' ? text.lnSpcReduction : 0 })} /> {label}
             </label>
           ))}
-          {(['Left', 'Top', 'Right', 'Bottom'] as const).map((side, i) => (
+          {([t('Left margin'), t('Top margin'), t('Right margin'), t('Bottom margin')] as const).map((side, i) => (
             <div key={side} className="tp-row">
-              <span>{side} margin</span>
-              <NumberField label={`${side} margin`} value={text.inset[i] / IN} step={0.05} min={0} max={10} suffix='"' onChange={(v) => setText({ inset: text.inset.map((x, j) => (j === i ? v * IN : x)) as TextBody['inset'] })} />
+              <span>{side}</span>
+              <NumberField label={side} value={text.inset[i] / IN} step={0.05} min={0} max={10} suffix='"' onChange={(v) => setText({ inset: text.inset.map((x, j) => (j === i ? v * IN : x)) as TextBody['inset'] })} />
             </div>
           ))}
           <label className="tp-check">
-            <input type="checkbox" checked={text.wrap} onChange={(e) => setText({ wrap: e.target.checked })} /> Wrap text in shape
+            <input type="checkbox" checked={text.wrap} onChange={(e) => setText({ wrap: e.target.checked })} /> {t('Wrap text in shape')}
           </label>
           <div className="tp-row">
-            <span>Columns</span>
-            <NumberField label="Columns" value={text.columns ?? 1} step={1} min={1} max={16} decimals={0} onChange={(v) => setText({ columns: Math.round(v) })} />
+            <span>{t('Columns')}</span>
+            <NumberField label={t('Columns')} value={text.columns ?? 1} step={1} min={1} max={16} decimals={0} onChange={(v) => setText({ columns: Math.round(v) })} />
           </div>
         </Section>
       )}
-      <Section title="Alt Text" open={false}>
-        <textarea className="tp-textarea" aria-label="Alt text description" placeholder="Describe this object for people who use screen readers" value={el.alt ?? ''} onChange={(e) => update((x) => ({ ...x, alt: e.target.value }))} />
+      <Section title={t('Alt Text')} open={false}>
+        <textarea className="tp-textarea" aria-label={t('Alt text description')} placeholder={t('Describe this object for people who use screen readers')} value={el.alt ?? ''} onChange={(e) => update((x) => ({ ...x, alt: e.target.value }))} />
       </Section>
     </PaneShell>
   )
@@ -392,8 +393,8 @@ export function FormatBackgroundPane({ onClose }: { onClose: () => void }) {
   const rc = makeRenderCtx(pres, 1, slide.layout)
   const fill = slideBackground(slide.background, rc)
   return (
-    <PaneShell title="Format Background" onClose={onClose}>
-      <Section title="Fill">
+    <PaneShell title={t('Format Background')} onClose={onClose}>
+      <Section title={t('Fill')}>
         <FillEditor
           fill={fill}
           allowNone={false}
@@ -404,15 +405,15 @@ export function FormatBackgroundPane({ onClose }: { onClose: () => void }) {
           }}
         />
         <label className="tp-check">
-          <input type="checkbox" checked={!!slide.hideBackgroundGraphics} onChange={(e) => A.setHideBackgroundGraphics(e.target.checked)} /> Hide background graphics
+          <input type="checkbox" checked={!!slide.hideBackgroundGraphics} onChange={(e) => A.setHideBackgroundGraphics(e.target.checked)} /> {t('Hide background graphics')}
         </label>
       </Section>
       <div className="tp-actions">
         <button type="button" className="btn" onClick={() => A.setBackground(slide.background ?? fill, true, !!slide.hideBackgroundGraphics)}>
-          Apply to All
+          {t('Apply to All')}
         </button>
         <button type="button" className="btn" onClick={() => A.setBackground(null)}>
-          Reset Background
+          {t('Reset Background')}
         </button>
       </div>
     </PaneShell>
@@ -427,19 +428,19 @@ export function SelectionPane({ onClose }: { onClose: () => void }) {
   const setHidden = (id: string | null, hidden: boolean) => commit((p) => updateSlide(p, sid, (sl) => ({ ...sl, elements: sl.elements.map((e) => (id === null || e.id === id ? { ...e, hidden } : e)) })))
   const ordered = [...slide.elements].reverse()
   return (
-    <PaneShell title="Selection" onClose={onClose}>
+    <PaneShell title={t('Selection')} onClose={onClose}>
       <div className="tp-actions">
         <button type="button" className="btn btn-small" onClick={() => setHidden(null, false)}>
-          Show All
+          {t('Show All')}
         </button>
         <button type="button" className="btn btn-small" onClick={() => setHidden(null, true)}>
-          Hide All
+          {t('Hide All')}
         </button>
         <span className="spacer" />
-        <button type="button" className="btn btn-icon" aria-label="Bring Forward" title="Bring Forward" disabled={!selection.length} onClick={A.bringForward}>
+        <button type="button" className="btn btn-icon" aria-label={t('Bring Forward')} title={t('Bring Forward')} disabled={!selection.length} onClick={A.bringForward}>
           <ChevronUp size={14} />
         </button>
-        <button type="button" className="btn btn-icon" aria-label="Send Backward" title="Send Backward" disabled={!selection.length} onClick={A.sendBackward}>
+        <button type="button" className="btn btn-icon" aria-label={t('Send Backward')} title={t('Send Backward')} disabled={!selection.length} onClick={A.sendBackward}>
           <ChevronDown size={14} />
         </button>
       </div>
@@ -450,7 +451,7 @@ export function SelectionPane({ onClose }: { onClose: () => void }) {
               <input
                 autoFocus
                 defaultValue={e.name}
-                aria-label="Object name"
+                aria-label={t('Object name')}
                 onBlur={(ev) => {
                   const name = ev.target.value.trim()
                   if (name) A.updateElement(e.id, (x) => ({ ...x, name }))
@@ -463,24 +464,24 @@ export function SelectionPane({ onClose }: { onClose: () => void }) {
                 {e.name}
               </button>
             )}
-            <button type="button" className="btn btn-icon" aria-label={e.hidden ? 'Show' : 'Hide'} title={e.hidden ? 'Show' : 'Hide'} onClick={() => setHidden(e.id, !e.hidden)}>
+            <button type="button" className="btn btn-icon" aria-label={e.hidden ? t('Show') : t('Hide')} title={e.hidden ? t('Show') : t('Hide')} onClick={() => setHidden(e.id, !e.hidden)}>
               {e.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           </li>
         ))}
       </ul>
-      {!ordered.length && <p className="tp-hint">There are no objects on this slide.</p>}
+      {!ordered.length && <p className="tp-hint">{t('There are no objects on this slide.')}</p>}
     </PaneShell>
   )
 }
 
 // ---------- Comments ----------
 
-const AUTHOR = 'Author'
+const AUTHOR = tx('Author')
 
 export function addComment(text: string) {
   const s = store.get()
-  const c: Comment = { id: uid('c'), author: getOptions().userName || s.pres.author || AUTHOR, text, date: new Date().toISOString(), x: 24, y: 24, replies: [] }
+  const c: Comment = { id: uid('c'), author: getOptions().userName || s.pres.author || t(AUTHOR), text, date: new Date().toISOString(), x: 24, y: 24, replies: [] }
   commit((p) => updateSlide(p, s.slideId, (sl) => ({ ...sl, comments: [...(sl.comments ?? []), c] })))
 }
 
@@ -535,21 +536,21 @@ export function CommentsPane({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('kontor:compose', onCompose)
   }, [])
 
-  const fmt = (d: string) => new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  const fmt = (d: string) => formatDate(new Date(d), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
   return (
-    <PaneShell title="Comments" onClose={onClose}>
+    <PaneShell title={t('Comments')} onClose={onClose}>
       <button type="button" className="btn" onClick={() => setComposing(true)}>
-        <MessageSquarePlus size={14} /> New
+        <MessageSquarePlus size={14} /> {t('New')}
       </button>
       {composing && (
         <div className="comment-card is-new">
-          <textarea autoFocus className="tp-textarea" placeholder="Start a conversation" aria-label="New comment" value={draft} onChange={(e) => setDraft(e.target.value)} />
+          <textarea autoFocus className="tp-textarea" placeholder={t('Start a conversation')} aria-label={t('New comment')} value={draft} onChange={(e) => setDraft(e.target.value)} />
           <div className="tp-actions">
             <button type="button" className="btn btn-primary btn-small" disabled={!draft.trim()} onClick={() => (addComment(draft.trim()), setDraft(''), setComposing(false))}>
-              Post
+              {t('Post')}
             </button>
             <button type="button" className="btn btn-small" onClick={() => (setDraft(''), setComposing(false))}>
-              Cancel
+              {t('Cancel')}
             </button>
           </div>
         </div>
@@ -561,10 +562,10 @@ export function CommentsPane({ onClose }: { onClose: () => void }) {
             <strong>{c.author}</strong>
             <small>{fmt(c.date)}</small>
             <span className="spacer" />
-            <button type="button" className="btn btn-icon" title={c.resolved ? 'Reopen' : 'Resolve thread'} aria-label={c.resolved ? 'Reopen' : 'Resolve thread'} onClick={() => updateComments(slide.id, (cs) => cs.map((x) => (x.id === c.id ? { ...x, resolved: !x.resolved } : x)))}>
+            <button type="button" className="btn btn-icon" title={c.resolved ? t('Reopen') : t('Resolve thread')} aria-label={c.resolved ? t('Reopen') : t('Resolve thread')} onClick={() => updateComments(slide.id, (cs) => cs.map((x) => (x.id === c.id ? { ...x, resolved: !x.resolved } : x)))}>
               <Check size={14} />
             </button>
-            <button type="button" className="btn btn-icon" title="Delete thread" aria-label="Delete thread" onClick={() => updateComments(slide.id, (cs) => cs.filter((x) => x.id !== c.id))}>
+            <button type="button" className="btn btn-icon" title={t('Delete thread')} aria-label={t('Delete thread')} onClick={() => updateComments(slide.id, (cs) => cs.filter((x) => x.id !== c.id))}>
               <Trash2 size={14} />
             </button>
           </div>
@@ -577,28 +578,28 @@ export function CommentsPane({ onClose }: { onClose: () => void }) {
           ))}
           {replyTo === c.id ? (
             <div>
-              <textarea autoFocus className="tp-textarea" aria-label="Reply" placeholder="Reply" value={reply} onChange={(e) => setReply(e.target.value)} />
+              <textarea autoFocus className="tp-textarea" aria-label={t('Reply')} placeholder={t('Reply')} value={reply} onChange={(e) => setReply(e.target.value)} />
               <button
                 type="button"
                 className="btn btn-primary btn-small"
                 disabled={!reply.trim()}
                 onClick={() => {
-                  updateComments(slide.id, (cs) => cs.map((x) => (x.id === c.id ? { ...x, replies: [...x.replies, { id: uid('r'), author: getOptions().userName || pres.author || AUTHOR, text: reply.trim(), date: new Date().toISOString() }] } : x)))
+                  updateComments(slide.id, (cs) => cs.map((x) => (x.id === c.id ? { ...x, replies: [...x.replies, { id: uid('r'), author: getOptions().userName || pres.author || t(AUTHOR), text: reply.trim(), date: new Date().toISOString() }] } : x)))
                   setReply('')
                   setReplyTo(null)
                 }}
               >
-                Reply
+                {t('Reply')}
               </button>
             </div>
           ) : (
             <button type="button" className="link-btn" onClick={() => setReplyTo(c.id)}>
-              Reply
+              {t('Reply')}
             </button>
           )}
         </div>
       ))}
-      {!comments.length && !composing && <p className="tp-hint">There are no comments on this slide.</p>}
+      {!comments.length && !composing && <p className="tp-hint">{t('There are no comments on this slide.')}</p>}
     </PaneShell>
   )
 }

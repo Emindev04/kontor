@@ -7,9 +7,13 @@ import { Engine } from '../engine/engine'
 import { CellError } from '../model/types'
 import { cls, Popup } from './ui'
 import { useApp, useDocVersion } from './appContext'
+import { t, tx } from '../i18n'
+import { computePageBreaks } from '../grid/pages'
+import { checkAccessibility } from '../commands/tools'
+import { stopRecording } from '../commands/macros'
 
 type StatKey = 'average' | 'count' | 'numCount' | 'min' | 'max' | 'sum'
-const LABELS: Record<StatKey, string> = { average: 'Average', count: 'Count', numCount: 'Numerical Count', min: 'Minimum', max: 'Maximum', sum: 'Sum' }
+const LABELS: Record<StatKey, string> = { average: tx('Average'), count: tx('Count'), numCount: tx('Numerical Count'), min: tx('Minimum'), max: tx('Maximum'), sum: tx('Sum') }
 
 export function StatusBar({ zoom, setZoom }: { zoom: number; setZoom: (z: number) => void }) {
   const app = useApp()
@@ -18,6 +22,28 @@ export function StatusBar({ zoom, setZoom }: { zoom: number; setZoom: (z: number
   const [enabled, setEnabled] = useState<Record<StatKey, boolean>>({ average: true, count: true, numCount: false, min: false, max: false, sum: true })
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const sheet = doc.sheet
+  // Page Layout view: the page that holds the active cell (pages run down, then over)
+  const pageInfo = useMemo(() => {
+    if (app.viewMode !== 'pageLayout') return null
+    const b = computePageBreaks(sheet)
+    const a = doc.sel.active
+    const pr = b.rows.filter((x) => x <= a.r).length
+    const pc = b.cols.filter((x) => x <= a.c).length
+    const rowsN = b.rows.length + 1
+    return { n: pc * rowsN + pr + 1, total: rowsN * (b.cols.length + 1) }
+  }, [app.viewMode, sheet, version])
+  // accessibility status, checked a moment after changes stop
+  const [a11y, setA11y] = useState<number | null>(null)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      try {
+        setA11y(checkAccessibility(doc).length)
+      } catch {
+        setA11y(null)
+      }
+    }, 1200)
+    return () => clearTimeout(id)
+  }, [doc, version])
   const sel = doc.sel
 
   const stats = useMemo(() => {
@@ -53,7 +79,6 @@ export function StatusBar({ zoom, setZoom }: { zoom: number; setZoom: (z: number
       }
     }
     return { count, nums, sum, min, max, hasError }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version])
 
   const fmt = (v: number) => {
@@ -78,12 +103,12 @@ export function StatusBar({ zoom, setZoom }: { zoom: number; setZoom: (z: number
   }, [])
 
   const ed = doc.edit
-  const mode = ed ? (ed.point ? 'Point' : ed.mode === 'enter' ? 'Enter' : 'Edit') : 'Ready'
+  const mode = ed ? (ed.point ? t('Point') : ed.mode === 'enter' ? t('Enter') : t('Edit')) : t('Ready')
   const circ = doc.wb.iterate.on ? undefined : [...doc.engine.circular][0]
   const circText = circ !== undefined ? (() => {
     const c = Engine.cellOfFid(circ)
     const s = doc.wb.sheetById(c.sheetId)
-    return `Circular References: ${s && s !== sheet ? s.name + '!' : ''}${cellName(c.r, c.c)}`
+    return t('Circular References: {cell}', { cell: `${s && s !== sheet ? s.name + '!' : ''}${cellName(c.r, c.c)}` })
   })() : ''
 
   const items: [StatKey, string][] = []
@@ -109,39 +134,50 @@ export function StatusBar({ zoom, setZoom }: { zoom: number; setZoom: (z: number
         {circText && <span className="sb-warn">{circText}</span>}
         {doc.wb.calcMode === 'manual' && doc.engine.needsRecalc && (
           <button type="button" className="sb-link" onClick={() => { doc.engine.recalcAll(); doc.emit() }}>
-            Calculate
+            {t('Calculate')}
           </button>
         )}
         {doc.status && <span>{doc.status}</span>}
-        {locks.caps && <span className="sb-lock">Caps Lock</span>}
-        {locks.scroll && <span className="sb-lock">Scroll Lock</span>}
-        {app.viewMode === 'pageLayout' && <span className="sb-lock">Page Layout</span>}
+        {locks.caps && <span className="sb-lock">{t('Caps Lock')}</span>}
+        {locks.scroll && <span className="sb-lock">{t('Scroll Lock')}</span>}
+        {app.viewMode === 'pageLayout' && <span className="sb-lock">{t('Page Layout')}</span>}
+        {doc.recorder && (
+          <button type="button" className="sb-link" title={t('Stop Recording')} onClick={() => stopRecording(doc)}>
+            ■ {t('Recording macro "{name}"', { name: doc.recorder.name })}
+          </button>
+        )}
+        {pageInfo && <span className="sb-lock">{t('Page {n} of {total}', pageInfo)}</span>}
+        {a11y !== null && (
+          <button type="button" className="sb-link" title={t('Check Accessibility')} onClick={() => app.dialog({ kind: 'accessibility' })}>
+            {a11y === 0 ? t('Accessibility: Good to go') : t('Accessibility: Investigate')}
+          </button>
+        )}
       </div>
       <div className="sb-right">
         <div className="sb-stats">
           {items.map(([k, v]) => (
             <span key={k}>
-              {LABELS[k]}: {v}
+              {t(LABELS[k])}: {v}
             </span>
           ))}
         </div>
-        <button type="button" className={cls('sb-btn', app.viewMode === 'normal' && 'is-active')} title="Normal" aria-label="Normal view" onClick={() => app.setViewMode('normal')}>
+        <button type="button" className={cls('sb-btn', app.viewMode === 'normal' && 'is-active')} title={t('Normal')} aria-label={t('Normal view')} onClick={() => app.setViewMode('normal')}>
           <FileSpreadsheet size={14} />
         </button>
-        <button type="button" className={cls('sb-btn', app.viewMode === 'pageLayout' && 'is-active')} title="Page Layout" aria-label="Page Layout view" onClick={() => app.setViewMode('pageLayout')}>
+        <button type="button" className={cls('sb-btn', app.viewMode === 'pageLayout' && 'is-active')} title={t('Page Layout')} aria-label={t('Page Layout view')} onClick={() => app.setViewMode('pageLayout')}>
           <LayoutPanelTop size={14} />
         </button>
-        <button type="button" className={cls('sb-btn', app.viewMode === 'pageBreak' && 'is-active')} title="Page Break Preview" aria-label="Page Break Preview" onClick={() => app.setViewMode('pageBreak')}>
+        <button type="button" className={cls('sb-btn', app.viewMode === 'pageBreak' && 'is-active')} title={t('Page Break Preview')} aria-label={t('Page Break Preview')} onClick={() => app.setViewMode('pageBreak')}>
           <SquareDashed size={14} />
         </button>
-        <button type="button" className="sb-btn" aria-label="Zoom out" onClick={() => setZoom(zoom - 10)}>
+        <button type="button" className="sb-btn" aria-label={t('Zoom out')} onClick={() => setZoom(zoom - 10)}>
           <Minus size={12} />
         </button>
-        <input type="range" className="zoom-slider" min={10} max={400} step={1} value={zoom} aria-label="Zoom" onChange={(e) => setZoom(Number(e.target.value))} />
-        <button type="button" className="sb-btn" aria-label="Zoom in" onClick={() => setZoom(zoom + 10)}>
+        <input type="range" className="zoom-slider" min={10} max={400} step={1} value={zoom} aria-label={t('Zoom')} onChange={(e) => setZoom(Number(e.target.value))} />
+        <button type="button" className="sb-btn" aria-label={t('Zoom in')} onClick={() => setZoom(zoom + 10)}>
           <Plus size={12} />
         </button>
-        <button type="button" className="sb-zoom" title="Zoom…" onClick={() => app.dialog({ kind: 'zoom' })}>
+        <button type="button" className="sb-zoom" title={t('Zoom…')} onClick={() => app.dialog({ kind: 'zoom' })}>
           {zoom}%
         </button>
       </div>
@@ -149,11 +185,11 @@ export function StatusBar({ zoom, setZoom }: { zoom: number; setZoom: (z: number
         <>
           <div className="ctx-backdrop" onMouseDown={() => setMenu(null)} />
           <Popup point={menu} role="menu">
-            <div className="menu-heading">Customize Status Bar</div>
+            <div className="menu-heading">{t('Customize Status Bar')}</div>
             {(Object.keys(LABELS) as StatKey[]).map((k) => (
               <button key={k} type="button" className="menu-item" role="menuitemcheckbox" aria-checked={enabled[k]} onClick={() => setEnabled({ ...enabled, [k]: !enabled[k] })}>
                 <span className="menu-check">{enabled[k] ? '✓' : ''}</span>
-                <span className="menu-item-text">{LABELS[k]}</span>
+                <span className="menu-item-text">{t(LABELS[k])}</span>
               </button>
             ))}
           </Popup>

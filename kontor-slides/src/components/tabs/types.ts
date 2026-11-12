@@ -38,6 +38,9 @@ export type DialogKind =
   | 'gridGuides'
   | 'options'
   | 'thesaurus'
+  | 'removeBackground'
+  | 'equation'
+  | 'compare'
 
 export type UiApi = {
   openDialog: (kind: DialogKind) => void

@@ -83,6 +83,30 @@
         ],
         "name": "PPTX Presentation",
         "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      },
+      {
+        "role": "Viewer",
+        "ext": [
+          "ppsx"
+        ],
+        "name": "PPSX Slide Show",
+        "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.slideshow"
+      },
+      {
+        "role": "Editor",
+        "ext": [
+          "potx"
+        ],
+        "name": "POTX Template",
+        "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.template"
+      },
+      {
+        "role": "Editor",
+        "ext": [
+          "odp"
+        ],
+        "name": "OpenDocument Presentation",
+        "mimeType": "application/vnd.oasis.opendocument.presentation"
       }
     ],
     "mac": {
@@ -92,6 +116,13 @@
       "target": [
         {
           "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "pkg",
           "arch": [
             "arm64",
             "x64"
@@ -108,6 +139,12 @@
       "target": [
         {
           "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "msi",
           "arch": [
             "x64"
           ]
@@ -144,6 +181,16 @@
     },
     "deb": {
       "artifactName": "Kontor-Slides-linux-x64.${ext}"
+    },
+    "msi": {
+      "artifactName": "Kontor-Slides-windows-x64.msi",
+      "perMachine": true,
+      "oneClick": false
+    },
+    "pkg": {
+      "artifactName": "Kontor-Slides-mac-${arch}.pkg",
+      "identity": null,
+      "installLocation": "/Applications"
     }
   }
 }

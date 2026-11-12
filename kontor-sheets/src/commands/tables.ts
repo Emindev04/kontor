@@ -12,6 +12,7 @@ import { currentTheme } from '../model/theme'
 import { insertCells, uniqueTableName } from './ops'
 import { applyFilters } from './filter'
 import { currentRegion, detectHeader } from './sort'
+import { t, tx } from '../i18n'
 
 // ---------- styles ----------
 
@@ -47,7 +48,7 @@ export const DEFAULT_TABLE_STYLE = 'TableStyleMedium2'
 
 export function tableStyleLabel(id: string) {
   const m = /^TableStyle(Light|Medium|Dark)(\d+)$/.exec(id)
-  return m ? `${m[1]} ${m[2]}` : id === 'none' ? 'None' : id
+  return m ? `${t(m[1])} ${m[2]}` : id === 'none' ? t('None') : id
 }
 
 /** Formatting rules of a table style id like "TableStyleMedium2" (own colors). */
@@ -119,7 +120,7 @@ export function tableCellStyle(t: TableDef, r: number, c: number, bandIndex?: nu
 const TOTAL_CODES: Record<TotalFn, number> = { none: 0, average: 101, count: 103, countNums: 102, max: 104, min: 105, stdDev: 107, sum: 109, var: 110, custom: 0 }
 
 export const TOTAL_LABELS: [TotalFn, string][] = [
-  ['none', 'None'], ['average', 'Average'], ['count', 'Count'], ['countNums', 'Count Numbers'], ['max', 'Max'], ['min', 'Min'], ['sum', 'Sum'], ['stdDev', 'StdDev'], ['var', 'Var'], ['custom', 'More Functions…'],
+  ['none', tx('None')], ['average', tx('Average')], ['count', tx('Count')], ['countNums', tx('Count Numbers')], ['max', tx('Max')], ['min', tx('Min')], ['sum', tx('Sum')], ['stdDev', tx('StdDev')], ['var', tx('Var')], ['custom', tx('More Functions…')],
 ]
 
 export function totalFormula(t: TableDef, col: TableColumn): string | null {
@@ -152,10 +153,10 @@ export function suggestTableRange(doc: Doc): { range: Range; header: boolean } {
 
 export function createTable(doc: Doc, range: Range, hasHeader: boolean, style = DEFAULT_TABLE_STYLE): string | null {
   const sheet = doc.sheet
-  for (const t of sheet.x.tables) if (t.range.r1 <= range.r2 && t.range.r2 >= range.r1 && t.range.c1 <= range.c2 && t.range.c2 >= range.c1) return 'A table cannot overlap another table.'
-  if (sheet.merges.some((m) => m.r1 <= range.r2 && m.r2 >= range.r1 && m.c1 <= range.c2 && m.c2 >= range.c1)) return 'A table cannot contain merged cells. Unmerge them first.'
+  for (const tb of sheet.x.tables) if (tb.range.r1 <= range.r2 && tb.range.r2 >= range.r1 && tb.range.c1 <= range.c2 && tb.range.c2 >= range.c1) return t('A table cannot overlap another table.')
+  if (sheet.merges.some((m) => m.r1 <= range.r2 && m.r2 >= range.r1 && m.c1 <= range.c2 && m.c2 >= range.c1)) return t('A table cannot contain merged cells. Unmerge them first.')
   let rg = { ...range }
-  doc.transact('Format as Table', () => {
+  doc.transact(tx('Format as Table'), () => {
     if (!hasHeader) {
       insertCells(doc, 'down', { r1: rg.r1, c1: rg.c1, r2: rg.r1, c2: rg.c2 })
       rg = { ...rg, r2: rg.r2 + 1 }
@@ -224,7 +225,7 @@ export function setTotalsRow(doc: Doc, id: number, on: boolean) {
   const sheet = doc.sheet
   const t0 = sheet.x.tables.find((x) => x.id === id)
   if (!t0 || t0.totals === on) return
-  doc.transact('Total Row', () => {
+  doc.transact(tx('Total Row'), () => {
     const below = { r1: t0.range.r2 + 1, c1: t0.range.c1, r2: t0.range.r2 + 1, c2: t0.range.c2 }
     if (on) {
       let busy = false
@@ -253,7 +254,7 @@ export function setHeaderRow(doc: Doc, id: number, on: boolean) {
   const sheet = doc.sheet
   const t0 = sheet.x.tables.find((x) => x.id === id)
   if (!t0 || t0.header === on) return
-  doc.transact('Header Row', () => {
+  doc.transact(tx('Header Row'), () => {
     let headerRow = t0.range.r1 - 1
     let grow = false
     if (on) {
@@ -289,19 +290,19 @@ export function setTotalFn(doc: Doc, id: number, col: number, fn: TotalFn, custo
   updateTable(doc, id, (t, sheet) => {
     t.columns[col] = { ...t.columns[col], total: fn, totalFormula: fn === 'custom' ? custom : undefined }
     if (t.totals) writeTotals(doc, sheet, t)
-  }, 'Total Row')
+  }, tx('Total Row'))
 }
 
 export function renameTable(doc: Doc, id: number, name: string): string | null {
   const n = name.trim()
-  if (!/^[A-Za-z_\\][A-Za-z0-9_.\\]*$/.test(n) || /^[A-Za-z]{1,3}\d+$/.test(n) || /^[RrCc]$/.test(n)) return 'The name you entered is not valid. Names must start with a letter or underscore and cannot contain spaces or look like a cell reference.'
+  if (!/^[A-Za-z_\\][A-Za-z0-9_.\\]*$/.test(n) || /^[A-Za-z]{1,3}\d+$/.test(n) || /^[RrCc]$/.test(n)) return t('The name you entered is not valid. Names must start with a letter or underscore and cannot contain spaces or look like a cell reference.')
   const sheet = doc.sheet
   const t0 = sheet.x.tables.find((x) => x.id === id)
   if (!t0) return null
-  for (const s of doc.wb.sheets) for (const t of s.x.tables) if (t.id !== id && t.name.toUpperCase() === n.toUpperCase()) return 'A table with this name already exists.'
-  if (doc.wb.getName(n)) return 'A defined name with this name already exists.'
+  for (const s of doc.wb.sheets) for (const tb of s.x.tables) if (tb.id !== id && tb.name.toUpperCase() === n.toUpperCase()) return t('A table with this name already exists.')
+  if (doc.wb.getName(n)) return t('A defined name with this name already exists.')
   const old = t0.name
-  doc.transact('Rename Table', () => {
+  doc.transact(tx('Rename Table'), () => {
     for (const s of doc.wb.sheets) {
       doc.noteFull(s)
       for (const [k, d] of s.cells) if (d.f !== undefined && d.f.toUpperCase().includes(old.toUpperCase())) s.cells.set(k, { ...d, f: renameTableInFormula(d.f, old, n) })
@@ -316,10 +317,10 @@ export function resizeTable(doc: Doc, id: number, range: Range): string | null {
   const sheet = doc.sheet
   const t0 = sheet.x.tables.find((x) => x.id === id)
   if (!t0) return null
-  if (range.r1 !== t0.range.r1) return 'The headers must remain in the same row, and the resulting table range must overlap the original table range.'
-  if (range.r2 <= range.r1) return 'A table must have at least one data row.'
-  for (const t of sheet.x.tables) if (t.id !== id && t.range.r1 <= range.r2 && t.range.r2 >= range.r1 && t.range.c1 <= range.c2 && t.range.c2 >= range.c1) return 'A table cannot overlap another table.'
-  doc.transact('Resize Table', () => {
+  if (range.r1 !== t0.range.r1) return t('The headers must remain in the same row, and the resulting table range must overlap the original table range.')
+  if (range.r2 <= range.r1) return t('A table must have at least one data row.')
+  for (const tb of sheet.x.tables) if (tb.id !== id && tb.range.r1 <= range.r2 && tb.range.r2 >= range.r1 && tb.range.c1 <= range.c2 && tb.range.c2 >= range.c1) return t('A table cannot overlap another table.')
+  doc.transact(tx('Resize Table'), () => {
     doc.noteFull(sheet)
     const t = sheet.x.tables.find((x) => x.id === id)!
     const cols: TableColumn[] = []
@@ -347,7 +348,7 @@ export function convertToRange(doc: Doc, id: number) {
   const sheet = doc.sheet
   const t0 = sheet.x.tables.find((x) => x.id === id)
   if (!t0) return
-  doc.transact('Convert to Range', () => {
+  doc.transact(tx('Convert to Range'), () => {
     doc.noteFull(sheet)
     // bake the table style into the cells so the range keeps its look
     for (let r = t0.range.r1; r <= t0.range.r2; r++)
@@ -487,7 +488,7 @@ export function insertTableRows(doc: Doc, id: number, at: number, count: number)
   const sheet = doc.sheet
   const t0 = sheet.x.tables.find((x) => x.id === id)
   if (!t0) return
-  doc.transact('Insert Table Rows', () => {
+  doc.transact(tx('Insert Table Rows'), () => {
     insertCells(doc, 'down', { r1: at, c1: t0.range.c1, r2: at + count - 1, c2: t0.range.c2 })
     doc.noteFull(sheet)
     const t = sheet.x.tables.find((x) => x.id === id)!

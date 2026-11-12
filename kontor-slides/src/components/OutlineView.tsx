@@ -7,6 +7,7 @@ import { createSlide } from '../model/factory'
 import { beginTransaction, commit, endTransaction, store, useStore } from '../store/store'
 import * as A from '../store/actions'
 import { cls } from './ui'
+import { t } from '../i18n'
 
 // Outline view: the titles and bullet text of every slide, edited like an indented list.
 
@@ -182,13 +183,13 @@ export function OutlinePane() {
   }
 
   return (
-    <aside className="outline-pane" ref={rootRef} aria-label="Outline">
+    <aside className="outline-pane" ref={rootRef} aria-label={t('Outline')}>
       <div className="ol-tools">
         <button type="button" className="btn btn-small" onClick={() => setCollapsed(new Set(pres.slides.map((s) => s.id)))}>
-          Collapse All
+          {t('Collapse All')}
         </button>
         <button type="button" className="btn btn-small" onClick={() => setCollapsed(new Set())}>
-          Expand All
+          {t('Expand All')}
         </button>
       </div>
       {pres.slides.map((s, i) => {
@@ -199,7 +200,7 @@ export function OutlinePane() {
           <div key={s.id} className={cls('ol-slide', s.id === slideId && 'is-current', s.hidden && 'is-hidden')} onMouseDown={() => s.id !== store.get().slideId && A.goToSlide(s.id)}>
             <div className="ol-title-row">
               <span className="ol-num">{i + 1}</span>
-              <button type="button" className="ol-toggle" aria-label={isCollapsed ? 'Expand' : 'Collapse'} onClick={() => setCollapsed((c) => (isCollapsed ? new Set([...c].filter((x) => x !== s.id)) : new Set([...c, s.id])))}>
+              <button type="button" className="ol-toggle" aria-label={isCollapsed ? t('Expand') : t('Collapse')} onClick={() => setCollapsed((c) => (isCollapsed ? new Set([...c].filter((x) => x !== s.id)) : new Set([...c, s.id])))}>
                 {body ? isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} /> : <span className="ol-icon" />}
               </button>
               {title ? (
@@ -211,7 +212,7 @@ export function OutlinePane() {
                   onKey={onTitleKey(s, i)}
                 />
               ) : (
-                <span className="ol-text ol-title is-empty">Slide {i + 1}</span>
+                <span className="ol-text ol-title is-empty">{t('Slide {n}', { n: i + 1 })}</span>
               )}
             </div>
             {body &&

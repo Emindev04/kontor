@@ -3,6 +3,7 @@ import { Plugin, PluginKey, type EditorState, type Transaction } from '@tiptap/p
 import { AddMarkStep, AttrStep, RemoveMarkStep, ReplaceAroundStep, ReplaceStep, type Step } from '@tiptap/pm/transform'
 import { redoDepth, undoDepth } from '@tiptap/pm/history'
 import type { Slice } from '@tiptap/pm/model'
+import { tx } from '../i18n'
 
 // Names for the entries of the undo history ("Typing", "Bold", "Paste" …), shown in the Undo and
 // Redo drop-downs. The history itself groups quick edits into one entry; the labels follow its depth.
@@ -11,26 +12,26 @@ type State = { undo: string[]; redo: string[] }
 export const historyLabelsKey = new PluginKey<State>('historyLabels')
 
 const MARK_NAMES: Record<string, string> = {
-  bold: 'Bold', italic: 'Italic', underline: 'Underline', strike: 'Strikethrough', subscript: 'Subscript', superscript: 'Superscript',
-  highlight: 'Highlight', textStyle: 'Font', link: 'Hyperlink', comment: 'New Comment', insertion: 'Track Changes', deletion: 'Track Changes', formatChange: 'Track Changes',
+  bold: tx('Bold'), italic: tx('Italic'), underline: tx('Underline'), strike: tx('Strikethrough'), subscript: tx('Subscript'), superscript: tx('Superscript'),
+  highlight: tx('Highlight'), textStyle: tx('Font'), link: tx('Hyperlink'), comment: tx('New Comment'), insertion: tx('Track Changes'), deletion: tx('Track Changes'), formatChange: tx('Track Changes'),
 }
 
 const NODE_NAMES: Record<string, string> = {
-  image: 'Insert Picture', table: 'Insert Table', shape: 'Insert Shape', textBox: 'Insert Text Box', chart: 'Insert Chart', diagram: 'Insert Diagram',
-  pageBreak: 'Page Break', sectionBreak: 'Section Break', columnBreak: 'Column Break', horizontalRule: 'Horizontal Line', equation: 'Insert Equation',
-  noteRef: 'Insert Note', field: 'Insert Field', bookmark: 'Bookmark', tableOfContents: 'Table of Contents', signatureLine: 'Signature Line',
+  image: tx('Insert Picture'), table: tx('Insert Table'), shape: tx('Insert Shape'), textBox: tx('Insert Text Box'), chart: tx('Insert Chart'), diagram: tx('Insert Diagram'),
+  pageBreak: tx('Page Break'), sectionBreak: tx('Section Break'), columnBreak: tx('Column Break'), horizontalRule: tx('Horizontal Line'), equation: tx('Insert Equation'),
+  noteRef: tx('Insert Note'), field: tx('Insert Field'), bookmark: tx('Bookmark'), tableOfContents: tx('Table of Contents'), signatureLine: tx('Signature Line'),
 }
 
 /** A short description of what a transaction did. */
 export function labelFor(tr: Transaction): string {
   const ui = tr.getMeta('uiEvent') as string | undefined
-  if (ui === 'paste') return 'Paste'
-  if (ui === 'drop') return 'Drag and Drop'
-  if (ui === 'cut') return 'Cut'
+  if (ui === 'paste') return tx('Paste')
+  if (ui === 'drop') return tx('Drag and Drop')
+  if (ui === 'cut') return tx('Cut')
   const steps: Step[] = tr.steps
   const marks = steps.filter((s) => s instanceof AddMarkStep || s instanceof RemoveMarkStep) as unknown as { mark: { type: { name: string } } }[]
-  if (marks.length === steps.length && marks.length) return MARK_NAMES[marks[0].mark.type.name] ?? 'Formatting'
-  if (steps.some((s) => s instanceof ReplaceAroundStep) || (steps.length && steps.every((s) => s instanceof AttrStep))) return 'Paragraph Formatting'
+  if (marks.length === steps.length && marks.length) return MARK_NAMES[marks[0].mark.type.name] ?? tx('Formatting')
+  if (steps.some((s) => s instanceof ReplaceAroundStep) || (steps.length && steps.every((s) => s instanceof AttrStep))) return tx('Paragraph Formatting')
   for (const s of steps) {
     if (!(s instanceof ReplaceStep)) continue
     const slice = (s as unknown as { slice: Slice }).slice
@@ -42,10 +43,10 @@ export function labelFor(tr: Transaction): string {
     if (node) return node
   }
   const replaces = steps.filter((s) => s instanceof ReplaceStep) as unknown as { from: number; to: number; slice: Slice }[]
-  if (replaces.length && replaces.every((s) => !s.slice.size)) return 'Delete'
-  if (replaces.some((s) => s.slice.content.childCount > 1 || s.slice.openStart === 0 && s.slice.content.firstChild?.isBlock)) return 'Typing'
-  if (replaces.length) return replaces.some((s) => s.to > s.from) ? 'Replace' : 'Typing'
-  return 'Edit'
+  if (replaces.length && replaces.every((s) => !s.slice.size)) return tx('Delete')
+  if (replaces.some((s) => s.slice.content.childCount > 1 || s.slice.openStart === 0 && s.slice.content.firstChild?.isBlock)) return tx('Typing')
+  if (replaces.length) return replaces.some((s) => s.to > s.from) ? tx('Replace') : tx('Typing')
+  return tx('Edit')
 }
 
 export function historyLabels(state: EditorState): State {

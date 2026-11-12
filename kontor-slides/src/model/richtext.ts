@@ -1,6 +1,7 @@
 import type { Inline, Mark, Para, ParaAttrs, RichDoc, TextAlign } from './types'
 import { resolveColor, type ThemeColors } from './color'
 import { fontStack } from './themes'
+import { tx } from '../i18n'
 
 /** Everything needed to turn a stored document into styled HTML. */
 export type TextCtx = {
@@ -28,23 +29,23 @@ export const LINE_FACTOR = 1.2
 export const NUMBER_SCHEMES: { id: string; label: string; sample: (n: number) => string }[] = [
   { id: 'arabicPeriod', label: '1. 2. 3.', sample: (n) => `${n}.` },
   { id: 'arabicParenR', label: '1) 2) 3)', sample: (n) => `${n})` },
-  { id: 'romanUcPeriod', label: 'I. II. III.', sample: (n) => `${toRoman(n)}.` },
+  { id: 'romanUcPeriod', label: tx('I. II. III.'), sample: (n) => `${toRoman(n)}.` },
   { id: 'alphaUcPeriod', label: 'A. B. C.', sample: (n) => `${toAlpha(n)}.` },
   { id: 'alphaUcParenR', label: 'A) B) C)', sample: (n) => `${toAlpha(n)})` },
   { id: 'alphaLcParenR', label: 'a) b) c)', sample: (n) => `${toAlpha(n).toLowerCase()})` },
   { id: 'alphaLcPeriod', label: 'a. b. c.', sample: (n) => `${toAlpha(n).toLowerCase()}.` },
-  { id: 'romanLcPeriod', label: 'i. ii. iii.', sample: (n) => `${toRoman(n).toLowerCase()}.` },
+  { id: 'romanLcPeriod', label: tx('i. ii. iii.'), sample: (n) => `${toRoman(n).toLowerCase()}.` },
 ]
 
 export const BULLET_CHARS: { char: string; label: string }[] = [
-  { char: '•', label: 'Filled Round Bullets' },
-  { char: 'o', label: 'Hollow Round Bullets' },
-  { char: '▪', label: 'Filled Square Bullets' },
-  { char: '□', label: 'Hollow Square Bullets' },
-  { char: '➢', label: 'Star Bullets' },
-  { char: '➔', label: 'Arrow Bullets' },
-  { char: '✓', label: 'Checkmark Bullets' },
-  { char: '–', label: 'Dash Bullets' },
+  { char: '•', label: tx('Filled Round Bullets') },
+  { char: 'o', label: tx('Hollow Round Bullets') },
+  { char: '▪', label: tx('Filled Square Bullets') },
+  { char: '□', label: tx('Hollow Square Bullets') },
+  { char: '➢', label: tx('Star Bullets') },
+  { char: '➔', label: tx('Arrow Bullets') },
+  { char: '✓', label: tx('Checkmark Bullets') },
+  { char: '–', label: tx('Dash Bullets') },
 ]
 
 export function toRoman(n: number) {
@@ -137,14 +138,16 @@ export function computeMarkers(paras: Para[], ctx: Pick<TextCtx, 'bullets' | 'bu
 export function paraMetrics(attrs: ParaAttrs | undefined, ctx: TextCtx, hasMarker: boolean) {
   const level = Math.max(0, Math.min(8, attrs?.level ?? 0))
   const size = ctx.sizes[Math.min(level, ctx.sizes.length - 1)]
-  const marL = (hasMarker ? BULLET_INDENT : 0) + level * LEVEL_INDENT
+  const marL = attrs?.indent ?? (hasMarker ? BULLET_INDENT : 0) + level * LEVEL_INDENT
   return {
     level,
     size,
     marL,
-    indent: hasMarker ? -BULLET_INDENT : 0,
+    indent: attrs?.firstLine ?? (hasMarker ? -BULLET_INDENT : 0),
     align: attrs?.align ?? ctx.align,
     lineHeight: (attrs?.lineHeight ?? ctx.lineHeight) * LINE_FACTOR,
+    /** Exact line spacing in points, or null for a multiple of the font size. */
+    lineExact: attrs?.lineExact ?? null,
     spaceBefore: attrs?.spaceBefore ?? ctx.spaceBefore[Math.min(level, ctx.spaceBefore.length - 1)] ?? 0,
     spaceAfter: attrs?.spaceAfter ?? 0,
   }
@@ -154,7 +157,7 @@ export function paraStyle(attrs: ParaAttrs | undefined, ctx: TextCtx, hasMarker:
   const m = paraMetrics(attrs, ctx, hasMarker)
   return [
     `font-size:calc(${m.size}pt * var(--fscale, 1))`,
-    `line-height:calc(${m.lineHeight.toFixed(3)} * (1 - var(--lred, 0)))`,
+    m.lineExact ? `line-height:calc(${m.lineExact}pt * var(--fscale, 1) * (1 - var(--lred, 0)))` : `line-height:calc(${m.lineHeight.toFixed(3)} * (1 - var(--lred, 0)))`,
     m.align === 'distributed' ? 'text-align:justify;text-align-last:justify' : `text-align:${m.align}`,
     `margin:calc(${m.spaceBefore}pt * (1 - var(--lred, 0))) 0 calc(${m.spaceAfter}pt * (1 - var(--lred, 0)))`,
     `padding-left:${m.marL}px`,
@@ -174,7 +177,44 @@ export function textStyleCss(attrs: TextStyleAttrs, colors: ThemeColors) {
   if (attrs.shadow) css.push('text-shadow:0.05em 0.05em 0.08em rgba(0,0,0,0.45)')
   if (attrs.caps === 'all') css.push('text-transform:uppercase')
   if (attrs.caps === 'small') css.push('font-variant:small-caps')
+  const lines = [attrs.uStyle && attrs.uStyle !== 'none' ? 'underline' : '', attrs.strike2 ? 'line-through' : ''].filter(Boolean)
+  if (lines.length) {
+    css.push(`text-decoration-line:${lines.join(' ')}`)
+    css.push(`text-decoration-style:${attrs.strike2 && !attrs.uStyle ? 'double' : underlineCss(attrs.uStyle ?? 'sng').style}`)
+    const thick = underlineCss(attrs.uStyle ?? 'sng').thick
+    if (thick) css.push('text-decoration-thickness:0.1em')
+    css.push('text-decoration-skip-ink:none')
+  }
+  if (attrs.uColor) css.push(`text-decoration-color:${resolveColor(attrs.uColor, colors)}`)
+  if (attrs.baseline) css.push(`vertical-align:${(attrs.baseline / 100).toFixed(2)}em`, 'font-size:67%', 'line-height:0')
+  if (attrs.glow) css.push(`text-shadow:0 0 ${attrs.glowSize ?? 5}pt ${resolveColor(attrs.glow, colors)}, 0 0 ${(attrs.glowSize ?? 5) / 2}pt ${resolveColor(attrs.glow, colors)}${attrs.shadow ? ', 0.05em 0.05em 0.08em rgba(0,0,0,0.45)' : ''}`)
   return css.join(';')
+}
+
+/** Underline styles of the Font dialog (OOXML names) and how CSS draws them. */
+export const UNDERLINE_STYLES: { id: string; label: string }[] = [
+  { id: 'sng', label: tx('Single') },
+  { id: 'dbl', label: tx('Double') },
+  { id: 'heavy', label: tx('Heavy') },
+  { id: 'dotted', label: tx('Dotted') },
+  { id: 'dottedHeavy', label: tx('Dotted Heavy') },
+  { id: 'dash', label: tx('Dashed') },
+  { id: 'dashHeavy', label: tx('Dashed Heavy') },
+  { id: 'dashLong', label: tx('Long Dashes') },
+  { id: 'dotDash', label: tx('Dot-Dash') },
+  { id: 'dotDotDash', label: tx('Dot-Dot-Dash') },
+  { id: 'wavy', label: tx('Wavy') },
+  { id: 'wavyHeavy', label: tx('Wavy Heavy') },
+  { id: 'wavyDbl', label: tx('Wavy Double') },
+]
+
+export function underlineCss(id: string): { style: string; thick: boolean } {
+  const thick = /Heavy|^heavy$/.test(id)
+  if (id === 'dbl' || id === 'wavyDbl') return { style: id === 'dbl' ? 'double' : 'wavy', thick }
+  if (id.startsWith('dotted')) return { style: 'dotted', thick }
+  if (id.startsWith('dash') || id.startsWith('dot')) return { style: 'dashed', thick }
+  if (id.startsWith('wavy')) return { style: 'wavy', thick }
+  return { style: 'solid', thick }
 }
 
 // ---------- Static HTML rendering (matches the editor's DOM) ----------

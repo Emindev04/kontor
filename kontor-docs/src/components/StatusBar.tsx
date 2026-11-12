@@ -4,6 +4,7 @@ import type { Editor } from '@tiptap/react'
 import { MenuList, Popup, cls, usePopover } from './ui'
 import { LANGUAGES, languageLabel } from './languages'
 import type { AppApi } from './tabs/types'
+import { formatNumber, t, tx } from '../i18n'
 
 type Props = { app: AppApi; editor: Editor; onWordCount: () => void; onGoTo: () => void }
 
@@ -23,14 +24,14 @@ function fitStatusBar(bar: HTMLElement) {
 
 /** Items of Customize Status Bar (right-click the status bar). */
 const STATUS_ITEMS: { id: string; label: string }[] = [
-  { id: 'page', label: 'Formatted Page Number' },
-  { id: 'words', label: 'Word Count' },
-  { id: 'spelling', label: 'Spelling and Grammar Check' },
-  { id: 'language', label: 'Language' },
-  { id: 'focus', label: 'Focus' },
-  { id: 'views', label: 'View Shortcuts' },
-  { id: 'slider', label: 'Zoom Slider' },
-  { id: 'zoom', label: 'Zoom' },
+  { id: 'page', label: tx('Formatted Page Number') },
+  { id: 'words', label: tx('Word Count') },
+  { id: 'spelling', label: tx('Spelling and Grammar Check') },
+  { id: 'language', label: tx('Language') },
+  { id: 'focus', label: tx('Focus') },
+  { id: 'views', label: tx('View Shortcuts') },
+  { id: 'slider', label: tx('Zoom Slider') },
+  { id: 'zoom', label: tx('Zoom') },
 ]
 
 const countWords = (text: string) => text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length
@@ -59,7 +60,7 @@ export function StatusBar({ app, editor, onWordCount, onGoTo }: Props) {
   const total = editor.storage.characterCount.words() as number
   const { from, to, empty } = editor.state.selection
   const selected = empty ? 0 : countWords(editor.state.doc.textBetween(from, to, ' ', ' '))
-  const words = selected ? `${selected.toLocaleString('en-US')} of ${total.toLocaleString('en-US')} words` : `${total.toLocaleString('en-US')} ${total === 1 ? 'word' : 'words'}`
+  const words = selected ? t('{selected} of {total} words', { selected: formatNumber(selected), total: formatNumber(total) }) : total === 1 ? t('1 word') : t('{n} words', { n: formatNumber(total) })
   return (
     <footer
       className="statusbar"
@@ -71,50 +72,50 @@ export function StatusBar({ app, editor, onWordCount, onGoTo }: Props) {
     >
       {menu && (
         <StatusMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)}>
-          <div className="menu-heading">Customize Status Bar</div>
+          <div className="menu-heading">{t('Customize Status Bar')}</div>
           {STATUS_ITEMS.map((item) => (
             <button key={item.id} type="button" role="menuitemcheckbox" aria-checked={!hidden.has(item.id)} className="menu-item" onClick={() => toggle(item.id)}>
               <span className="menu-check">{hidden.has(item.id) ? '' : '✓'}</span>
-              <span className="menu-item-text">{item.label}</span>
+              <span className="menu-item-text">{t(item.label)}</span>
             </button>
           ))}
         </StatusMenu>
       )}
       <div className="sb-left">
-        <button type="button" className={cls('sb-text', off('page'))} title="Go To (Ctrl+G)" onClick={onGoTo}>
-          Page {app.currentPage} of {app.pages}
+        <button type="button" className={cls('sb-text', off('page'))} title={t('Go To (Ctrl+G)')} onClick={onGoTo}>
+          {t('Page {n} of {total}', { n: app.currentPage, total: app.pages })}
         </button>
-        <button type="button" className={cls('sb-text', off('words'))} title="Word Count" data-sb-hide="5" onClick={onWordCount}>
+        <button type="button" className={cls('sb-text', off('words'))} title={t('Word Count')} data-sb-hide="5" onClick={onWordCount}>
           {words}
         </button>
-        <button type="button" className={cls('sb-text sb-icon', off('spelling'))} data-sb-hide="3" title={app.spellcheck ? 'Spelling: on' : 'Spelling: off'} onClick={() => app.setSpellcheck(!app.spellcheck)}>
+        <button type="button" className={cls('sb-text sb-icon', off('spelling'))} data-sb-hide="3" title={app.spellcheck ? t('Spelling: on') : t('Spelling: off')} onClick={() => app.setSpellcheck(!app.spellcheck)}>
           <BookCheck size={14} className={app.spellcheck ? '' : 'is-off'} />
         </button>
         <div className={cls('popover-anchor', off('language'))} ref={lang.ref} data-sb-hide="1">
-          <button type="button" className="sb-text" title="Language" onClick={() => lang.setOpen(!lang.open)}>
+          <button type="button" className="sb-text" title={t('Language')} onClick={() => lang.setOpen(!lang.open)}>
             {languageLabel(app.language)}
           </button>
           {lang.open && (
             <Popup anchor={lang.ref} role="menu">
-              <MenuList items={LANGUAGES.map((l) => ({ label: l.label, active: l.id === app.language, onClick: () => app.setLanguage(l.id) }))} close={() => lang.setOpen(false)} />
+              <MenuList items={LANGUAGES.map((l) => ({ label: t(l.label), active: l.id === app.language, onClick: () => app.setLanguage(l.id) }))} close={() => lang.setOpen(false)} />
             </Popup>
           )}
         </div>
       </div>
       <div className="sb-right">
-        <button type="button" className={cls('sb-text', off('focus'))} title="Focus" data-sb-hide="2" onClick={() => app.setFocusMode(true)}>
-          <Eye size={14} /> Focus
+        <button type="button" className={cls('sb-text', off('focus'))} title={t('Focus')} data-sb-hide="2" onClick={() => app.setFocusMode(true)}>
+          <Eye size={14} /> {t('Focus')}
         </button>
-        <button type="button" data-sb-hide="4" className={cls('sb-btn', app.viewMode === 'read' && 'is-active', off('views'))} title="Read Mode" aria-label="Read Mode" onClick={() => app.setViewMode('read')}>
+        <button type="button" data-sb-hide="4" className={cls('sb-btn', app.viewMode === 'read' && 'is-active', off('views'))} title={t('Read Mode')} aria-label={t('Read Mode')} onClick={() => app.setViewMode('read')}>
           <BookOpen size={14} />
         </button>
-        <button type="button" className={cls('sb-btn', app.viewMode === 'print' && 'is-active', off('views'))} title="Print Layout" aria-label="Print Layout" onClick={() => app.setViewMode('print')}>
+        <button type="button" className={cls('sb-btn', app.viewMode === 'print' && 'is-active', off('views'))} title={t('Print Layout')} aria-label={t('Print Layout')} onClick={() => app.setViewMode('print')}>
           <FileText size={14} />
         </button>
-        <button type="button" data-sb-hide="4" className={cls('sb-btn', app.viewMode === 'web' && 'is-active', off('views'))} title="Web Layout" aria-label="Web Layout" onClick={() => app.setViewMode('web')}>
+        <button type="button" data-sb-hide="4" className={cls('sb-btn', app.viewMode === 'web' && 'is-active', off('views'))} title={t('Web Layout')} aria-label={t('Web Layout')} onClick={() => app.setViewMode('web')}>
           <Globe size={14} />
         </button>
-        <button type="button" className={cls('sb-btn', off('slider'))} aria-label="Zoom Out" onClick={() => app.setZoom(app.zoom - 10)}>
+        <button type="button" className={cls('sb-btn', off('slider'))} aria-label={t('Zoom Out')} onClick={() => app.setZoom(app.zoom - 10)}>
           <Minus size={12} />
         </button>
         <input
@@ -125,13 +126,13 @@ export function StatusBar({ app, editor, onWordCount, onGoTo }: Props) {
           max={100}
           step={0.5}
           value={toSlider(app.zoom)}
-          aria-label="Zoom"
+          aria-label={t('Zoom')}
           onChange={(e) => app.setZoom(fromSlider(Number(e.target.value)))}
         />
-        <button type="button" className={cls('sb-btn', off('slider'))} aria-label="Zoom In" onClick={() => app.setZoom(app.zoom + 10)}>
+        <button type="button" className={cls('sb-btn', off('slider'))} aria-label={t('Zoom In')} onClick={() => app.setZoom(app.zoom + 10)}>
           <Plus size={12} />
         </button>
-        <button type="button" className={cls('sb-zoom', off('zoom'))} title="Zoom to 100%" onClick={() => app.setZoom(100)}>
+        <button type="button" className={cls('sb-zoom', off('zoom'))} title={t('Zoom to 100%')} onClick={() => app.setZoom(100)}>
           {app.zoom}%
         </button>
       </div>

@@ -13,9 +13,10 @@ import { resolveRef } from '../charts/chartData'
 import { displayText } from './filter'
 import type { Doc } from './doc'
 import { createTable, tableStyleSpec } from './tables'
+import { t, tx } from '../i18n'
 
 export const PIVOT_FNS: [PivotFn, string][] = [
-  ['sum', 'Sum'], ['count', 'Count'], ['average', 'Average'], ['max', 'Max'], ['min', 'Min'], ['product', 'Product'], ['countNums', 'Count Numbers'], ['stdDev', 'StdDev'], ['var', 'Var'],
+  ['sum', tx('Sum')], ['count', tx('Count')], ['average', tx('Average')], ['max', tx('Max')], ['min', tx('Min')], ['product', tx('Product')], ['countNums', tx('Count Numbers')], ['stdDev', tx('StdDev')], ['var', tx('Var')],
 ]
 
 export const fnLabel = (fn: PivotFn) => PIVOT_FNS.find((f) => f[0] === fn)?.[1] ?? fn
@@ -436,7 +437,7 @@ export function computePivot(p: PivotDef, src: PivotSource): PivotCell[][] {
 /** Recomputes a PivotTable and writes it into its sheet (inside a transaction). */
 export function writePivot(doc: Doc, sheet: Sheet, p: PivotDef): string | null {
   const src = readSource(doc, p)
-  if (!src) return 'The PivotTable data source reference is not valid.'
+  if (!src) return t('The PivotTable data source reference is not valid.')
   const grid = computePivot(p, src)
   // clear the previous output
   if (p.output) {
@@ -473,7 +474,7 @@ export function updatePivot(doc: Doc, id: number, fn: (p: PivotDef) => void, lab
 }
 
 export function refreshAllPivots(doc: Doc) {
-  doc.transact('Refresh All', () => {
+  doc.transact(tx('Refresh All'), () => {
     for (const sheet of doc.wb.sheets) {
       if (!sheet.x.pivots.length) continue
       doc.noteProps(sheet)
@@ -484,9 +485,9 @@ export function refreshAllPivots(doc: Doc) {
 
 export function createPivot(doc: Doc, source: string, target: { sheet: Sheet | 'new'; r: number; c: number }): string | null {
   const src = readSource(doc, { source })
-  if (!src || !src.fields.length) return 'The PivotTable field name is not valid. To create a PivotTable report, you must use data that is organized as a list with labeled columns.'
+  if (!src || !src.fields.length) return t('The PivotTable field name is not valid. To create a PivotTable report, you must use data that is organized as a list with labeled columns.')
   let created: Sheet | null = null
-  doc.transact('Insert PivotTable', () => {
+  doc.transact(tx('Insert PivotTable'), () => {
     let sheet: Sheet
     if (target.sheet === 'new') {
       doc.noteWorkbook()
@@ -528,7 +529,7 @@ export function createPivot(doc: Doc, source: string, target: { sheet: Sheet | '
 export function deletePivot(doc: Doc, id: number) {
   const sheet = doc.wb.sheets.find((s) => s.x.pivots.some((p) => p.id === id))
   if (!sheet) return
-  doc.transact('Clear PivotTable', () => {
+  doc.transact(tx('Clear PivotTable'), () => {
     doc.noteProps(sheet)
     const p = sheet.x.pivots.find((x) => x.id === id)!
     if (p.output) for (let r = p.output.r1; r <= p.output.r2; r++) for (let c = p.output.c1; c <= p.output.c2; c++) if (sheet.cells.has(cellKey(r, c))) doc.write(sheet, r, c, undefined)
@@ -570,7 +571,7 @@ export function groupPivotField(doc: Doc, id: number, field: string, group: Pivo
       const at = list.indexOf(field)
       if (at >= 0) list.splice(at, 0, ...extra)
     }
-  }, group ? 'Group' : 'Ungroup')
+  }, group ? tx('Group') : tx('Ungroup'))
 }
 
 export function setCalcField(doc: Doc, id: number, name: string, formula: string | null): string | null {
@@ -578,9 +579,9 @@ export function setCalcField(doc: Doc, id: number, name: string, formula: string
   if (!p) return null
   if (formula !== null) {
     const src = readSource(doc, { ...p, calcFields: (p.calcFields ?? []).filter((c) => c.name !== name) })
-    if (!src) return 'The PivotTable data source reference is not valid.'
-    if (src.fields.some((f) => f.toUpperCase() === name.toUpperCase()) && !(p.calcFields ?? []).some((c) => c.name === name)) return 'A field with this name already exists.'
-    if (!compileCalcField(doc, formula, src.fields)) return 'There is a problem with this formula.'
+    if (!src) return t('The PivotTable data source reference is not valid.')
+    if (src.fields.some((f) => f.toUpperCase() === name.toUpperCase()) && !(p.calcFields ?? []).some((c) => c.name === name)) return t('A field with this name already exists.')
+    if (!compileCalcField(doc, formula, src.fields)) return t('There is a problem with this formula.')
   }
   updatePivot(doc, id, (x) => {
     const isNew = !(x.calcFields ?? []).some((c) => c.name === name)
@@ -591,7 +592,7 @@ export function setCalcField(doc: Doc, id: number, name: string, formula: string
       if (isNew && !x.values.some((v) => v.field === name)) x.values.push({ field: name, fn: 'sum', showAs: 'normal' })
     } else x.values = x.values.filter((v) => v.field !== name)
     x.calcFields = list.length ? list : undefined
-  }, formula === null ? 'Delete Calculated Field' : 'Calculated Field')
+  }, formula === null ? tx('Delete Calculated Field') : tx('Calculated Field'))
   return null
 }
 
@@ -621,7 +622,7 @@ export function drillDown(doc: Doc, sheet: Sheet, r: number, c: number): boolean
   const res = resolveRef(doc.wb, p.source)
   if (!res) return false
   const width = res.range.c2 - res.range.c1 + 1
-  doc.transact('Show Details', () => {
+  doc.transact(tx('Show Details'), () => {
     doc.noteWorkbook()
     const target = doc.wb.addSheet(doc.wb.uniqueSheetName('Sheet'), doc.activeIndex)
     doc.activeIndex = doc.wb.sheets.indexOf(target)

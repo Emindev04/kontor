@@ -1,5 +1,6 @@
 import type { Editor, JSONContent } from '@tiptap/core'
 import { pickFile } from './commands'
+import { t } from '../i18n'
 
 // Insert › Screenshot, Insert › Object › Text from File and the Quick Part gallery (AutoText).
 
@@ -9,7 +10,7 @@ import { pickFile } from './commands'
  */
 export async function insertScreenshot(editor: Editor): Promise<string | null> {
   const media = navigator.mediaDevices as MediaDevices & { getDisplayMedia?: (o: object) => Promise<MediaStream> }
-  if (!media?.getDisplayMedia) return 'This browser cannot take screenshots.'
+  if (!media?.getDisplayMedia) return t('This browser cannot take screenshots.')
   let stream: MediaStream
   try {
     stream = await media.getDisplayMedia({ video: true, audio: false })
@@ -27,14 +28,14 @@ export async function insertScreenshot(editor: Editor): Promise<string | null> {
     canvas.height = video.videoHeight
     canvas.getContext('2d')!.drawImage(video, 0, 0)
     const src = canvas.toDataURL('image/png')
-    editor.chain().focus().insertContent({ type: 'image', attrs: { src, alt: 'Screenshot' } }).run()
+    editor.chain().focus().insertContent({ type: 'image', attrs: { src, alt: t('Screenshot') } }).run()
     return null
   } finally {
     stream.getTracks().forEach((t) => t.stop())
   }
 }
 
-/** Reads a document file (.docx, .odt, .md, .html, .txt) as editor content. */
+/** Reads a document file (.docx, .doc, .odt, .rtf, .md, .html, .txt) as editor content. */
 async function readDocumentFile(file: File): Promise<JSONContent[] | string> {
   const name = file.name.toLowerCase()
   if (name.endsWith('.docx')) {
@@ -49,13 +50,21 @@ async function readDocumentFile(file: File): Promise<JSONContent[] | string> {
     const { importMarkdown } = await import('../io/formats')
     return importMarkdown(await file.text())
   }
+  if (name.endsWith('.rtf')) {
+    const { importRtf, readRtfFile } = await import('../io/rtf')
+    return importRtf(await readRtfFile(file)).html
+  }
+  if (name.endsWith('.doc')) {
+    const { importDoc } = await import('../io/doc')
+    return importDoc(new Uint8Array(await file.arrayBuffer())).html
+  }
   if (name.endsWith('.html') || name.endsWith('.htm')) return file.text()
   return (await file.text()).split(/\r?\n/).map((line) => ({ type: 'paragraph', content: line ? [{ type: 'text', text: line }] : [] }))
 }
 
 /** Text from File: the content of another document goes in at the cursor. */
 export async function insertTextFromFile(editor: Editor): Promise<string | null> {
-  const file = await pickFile('.docx,.odt,.md,.markdown,.html,.htm,.txt,text/plain')
+  const file = await pickFile('.docx,.doc,.odt,.rtf,.md,.markdown,.html,.htm,.txt,text/plain')
   if (!file) return null
   try {
     const content = await readDocumentFile(file)
@@ -63,7 +72,7 @@ export async function insertTextFromFile(editor: Editor): Promise<string | null>
     return null
   } catch (e) {
     console.error(e)
-    return `"${file.name}" could not be read.`
+    return t('“{name}” could not be read.', { name: file.name })
   }
 }
 
@@ -91,8 +100,8 @@ function storeQuickParts(parts: QuickPart[]) {
 /** Save Selection to Quick Part Gallery: the selected content, under a name, for later documents. */
 export function saveSelectionAsQuickPart(editor: Editor): string | null {
   const { from, to, empty } = editor.state.selection
-  if (empty) return 'Select the text or objects to save first.'
-  const name = prompt('Name of the new building block:', editor.state.doc.textBetween(from, to, ' ').trim().slice(0, 40))
+  if (empty) return t('Select the text or objects to save first.')
+  const name = prompt(t('Name of the new building block:'), editor.state.doc.textBetween(from, to, ' ').trim().slice(0, 40))
   if (!name?.trim()) return null
   const content = editor.state.doc.slice(from, to).content.toJSON() as JSONContent[]
   const parts = loadQuickParts().filter((p) => p.name !== name.trim())

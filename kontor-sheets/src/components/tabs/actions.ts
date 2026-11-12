@@ -5,6 +5,7 @@ import { DEFAULT_SIZE, type Style } from '../../model/style'
 import type { Doc } from '../../commands/doc'
 import { insertDelete, deleteCells, insertCells } from '../../commands/ops'
 import { toggleRich } from '../../commands/richText'
+import { tx } from '../../i18n'
 
 export const FONTS = [
   'Aptos Narrow', 'Arial', 'Arial Black', 'Calibri', 'Calibri Light', 'Cambria', 'Candara', 'Comic Sans MS', 'Consolas', 'Constantia', 'Corbel', 'Courier New',
@@ -22,13 +23,13 @@ export function activeStyle(doc: Doc): Style {
 export function toggleStyle(doc: Doc, key: 'bold' | 'italic' | 'strike') {
   if (toggleRich(doc, key)) return
   const on = !activeStyle(doc)[key]
-  doc.applyStyle({ [key]: on || undefined }, doc.sel.ranges, key === 'bold' ? 'Bold' : key === 'italic' ? 'Italic' : 'Strikethrough')
+  doc.applyStyle({ [key]: on || undefined }, doc.sel.ranges, key === 'bold' ? tx('Bold') : key === 'italic' ? tx('Italic') : tx('Strikethrough'))
 }
 
 export function toggleUnderline(doc: Doc, kind: 'single' | 'double' = 'single') {
   if (toggleRich(doc, 'underline', kind)) return
   const cur = activeStyle(doc).underline
-  doc.applyStyle({ underline: cur === kind ? undefined : kind }, doc.sel.ranges, 'Underline')
+  doc.applyStyle({ underline: cur === kind ? undefined : kind }, doc.sel.ranges, tx('Underline'))
 }
 
 export function stepFontSize(doc: Doc, dir: 1 | -1) {
@@ -37,47 +38,47 @@ export function stepFontSize(doc: Doc, dir: 1 | -1) {
     const list = SIZES.map(Number)
     const next = dir > 0 ? list.find((x) => x > cur) ?? cur + 10 : [...list].reverse().find((x) => x < cur) ?? Math.max(1, cur - 1)
     return { size: next }
-  }, doc.sel.ranges, dir > 0 ? 'Increase Font Size' : 'Decrease Font Size')
+  }, doc.sel.ranges, dir > 0 ? tx('Increase Font Size') : tx('Decrease Font Size'))
 }
 
 export function changeDecimals(doc: Doc, delta: number) {
   const a = doc.sel.active
   const v = doc.value(a.r, a.c)
   const fmt = adjustDecimals(activeStyle(doc).fmt, delta, v)
-  doc.applyStyle({ fmt }, doc.sel.ranges, delta > 0 ? 'Increase Decimal' : 'Decrease Decimal')
+  doc.applyStyle({ fmt }, doc.sel.ranges, delta > 0 ? tx('Increase Decimal') : tx('Decrease Decimal'))
 }
 
 export function setFormat(doc: Doc, fmt: string) {
-  doc.applyStyle({ fmt: fmt === 'General' ? undefined : fmt }, doc.sel.ranges, 'Number Format')
+  doc.applyStyle({ fmt: fmt === 'General' ? undefined : fmt }, doc.sel.ranges, tx('Number Format'))
 }
 
 export function indent(doc: Doc, delta: number) {
   doc.applyStyle((s) => {
     const n = Math.max(0, Math.min(250, (s.indent ?? 0) + delta))
     return { indent: n || undefined, h: n && (!s.h || s.h === 'general' || s.h === 'center') ? 'left' : s.h }
-  }, doc.sel.ranges, 'Indent')
+  }, doc.sel.ranges, tx('Indent'))
 }
 
 export const NUMBER_FORMATS: { id: string; label: string; fmt: string }[] = [
-  { id: 'general', label: 'General', fmt: 'General' },
-  { id: 'number', label: 'Number', fmt: BUILTIN_FORMATS.number },
-  { id: 'currency', label: 'Currency', fmt: BUILTIN_FORMATS.currency },
-  { id: 'accounting', label: 'Accounting', fmt: BUILTIN_FORMATS.accounting },
-  { id: 'shortDate', label: 'Short Date', fmt: BUILTIN_FORMATS.shortDate },
-  { id: 'longDate', label: 'Long Date', fmt: BUILTIN_FORMATS.longDate },
-  { id: 'time', label: 'Time', fmt: BUILTIN_FORMATS.time },
-  { id: 'percentage', label: 'Percentage', fmt: BUILTIN_FORMATS.percentage },
-  { id: 'fraction', label: 'Fraction', fmt: BUILTIN_FORMATS.fraction },
-  { id: 'scientific', label: 'Scientific', fmt: BUILTIN_FORMATS.scientific },
-  { id: 'text', label: 'Text', fmt: BUILTIN_FORMATS.text },
+  { id: 'general', label: tx('General'), fmt: 'General' },
+  { id: 'number', label: tx('Number'), fmt: BUILTIN_FORMATS.number },
+  { id: 'currency', label: tx('Currency'), fmt: BUILTIN_FORMATS.currency },
+  { id: 'accounting', label: tx('Accounting'), fmt: BUILTIN_FORMATS.accounting },
+  { id: 'shortDate', label: tx('Short Date'), fmt: BUILTIN_FORMATS.shortDate },
+  { id: 'longDate', label: tx('Long Date'), fmt: BUILTIN_FORMATS.longDate },
+  { id: 'time', label: tx('Time'), fmt: BUILTIN_FORMATS.time },
+  { id: 'percentage', label: tx('Percentage'), fmt: BUILTIN_FORMATS.percentage },
+  { id: 'fraction', label: tx('Fraction'), fmt: BUILTIN_FORMATS.fraction },
+  { id: 'scientific', label: tx('Scientific'), fmt: BUILTIN_FORMATS.scientific },
+  { id: 'text', label: tx('Text'), fmt: BUILTIN_FORMATS.text },
 ]
 
 export const ACCOUNTING_SYMBOLS: { label: string; fmt: string }[] = [
-  { label: '$ English (United States)', fmt: BUILTIN_FORMATS.accounting },
-  { label: '£ English (United Kingdom)', fmt: '_-[$£-809]* #,##0.00_-;-[$£-809]* #,##0.00_-;_-[$£-809]* "-"??_-;_-@_-' },
-  { label: '€ Euro (€ 123)', fmt: '_-[$€-x-euro2] * #,##0.00_-;-[$€-x-euro2] * #,##0.00_-;_-[$€-x-euro2] * "-"??_-;_-@_-' },
-  { label: '¥ Chinese (PRC)', fmt: '_ [$¥-804]* #,##0.00_ ;_ [$¥-804]* -#,##0.00_ ;_ [$¥-804]* "-"??_ ;_ @_ ' },
-  { label: 'CHF French (Switzerland)', fmt: '_ * #,##0.00_ [$CHF-100C]_ ;_ * -#,##0.00_ [$CHF-100C]_ ;_ * "-"??_ [$CHF-100C]_ ;_ @_ ' },
+  { label: tx('$ English (United States)'), fmt: BUILTIN_FORMATS.accounting },
+  { label: tx('£ English (United Kingdom)'), fmt: '_-[$£-809]* #,##0.00_-;-[$£-809]* #,##0.00_-;_-[$£-809]* "-"??_-;_-@_-' },
+  { label: tx('€ Euro (€ 123)'), fmt: '_-[$€-x-euro2] * #,##0.00_-;-[$€-x-euro2] * #,##0.00_-;_-[$€-x-euro2] * "-"??_-;_-@_-' },
+  { label: tx('¥ Chinese (PRC)'), fmt: '_ [$¥-804]* #,##0.00_ ;_ [$¥-804]* -#,##0.00_ ;_ [$¥-804]* "-"??_ ;_ @_ ' },
+  { label: tx('CHF French (Switzerland)'), fmt: '_ * #,##0.00_ [$CHF-100C]_ ;_ * -#,##0.00_ [$CHF-100C]_ ;_ * "-"??_ [$CHF-100C]_ ;_ @_ ' },
 ]
 
 /** AutoSum: inserts SUM/AVERAGE/… for the data above or to the left. */
@@ -107,7 +108,7 @@ export function autoSum(doc: Doc, fn: string): 'edit' | 'done' {
   // a block: totals below every column (or to the right of every row for a single column of rows)
   const bounded = doc.boundToUsed(rg)
   const lastRowEmpty = Array.from({ length: bounded.c2 - bounded.c1 + 1 }, (_, i) => !sheet.hasValue(bounded.r2, bounded.c1 + i)).every(Boolean)
-  doc.transact('AutoSum', () => {
+  doc.transact(tx('AutoSum'), () => {
     if (lastRowEmpty && bounded.r2 > bounded.r1) {
       for (let c = bounded.c1; c <= bounded.c2; c++) doc.write(sheet, bounded.r2, c, { f: `${fn}(${cellName(bounded.r1, c)}:${cellName(bounded.r2 - 1, c)})`, s: sheet.get(bounded.r2, c)?.s })
     } else {

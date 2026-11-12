@@ -140,6 +140,8 @@ export type HistoryEntry = {
   selAfter: unknown
   sheetBefore: number
   sheetAfter: number
+  /** The Show Changes entry of this command (removed on undo, added again on redo). */
+  change?: import('../model/workbook').ChangeRecord
 }
 
 export function captureAfter(tx: Tx, wb: Workbook): HistoryEntry['after'] {

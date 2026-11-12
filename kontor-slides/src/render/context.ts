@@ -16,6 +16,7 @@ export type RenderCtx = {
   dateText: string
   layout: LayoutId
   master?: MasterData | null
+  effectScheme?: string | null
 }
 
 export function formatDate(d = new Date()) {
@@ -23,7 +24,7 @@ export function formatDate(d = new Date()) {
 }
 
 export function makeRenderCtx(
-  p: { themeId: string; variant: number; fonts?: Presentation['fonts']; colors?: Presentation['colors']; size: SlideSize; headerFooter: HeaderFooter; master?: MasterData | null },
+  p: { themeId: string; variant: number; fonts?: Presentation['fonts']; colors?: Presentation['colors']; size: SlideSize; headerFooter: HeaderFooter; master?: MasterData | null; effectScheme?: string | null },
   slideNumber: number,
   layout: LayoutId,
 ): RenderCtx {
@@ -40,6 +41,7 @@ export function makeRenderCtx(
     dateText: p.headerFooter.dateAuto || !p.headerFooter.dateText ? formatDate() : p.headerFooter.dateText,
     layout,
     master: p.master,
+    effectScheme: p.effectScheme,
   }
 }
 

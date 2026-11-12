@@ -9,7 +9,7 @@ export type DialogKind =
   | 'cfQuick' | 'cfRule' | 'cfManage' | 'validation' | 'customFilter' | 'top10' | 'protectSheet' | 'unprotectSheet' | 'protectWorkbook' | 'allowEditRanges'
   | 'groupDialog' | 'subtotal' | 'dataTable' | 'scenarios' | 'advancedFilter' | 'evaluateFormula' | 'headerFooter' | 'sparklines' | 'goalSeek' | 'textToColumns'
   | 'altText' | 'consolidate' | 'tableTotalCustom' | 'prompt' | 'insertIcon' | 'customViews' | 'pivotGroup' | 'calcField' | 'insertSlicer'
-  | 'recommendedPivots' | 'forecast' | 'getData' | 'accessibility' | 'spelling' | 'errorChecking' | 'showChanges' | 'functionArgs' | 'newTableStyle'
+  | 'recommendedPivots' | 'forecast' | 'getData' | 'accessibility' | 'spelling' | 'errorChecking' | 'showChanges' | 'functionArgs' | 'newTableStyle' | 'macros'
 
 export type DialogSpec = {
   kind: DialogKind
@@ -34,7 +34,7 @@ export interface AppApi {
   alert: (message: string, title?: string) => void
   confirm: (message: string, onYes: () => void, title?: string) => void
   save: () => void
-  saveAs: (format: 'xlsx' | 'csv' | 'ods' | 'txt' | 'html') => void
+  saveAs: (format: 'xlsx' | 'csv' | 'ods' | 'txt' | 'html' | 'xls' | 'xlsb' | 'pdf') => void
   open: () => void
   /** Reopens a workbook from the Recent list (a copy kept in this browser). */
   openRecent: (id: string, name: string) => void

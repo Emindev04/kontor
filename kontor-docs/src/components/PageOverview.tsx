@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { clonePage } from '../io/print'
+import { t } from '../i18n'
 
 type Props = {
   pagesEl: HTMLElement | null
@@ -33,7 +34,7 @@ export function PageOverview({ pagesEl, pages, stride, width, height, layout, on
       cell.className = 'overview-page'
       cell.style.width = `${width * scale}px`
       cell.style.height = `${height * scale}px`
-      cell.title = `Page ${k + 1}`
+      cell.title = t('Page {n}', { n: k + 1 })
       const copy = clonePage(pagesEl, k, stride, width, height)
       copy.style.transform = `scale(${scale})`
       copy.style.transformOrigin = '0 0'
@@ -52,11 +53,11 @@ export function PageOverview({ pagesEl, pages, stride, width, height, layout, on
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
   return (
-    <div className={`page-overview is-${layout}`} role="dialog" aria-label={layout === 'sideBySide' ? 'Side to Side' : 'Multiple Pages'}>
+    <div className={`page-overview is-${layout}`} role="dialog" aria-label={layout === 'sideBySide' ? t('Side to Side') : t('Multiple Pages')}>
       <div className="overview-bar">
-        <strong>{layout === 'sideBySide' ? 'Side to Side' : 'Multiple Pages'}</strong>
-        <span className="dlg-hint">Click a page to edit it.</span>
-        <button type="button" className="sb-btn" aria-label="Close" onClick={onClose}>
+        <strong>{layout === 'sideBySide' ? t('Side to Side') : t('Multiple Pages')}</strong>
+        <span className="dlg-hint">{t('Click a page to edit it.')}</span>
+        <button type="button" className="sb-btn" aria-label={t('Close')} onClick={onClose}>
           <X size={14} />
         </button>
       </div>

@@ -3,6 +3,7 @@
 import type { LayoutId, Mark, MasterData, Para, PlaceholderStyle, Presentation, RichDoc, ShapeElement, Slide, SlideElement, TextStyleOverride } from './types'
 import { baseLayoutBoxes, isTitleStyle, layoutBoxes } from './layouts'
 import { placeholderElement } from './factory'
+import { t, tx } from '../i18n'
 
 export const MASTER_ROOT = 'master:root'
 
@@ -18,7 +19,7 @@ export function masterIdFor(target: 'root' | LayoutId) {
   return target === 'root' ? MASTER_ROOT : `master:${target}`
 }
 
-const BODY_SAMPLE = ['Click to edit Master text styles', 'Second level', 'Third level', 'Fourth level', 'Fifth level']
+const BODY_SAMPLE = [tx('Click to edit Master text styles'), tx('Second level'), tx('Third level'), tx('Fourth level'), tx('Fifth level')]
 
 function marksFor(o: TextStyleOverride | undefined): Mark[] {
   if (!o) return []
@@ -33,11 +34,11 @@ function sampleDoc(style: PlaceholderStyle, master: MasterData | null | undefine
   const title = isTitleStyle(style)
   const o = title ? master?.title : style === 'pic' ? undefined : master?.body
   const marks = marksFor(o)
-  const text = (t: string) => [{ type: 'text' as const, text: t, ...(marks.length ? { marks } : {}) }]
-  if (title) return { type: 'doc', content: [{ type: 'paragraph', attrs: o?.align ? { align: o.align } : undefined, content: text('Click to edit Master title style') }] }
+  const text = (s: string) => [{ type: 'text' as const, text: s, ...(marks.length ? { marks } : {}) }]
+  if (title) return { type: 'doc', content: [{ type: 'paragraph', attrs: o?.align ? { align: o.align } : undefined, content: text(t('Click to edit Master title style')) }] }
   if (style === 'pic') return { type: 'doc', content: [{ type: 'paragraph' }] }
   const levels = style === 'body' || style === 'captionBody' ? BODY_SAMPLE : [BODY_SAMPLE[0]]
-  return { type: 'doc', content: levels.map((t, i): Para => ({ type: 'paragraph', attrs: { level: i, ...(o?.align ? { align: o.align } : {}) }, content: text(t) })) }
+  return { type: 'doc', content: levels.map((line, i): Para => ({ type: 'paragraph', attrs: { level: i, ...(o?.align ? { align: o.align } : {}) }, content: text(t(line)) })) }
 }
 
 /** The master or a layout as an editable slide. */

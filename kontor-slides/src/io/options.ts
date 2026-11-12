@@ -1,19 +1,20 @@
 // User options (File > Options and the Account page), kept in this browser's localStorage.
 import { useSyncExternalStore } from 'react'
+import { tx } from '../i18n'
 
 /** Commands that can be shown on the Quick Access Toolbar in the title bar. */
 export const QAT_COMMANDS = [
-  { id: 'save', label: 'Save' },
-  { id: 'undo', label: 'Undo' },
-  { id: 'redo', label: 'Redo' },
-  { id: 'startShow', label: 'Start From Beginning' },
-  { id: 'new', label: 'New' },
-  { id: 'open', label: 'Open' },
-  { id: 'print', label: 'Print' },
-  { id: 'newSlide', label: 'New Slide' },
-  { id: 'shapes', label: 'Insert Shape (Rectangle)' },
-  { id: 'textbox', label: 'Draw Text Box' },
-  { id: 'spelling', label: 'Spelling' },
+  { id: 'save', label: tx('Save') },
+  { id: 'undo', label: tx('Undo') },
+  { id: 'redo', label: tx('Redo') },
+  { id: 'startShow', label: tx('Start From Beginning') },
+  { id: 'new', label: tx('New') },
+  { id: 'open', label: tx('Open') },
+  { id: 'print', label: tx('Print') },
+  { id: 'newSlide', label: tx('New Slide') },
+  { id: 'shapes', label: tx('Insert Shape (Rectangle)') },
+  { id: 'textbox', label: tx('Draw Text Box') },
+  { id: 'spelling', label: tx('Spelling') },
 ] as const
 
 export type QatId = (typeof QAT_COMMANDS)[number]['id']

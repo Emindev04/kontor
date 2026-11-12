@@ -375,6 +375,7 @@
   background: transparent;
   color: var(--brand);
   text-decoration: underline;
+  white-space: nowrap;
 }
 
 .sb-stats {
@@ -2509,4 +2510,127 @@
 .doc-group {
   margin-left: 4px;
   font-weight: 600;
+}
+
+.bs-inline button {
+  align-self: flex-end;
+}
+
+.link-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--brand-dark);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.bs-inspect {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 560px;
+  margin-top: 8px;
+}
+
+.bs-inspect-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--chrome-border);
+  border-radius: 4px;
+}
+
+.bs-inspect-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bs-inspect-item small {
+  color: var(--muted);
+}
+
+.fc-grad {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 22px;
+}
+
+.change-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.change-item small {
+  color: var(--muted);
+}
+
+.window-hidden {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--canvas);
+}
+
+.data-point-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+/* the left part of the status bar gives up room (clips) before the window scrolls */
+.statusbar .sb-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.statusbar .sb-right {
+  flex: none;
+}
+
+/* ---------- longer interface texts (German, French, Spanish) ---------- */
+
+/* Large ribbon buttons wrap a long label onto a second line; long compound words are hyphenated
+   (the page language is set to the interface language) instead of spilling out of the button. */
+.rb-large,
+.split-large .rb-text {
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+/* Dialog buttons keep their text on one line and grow with it; a footer that gets too wide wraps. */
+.btn {
+  white-space: nowrap;
+}
+
+.modal-footer {
+  flex-wrap: wrap;
+}
+
+/* Tabbed dialogs (Format Cells, Page Setup, Data Validation): the tabs wrap to a second row. */
+.dlg-tabs {
+  flex-wrap: wrap;
+}
+
+/* Status bar: each statistic stays on one line. */
+.sb-stats > span {
+  white-space: nowrap;
+}
+
+/* Translated labels are longer: large buttons may grow a little wider so two lines suffice. */
+html:not([lang='en']) .rb-large {
+  max-width: 112px;
 }

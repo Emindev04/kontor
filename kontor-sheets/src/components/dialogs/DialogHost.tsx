@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import type { DialogSpec } from '../appContext'
 
 const FunctionArgsDialog = lazy(() => import('./FunctionArgsDialog').then((m) => ({ default: m.FunctionArgsDialog })))
+const MacrosDialog = lazy(() => import('./MacroDialog').then((m) => ({ default: m.MacrosDialog })))
 const NewTableStyleDialog = lazy(() => import('./TableStyleDialog').then((m) => ({ default: m.NewTableStyleDialog })))
 import { FormatCellsDialog } from './FormatCellsDialog'
 import {
@@ -93,6 +94,7 @@ export function DialogHost({ spec, onClose, onInsertFunction }: { spec: DialogSp
     case 'spelling': return <SpellingDialog onClose={onClose} />
     case 'errorChecking': return <ErrorCheckingDialog onClose={onClose} />
     case 'showChanges': return <ShowChangesDialog onClose={onClose} />
+    case 'macros': return <Suspense fallback={null}><MacrosDialog onClose={onClose} /></Suspense>
     case 'newTableStyle': return <Suspense fallback={null}><NewTableStyleDialog onClose={onClose} /></Suspense>
     case 'functionArgs': return <Suspense fallback={null}><FunctionArgsDialog fn={spec.fn ?? 'SUM'} onClose={onClose} /></Suspense>
     case 'prompt':

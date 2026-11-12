@@ -5,10 +5,11 @@ import { groupPivotField, readSource, setCalcField } from '../../commands/pivot'
 import { insertSlicers, insertTimeline, slicerFields, timelineFields, type SlicerTarget } from '../../commands/slicers'
 import { Modal, OkCancel } from '../ui'
 import { useApp } from '../appContext'
+import { t, tx } from '../../i18n'
 
 type P = { onClose: () => void; data?: unknown }
 
-const UNITS: [DateUnit, string][] = [['days', 'Days'], ['months', 'Months'], ['quarters', 'Quarters'], ['years', 'Years']]
+const UNITS: [DateUnit, string][] = [['days', tx('Days')], ['months', tx('Months')], ['quarters', tx('Quarters')], ['years', tx('Years')]]
 
 function usePivot(id: unknown): PivotDef | undefined {
   const { doc } = useApp()
@@ -44,50 +45,50 @@ export function PivotGroupDialog({ onClose, data }: P) {
   if (!p) return null
   if (!candidates.length) {
     return (
-      <Modal title="Grouping" onClose={onClose} width={360} footer={<OkCancel onOk={onClose} onCancel={onClose} />}>
-        <p>Cannot group that selection. Only date and number fields can be grouped.</p>
+      <Modal title={t('Grouping')} onClose={onClose} width={360} footer={<OkCancel onOk={onClose} onCancel={onClose} />}>
+        <p>{t('Cannot group that selection. Only date and number fields can be grouped.')}</p>
       </Modal>
     )
   }
   const ok = () => {
     if (info?.isDate) {
-      if (!units.length) return app.alert('Select at least one period.')
+      if (!units.length) return app.alert(t('Select at least one period.'))
       groupPivotField(doc, p.id, field, { kind: 'date', units })
     } else {
       const s = Number(start)
       const e = Number(end)
       const b = Number(step)
-      if (![s, e, b].every(Number.isFinite) || b <= 0 || e < s) return app.alert('The ending value must be greater than the starting value, and By must be greater than 0.')
+      if (![s, e, b].every(Number.isFinite) || b <= 0 || e < s) return app.alert(t('The ending value must be greater than the starting value, and By must be greater than 0.'))
       groupPivotField(doc, p.id, field, { kind: 'number', start: s, end: e, step: b })
     }
     onClose()
   }
   return (
-    <Modal title="Grouping" onClose={onClose} width={360} footer={<OkCancel onOk={ok} onCancel={onClose} extra={existing ? <button type="button" className="btn" onClick={() => { groupPivotField(doc, p.id, field, null); onClose() }}>Ungroup</button> : undefined} />}>
+    <Modal title={t('Grouping')} onClose={onClose} width={360} footer={<OkCancel onOk={ok} onCancel={onClose} extra={existing ? <button type="button" className="btn" onClick={() => { groupPivotField(doc, p.id, field, null); onClose() }}>{t('Ungroup')}</button> : undefined} />}>
       <div className="form">
         <label>
-          Field:{' '}
+          {t('Field:')}{' '}
           <select value={field} onChange={(e) => setField(e.target.value)}>
             {candidates.map((f) => <option key={f}>{f}</option>)}
           </select>
         </label>
         {info?.isDate ? (
           <fieldset className="dlg-fieldset">
-            <legend>By</legend>
+            <legend>{t('By')}</legend>
             <div className="list-box" role="listbox" aria-multiselectable="true">
               {UNITS.map(([u, label]) => (
                 <label key={u} className="check-item">
-                  <input type="checkbox" checked={units.includes(u)} onChange={(e) => setUnits(e.target.checked ? [...units, u] : units.filter((x) => x !== u))} /> {label}
+                  <input type="checkbox" checked={units.includes(u)} onChange={(e) => setUnits(e.target.checked ? [...units, u] : units.filter((x) => x !== u))} /> {t(label)}
                 </label>
               ))}
             </div>
           </fieldset>
         ) : (
           <fieldset className="dlg-fieldset">
-            <legend>Auto</legend>
-            <label>Starting at: <input value={start} onChange={(e) => setStart(e.target.value)} /></label>
-            <label>Ending at: <input value={end} onChange={(e) => setEnd(e.target.value)} /></label>
-            <label>By: <input value={step} onChange={(e) => setStep(e.target.value)} /></label>
+            <legend>{t('Auto')}</legend>
+            <label>{t('Starting at:')}{' '}<input value={start} onChange={(e) => setStart(e.target.value)} /></label>
+            <label>{t('Ending at:')}{' '}<input value={end} onChange={(e) => setEnd(e.target.value)} /></label>
+            <label>{t('By:')}{' '}<input value={step} onChange={(e) => setStep(e.target.value)} /></label>
           </fieldset>
         )}
       </div>
@@ -108,14 +109,14 @@ export function CalcFieldDialog({ onClose, data }: P) {
   const insertField = (f: string) => setFormula((t) => `${t.replace(/\s*0$/, '')}${/^[A-Za-z_][\w.]*$/.test(f) ? f : `'${f}'`}`)
   const save = (close: boolean) => {
     const n = name.trim()
-    if (!n) return app.alert('Enter a name for the calculated field.')
+    if (!n) return app.alert(t('Enter a name for the calculated field.'))
     const err = setCalcField(doc, p.id, n, formula)
     if (err) return app.alert(err)
     if (close) onClose()
   }
   return (
     <Modal
-      title="Insert Calculated Field"
+      title={t('Insert Calculated Field')}
       onClose={onClose}
       width={420}
       footer={
@@ -124,8 +125,8 @@ export function CalcFieldDialog({ onClose, data }: P) {
           onCancel={onClose}
           extra={
             <>
-              <button type="button" className="btn" onClick={() => save(false)}>{known ? 'Modify' : 'Add'}</button>
-              {known && <button type="button" className="btn" onClick={() => { setCalcField(doc, p.id, known.name, null); onClose() }}>Delete</button>}
+              <button type="button" className="btn" onClick={() => save(false)}>{known ? t('Modify') : t('Add')}</button>
+              {known && <button type="button" className="btn" onClick={() => { setCalcField(doc, p.id, known.name, null); onClose() }}>{t('Delete')}</button>}
             </>
           }
         />
@@ -133,7 +134,7 @@ export function CalcFieldDialog({ onClose, data }: P) {
     >
       <div className="form">
         <label>
-          Name:{' '}
+          {t('Name:')}{' '}
           <input list="calc-fields" value={name} onChange={(e) => {
             setName(e.target.value)
             const hit = list.find((c) => c.name === e.target.value)
@@ -141,9 +142,9 @@ export function CalcFieldDialog({ onClose, data }: P) {
           }} />
           <datalist id="calc-fields">{list.map((c) => <option key={c.name} value={c.name} />)}</datalist>
         </label>
-        <label>Formula: <input value={formula} onChange={(e) => setFormula(e.target.value)} /></label>
+        <label>{t('Formula:')}{' '}<input value={formula} onChange={(e) => setFormula(e.target.value)} /></label>
         <fieldset className="dlg-fieldset">
-          <legend>Fields</legend>
+          <legend>{t('Fields')}</legend>
           <div className="list-box">
             {src.fields.map((f) => (
               <button key={f} type="button" className="list-item" onDoubleClick={() => insertField(f)} onClick={() => insertField(f)}>
@@ -172,8 +173,8 @@ export function InsertSlicerDialog({ onClose, data }: P) {
     onClose()
   }
   return (
-    <Modal title={timeline ? 'Insert Timelines' : 'Insert Slicers'} onClose={onClose} width={300} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
-      {timeline && !fields.length && <p>The PivotTable's source has no date fields.</p>}
+    <Modal title={timeline ? t('Insert Timelines') : t('Insert Slicers')} onClose={onClose} width={300} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+      {timeline && !fields.length && <p>{t("The PivotTable's source has no date fields.")}</p>}
       <div className="list-box slicer-pick">
         {fields.map((f) => (
           <label key={f} className="check-item">

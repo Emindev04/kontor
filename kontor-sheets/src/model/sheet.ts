@@ -48,6 +48,9 @@ export type PageSetup = {
   /** Sheet background picture (image id in the workbook); shown on screen, not printed. */
   background?: string
   fitToPage: boolean
+  /** Scale to Fit page counts when fitToPage is on (0 = automatic). */
+  fitWide?: number
+  fitTall?: number
   scale: number
   centerH: boolean
   centerV: boolean

@@ -1,5 +1,7 @@
 // Canvas renderer for the sheet: cells, fills, borders, text overflow, merges, headers and selection.
 import { colName, type Range } from '../model/address'
+import { prefs } from '../model/prefs'
+import { paintFill } from '../model/fill'
 import type { RichRun, Sheet } from '../model/sheet'
 import { runStyle } from '../commands/richText'
 import { DEFAULT_FONT, DEFAULT_SIZE, FONT_STACK, type Border, type Style } from '../model/style'
@@ -11,6 +13,7 @@ import { filterArea, sheetTargets } from '../commands/filter'
 import { validationAt } from '../commands/validation'
 import { OUTLINE_STEP, maxLevel, outlineButtons } from '../commands/outline'
 import { PageGeometry } from './pages'
+import { t } from '../i18n'
 
 export const BRAND = '#15784a'
 const GRID = '#e1e1e1'
@@ -262,10 +265,7 @@ function drawPane(ctx: CanvasRenderingContext2D, g: Geometry, doc: Doc, sheet: S
       const x = Math.round(xs.get(c)!)
       const w = Math.round(xs.get(c)! + g.colW(c)) - x
       const st = deco.style(r, c)
-      if (st.fill) {
-        ctx.fillStyle = st.fill
-        ctx.fillRect(x - 1, y - 1, w + 1, h + 1)
-      }
+      paintFill(ctx, st, x - 1, y - 1, w + 1, h + 1)
       if (st.bt || st.bb || st.bl || st.br || st.bdd || st.bdu) borders.push({ x, y, w, h, st })
       const res = deco.cf(r, c)
       let padL = 0
@@ -297,7 +297,7 @@ function drawPane(ctx: CanvasRenderingContext2D, g: Geometry, doc: Doc, sheet: S
     const st = deco.style(m.r1, m.c1)
     ctx.fillStyle = st.fill ?? '#ffffff'
     ctx.fillRect(Math.round(rect.x), Math.round(rect.y), Math.round(rect.w) - 1, Math.round(rect.h) - 1)
-    if (st.fill) ctx.fillRect(Math.round(rect.x) - 1, Math.round(rect.y) - 1, Math.round(rect.w) + 1, Math.round(rect.h) + 1)
+    paintFill(ctx, st, Math.round(rect.x) - 1, Math.round(rect.y) - 1, Math.round(rect.w) + 1, Math.round(rect.h) + 1)
     if (sheet.hasValue(m.r1, m.c1)) texts.push({ x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.w), h: Math.round(rect.h), clipX: Math.round(rect.x), clipW: Math.round(rect.w), st, r: m.r1, c: m.c1, merged: true })
     borders.push({ x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.w), h: Math.round(rect.h), st: mergedBorders(doc, sheet, m) })
   }
@@ -865,7 +865,7 @@ function drawHeaders(ctx: CanvasRenderingContext2D, g: Geometry, doc: Doc, o: Ov
       ctx.fillRect(x, g.headerH - 2, w, 2)
     }
     ctx.fillStyle = selCols.has(c) ? (fullCols.has(c) ? '#0b4d2d' : BRAND) : HEADER_TEXT
-    const label = colName(c)
+    const label = prefs().r1c1 ? String(c + 1) : colName(c)
     const tw = ctx.measureText(label).width
     if (tw < w - 2) ctx.fillText(label, x + (w - tw) / 2, g.oh + (g.headerH - g.oh) / 2 + 0.5)
     ctx.fillStyle = HEADER_LINE
@@ -983,8 +983,8 @@ function drawPages(ctx: CanvasRenderingContext2D, g: PageGeometry, doc: Doc) {
     foot.forEach((t, i) => put(t, fy, i))
     if (!sheet.page.header && p.n === 1) {
       ctx.fillStyle = '#A6A6A6'
-      const t = 'Add header'
-      ctx.fillText(t, p.x + (p.w - ctx.measureText(t).width) / 2, hy)
+      const text = t('Add header')
+      ctx.fillText(text, p.x + (p.w - ctx.measureText(text).width) / 2, hy)
     }
     drawRulers(ctx, g, p)
   }
@@ -1216,7 +1216,7 @@ function drawExtras(ctx: CanvasRenderingContext2D, g: Geometry, o: Overlays) {
           const x2 = g.colX(cols[j + 1])
           const y1 = g.rowY(rows[i])
           const y2 = g.rowY(rows[i + 1])
-          const label = `Page ${n++}`
+          const label = t('Page {n}', { n: n++ })
           const w = ctx.measureText(label).width
           ctx.fillText(label, (x1 + x2 - w) / 2, (y1 + y2) / 2)
         }

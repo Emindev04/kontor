@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Accessibility, BookCheck, Calculator, Check, ChevronLeft, ChevronRight, FileDiff, FilePenLine, Languages, ListChecks, Lock,
+  Accessibility, BookCheck, EyeOff, Calculator, Check, ChevronLeft, ChevronRight, FileDiff, FilePenLine, Languages, ListChecks, Lock,
   MessageSquare, MessageSquarePlus, MessageSquareX, PanelLeft, Volume2, VolumeX, X,
 } from 'lucide-react'
 import { TextSelection } from '@tiptap/pm/state'
@@ -8,14 +8,15 @@ import { MenuButton, RibbonButton, RibbonGroup, SplitButton } from '../ui'
 import { changeAt, collectChanges, commentRanges, isTracking, type TrackedChange } from '../../editor/Review'
 import type { AppApi, MarkupView, TabProps } from './types'
 import { LANGUAGES, languageLabel } from '../languages'
+import { t, tx } from '../../i18n'
 
 export { LANGUAGES, languageLabel }
 
 export const MARKUP_VIEWS: { id: MarkupView; label: string; detail: string }[] = [
-  { id: 'simple', label: 'Simple Markup', detail: 'Show the final text with a red line where changes are' },
-  { id: 'all', label: 'All Markup', detail: 'Show insertions, deletions and comments' },
-  { id: 'none', label: 'No Markup', detail: 'Show how the document looks with all changes accepted' },
-  { id: 'original', label: 'Original', detail: 'Show the document before any changes' },
+  { id: 'simple', label: tx('Simple Markup'), detail: tx('Show the final text with a red line where changes are') },
+  { id: 'all', label: tx('All Markup'), detail: tx('Show insertions, deletions and comments') },
+  { id: 'none', label: tx('No Markup'), detail: tx('Show how the document looks with all changes accepted') },
+  { id: 'original', label: tx('Original'), detail: tx('Show the document before any changes') },
 ]
 
 /** Read Aloud with the browser's speech synthesis, from the selection or the cursor onwards. */
@@ -24,7 +25,7 @@ function useReadAloud() {
   useEffect(() => () => window.speechSynthesis?.cancel(), [])
   const toggle = (text: string, lang: string) => {
     const synth = window.speechSynthesis
-    if (!synth) return alert('Read Aloud is not supported by this browser.')
+    if (!synth) return alert(t('Read Aloud is not supported by this browser.'))
     if (speaking) {
       synth.cancel()
       setSpeaking(false)
@@ -101,41 +102,41 @@ export function ReviewTab({ app }: TabProps) {
 
   return (
     <>
-      <RibbonGroup label="Proofing" priority={2}>
+      <RibbonGroup label={t('Proofing')} priority={2}>
         <RibbonButton
           large
           icon={BookCheck}
-          label="Spelling & Grammar"
-          title="Spelling (F7): misspelled words are underlined by the browser's spell checker"
+          label={t('Spelling & Grammar')}
+          title={t('Spelling (F7): misspelled words are underlined by the browser\'s spell checker')}
           active={app.spellcheck}
           onClick={() => app.setSpellcheck(!app.spellcheck)}
         />
         <div className="col">
-          <RibbonButton icon={Languages} label="Thesaurus" showLabel title="Thesaurus (Shift+F7)" onClick={() => app.openDialog('thesaurus')} />
-          <RibbonButton icon={Calculator} label="Word Count" showLabel onClick={() => app.openDialog('wordCount')} />
+          <RibbonButton icon={Languages} label={t('Thesaurus')} showLabel title={t('Thesaurus (Shift+F7)')} onClick={() => app.openDialog('thesaurus')} />
+          <RibbonButton icon={Calculator} label={t('Word Count')} showLabel onClick={() => app.openDialog('wordCount')} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Speech" priority={0}>
-        <RibbonButton large icon={read.speaking ? VolumeX : Volume2} label={read.speaking ? 'Stop Reading' : 'Read Aloud'} active={read.speaking} onClick={() => read.toggle(readText(), app.language)} />
+      <RibbonGroup label={t('Speech')} priority={0}>
+        <RibbonButton large icon={read.speaking ? VolumeX : Volume2} label={read.speaking ? t('Stop Reading') : t('Read Aloud')} active={read.speaking} onClick={() => read.toggle(readText(), app.language)} />
       </RibbonGroup>
-      <RibbonGroup label="Accessibility" priority={0}>
-        <RibbonButton large icon={Accessibility} label="Check Accessibility" onClick={() => app.openDialog('accessibility')} />
+      <RibbonGroup label={t('Accessibility')} priority={0}>
+        <RibbonButton large icon={Accessibility} label={t('Check Accessibility')} onClick={() => app.openDialog('accessibility')} />
       </RibbonGroup>
-      <RibbonGroup label="Language" priority={1}>
+      <RibbonGroup label={t('Language')} priority={1}>
         <MenuButton
           large
           wide
           icon={Languages}
-          label="Language"
-          items={[{ heading: 'Set Proofing Language' }, ...LANGUAGES.map((l) => ({ label: l.label, active: app.language === l.id, onClick: () => app.setLanguage(l.id) }))]}
+          label={t('Language')}
+          items={[{ heading: t('Set Proofing Language') }, ...LANGUAGES.map((l) => ({ label: t(l.label), active: app.language === l.id, onClick: () => app.setLanguage(l.id) }))]}
         />
       </RibbonGroup>
-      <RibbonGroup label="Comments" priority={4}>
-        <RibbonButton large icon={MessageSquarePlus} label="New Comment" title="New Comment (Ctrl+Alt+M)" onClick={app.newComment} />
+      <RibbonGroup label={t('Comments')} priority={4}>
+        <RibbonButton large icon={MessageSquarePlus} label={t('New Comment')} title={t('New Comment (Ctrl+Alt+M)')} onClick={app.newComment} />
         <SplitButton
           large
           icon={MessageSquareX}
-          label="Delete"
+          label={t('Delete')}
           disabled={!commentCount}
           onClick={() => {
             const id = app.activeComment
@@ -149,106 +150,110 @@ export function ReviewTab({ app }: TabProps) {
             app.setActiveComment(null)
           }}
           items={[
-            { label: 'Delete', disabled: !app.activeComment, onClick: () => app.activeComment && (editor.commands.removeComment(app.activeComment), app.setComments((c) => { const n = { ...c }; delete n[app.activeComment!]; return n })) },
-            { label: 'Delete All Resolved Comments', onClick: () => {
+            { label: t('Delete'), disabled: !app.activeComment, onClick: () => app.activeComment && (editor.commands.removeComment(app.activeComment), app.setComments((c) => { const n = { ...c }; delete n[app.activeComment!]; return n })) },
+            { label: t('Delete All Resolved Comments'), onClick: () => {
               const ids = Object.values(app.comments).filter((t) => t.resolved).map((t) => t.id)
               ids.forEach((id) => editor.commands.removeComment(id))
               app.setComments((c) => { const n = { ...c }; ids.forEach((id) => delete n[id]); return n })
             } },
-            { label: 'Delete All Comments Shown', onClick: () => deleteAllComments(true) },
-            { label: 'Delete All Comments in Document', onClick: () => deleteAllComments(false) },
+            { label: t('Delete All Comments Shown'), onClick: () => deleteAllComments(true) },
+            { label: t('Delete All Comments in Document'), onClick: () => deleteAllComments(false) },
           ]}
         />
         <div className="col">
-          <RibbonButton icon={ChevronLeft} label="Previous" showLabel title="Previous Comment" disabled={!commentCount} onClick={() => goToComment(app, -1)} />
-          <RibbonButton icon={ChevronRight} label="Next" showLabel title="Next Comment" disabled={!commentCount} onClick={() => goToComment(app, 1)} />
+          <RibbonButton icon={ChevronLeft} label={t('Previous')} showLabel title={t('Previous Comment')} disabled={!commentCount} onClick={() => goToComment(app, -1)} />
+          <RibbonButton icon={ChevronRight} label={t('Next')} showLabel title={t('Next Comment')} disabled={!commentCount} onClick={() => goToComment(app, 1)} />
         </div>
-        <RibbonButton large icon={MessageSquare} label="Show Comments" active={app.showComments} onClick={() => app.setShowComments(!app.showComments)} />
+        <RibbonButton large icon={MessageSquare} label={t('Show Comments')} active={app.showComments} onClick={() => app.setShowComments(!app.showComments)} />
       </RibbonGroup>
-      <RibbonGroup label="Tracking" priority={4} onLauncher={() => app.openDialog('trackOptions')} launcherTitle="Track Changes Options">
+      <RibbonGroup label={t('Tracking')} priority={4} onLauncher={() => app.openDialog('trackOptions')} launcherTitle={t('Track Changes Options')}>
         <SplitButton
           large
           icon={FilePenLine}
-          label="Track Changes"
-          title="Track Changes (Ctrl+Shift+E): keep track of all the changes made to this document"
+          label={t('Track Changes')}
+          title={t('Track Changes (Ctrl+Shift+E): keep track of all the changes made to this document')}
           active={tracking}
-          onClick={() => editor.chain().focus().setTrackChanges(!tracking).run()}
+          onClick={() => (tracking && app.trackLock != null ? app.openDialog('lockTracking') : editor.chain().focus().setTrackChanges(!tracking).run())}
           items={[
-            { label: 'For Everyone', checked: tracking, onClick: () => editor.chain().focus().setTrackChanges(!tracking).run() },
-            { label: 'Change User Name…', onClick: () => app.openDialog('options') },
+            { label: t('For Everyone'), checked: tracking, disabled: tracking && app.trackLock != null, onClick: () => editor.chain().focus().setTrackChanges(!tracking).run() },
+            { label: app.trackLock != null ? t('Unlock Tracking…') : t('Lock Tracking…'), checked: app.trackLock != null, onClick: () => app.openDialog('lockTracking') },
+            { label: t('Change User Name…'), onClick: () => app.openDialog('options') },
           ]}
         />
         <div className="col">
           <MenuButton
             icon={ListChecks}
-            label={MARKUP_VIEWS.find((m) => m.id === app.markupView)!.label}
+            label={t(MARKUP_VIEWS.find((m) => m.id === app.markupView)!.label)}
             showLabel
-            title="Display for Review"
-            items={MARKUP_VIEWS.map((m) => ({ label: m.label, detail: m.detail, active: app.markupView === m.id, onClick: () => app.setMarkupView(m.id) }))}
+            title={t('Display for Review')}
+            items={MARKUP_VIEWS.map((m) => ({ label: t(m.label), detail: t(m.detail), active: app.markupView === m.id, onClick: () => app.setMarkupView(m.id) }))}
             wide
           />
           <MenuButton
             icon={ListChecks}
-            label="Show Markup"
+            label={t('Show Markup')}
             showLabel
             items={[
-              { label: 'Comments', checked: app.showMarkup.comments, onClick: () => app.setShowMarkup({ ...app.showMarkup, comments: !app.showMarkup.comments }) },
-              { label: 'Insertions and Deletions', checked: app.showMarkup.insDel, onClick: () => app.setShowMarkup({ ...app.showMarkup, insDel: !app.showMarkup.insDel }) },
-              { label: 'Highlight Updates', checked: app.showMarkup.highlight, onClick: () => app.setShowMarkup({ ...app.showMarkup, highlight: !app.showMarkup.highlight }) },
+              { label: t('Comments'), checked: app.showMarkup.comments, onClick: () => app.setShowMarkup({ ...app.showMarkup, comments: !app.showMarkup.comments }) },
+              { label: t('Insertions and Deletions'), checked: app.showMarkup.insDel, onClick: () => app.setShowMarkup({ ...app.showMarkup, insDel: !app.showMarkup.insDel }) },
+              { label: t('Highlight Updates'), checked: app.showMarkup.highlight, onClick: () => app.setShowMarkup({ ...app.showMarkup, highlight: !app.showMarkup.highlight }) },
             ]}
           />
-          <RibbonButton icon={PanelLeft} label="Reviewing Pane" showLabel active={app.showReviewingPane} onClick={() => app.setShowReviewingPane(!app.showReviewingPane)} />
+          <RibbonButton icon={PanelLeft} label={t('Reviewing Pane')} showLabel active={app.showReviewingPane} onClick={() => app.setShowReviewingPane(!app.showReviewingPane)} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Changes" priority={3}>
+      <RibbonGroup label={t('Changes')} priority={3}>
         <SplitButton
           large
           icon={Check}
-          label="Accept"
-          title="Accept and Move to Next"
+          label={t('Accept')}
+          title={t('Accept and Move to Next')}
           disabled={!changes.length}
           onClick={() => resolve(true, current, true)}
           items={[
-            { label: 'Accept and Move to Next', onClick: () => resolve(true, current, true) },
-            { label: 'Accept This Change', disabled: !current, onClick: () => resolve(true, current, false) },
-            { label: 'Accept All Changes Shown', onClick: () => editor.chain().focus().acceptAllChanges().run() },
-            { label: 'Accept All Changes', onClick: () => editor.chain().focus().acceptAllChanges().run() },
-            { label: 'Accept All Changes and Stop Tracking', onClick: () => editor.chain().focus().acceptAllChanges().setTrackChanges(false).run() },
+            { label: t('Accept and Move to Next'), onClick: () => resolve(true, current, true) },
+            { label: t('Accept This Change'), disabled: !current, onClick: () => resolve(true, current, false) },
+            { label: t('Accept All Changes Shown'), onClick: () => editor.chain().focus().acceptAllChanges().run() },
+            { label: t('Accept All Changes'), onClick: () => editor.chain().focus().acceptAllChanges().run() },
+            { label: t('Accept All Changes and Stop Tracking'), onClick: () => editor.chain().focus().acceptAllChanges().setTrackChanges(false).run() },
           ]}
         />
         <SplitButton
           large
           icon={X}
-          label="Reject"
-          title="Reject and Move to Next"
+          label={t('Reject')}
+          title={t('Reject and Move to Next')}
           disabled={!changes.length}
           onClick={() => resolve(false, current, true)}
           items={[
-            { label: 'Reject and Move to Next', onClick: () => resolve(false, current, true) },
-            { label: 'Reject Change', disabled: !current, onClick: () => resolve(false, current, false) },
-            { label: 'Reject All Changes Shown', onClick: () => editor.chain().focus().rejectAllChanges().run() },
-            { label: 'Reject All Changes', onClick: () => editor.chain().focus().rejectAllChanges().run() },
-            { label: 'Reject All Changes and Stop Tracking', onClick: () => editor.chain().focus().rejectAllChanges().setTrackChanges(false).run() },
+            { label: t('Reject and Move to Next'), onClick: () => resolve(false, current, true) },
+            { label: t('Reject Change'), disabled: !current, onClick: () => resolve(false, current, false) },
+            { label: t('Reject All Changes Shown'), onClick: () => editor.chain().focus().rejectAllChanges().run() },
+            { label: t('Reject All Changes'), onClick: () => editor.chain().focus().rejectAllChanges().run() },
+            { label: t('Reject All Changes and Stop Tracking'), onClick: () => editor.chain().focus().rejectAllChanges().setTrackChanges(false).run() },
           ]}
         />
         <div className="col">
-          <RibbonButton icon={ChevronLeft} label="Previous" showLabel title="Previous Change" disabled={!changes.length} onClick={() => goToChange(app, -1)} />
-          <RibbonButton icon={ChevronRight} label="Next" showLabel title="Next Change" disabled={!changes.length} onClick={() => goToChange(app, 1)} />
+          <RibbonButton icon={ChevronLeft} label={t('Previous')} showLabel title={t('Previous Change')} disabled={!changes.length} onClick={() => goToChange(app, -1)} />
+          <RibbonButton icon={ChevronRight} label={t('Next')} showLabel title={t('Next Change')} disabled={!changes.length} onClick={() => goToChange(app, 1)} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Compare" priority={1}>
+      <RibbonGroup label={t('Compare')} priority={1}>
         <MenuButton
           large
           icon={FileDiff}
-          label="Compare"
+          label={t('Compare')}
           items={[
-            { label: 'Compare…', detail: 'Compare two versions of a document (legal blackline)', onClick: () => app.openDialog('compare') },
-            { label: 'Combine…', detail: "Combine revisions from another author's copy into this document", onClick: () => app.openDialog('combine') },
+            { label: t('Compare…'), detail: t('Compare two versions of a document (legal blackline)'), onClick: () => app.openDialog('compare') },
+            { label: t('Combine…'), detail: t('Combine revisions from another author\'s copy into this document'), onClick: () => app.openDialog('combine') },
           ]}
         />
       </RibbonGroup>
-      <RibbonGroup label="Protect" priority={0}>
-        <RibbonButton large icon={Lock} label="Restrict Editing" active={app.restriction !== 'none'} onClick={() => app.openDialog('restrict')} />
+      <RibbonGroup label={t('Protect')} priority={0}>
+        <RibbonButton large icon={Lock} label={t('Restrict Editing')} active={app.restriction !== 'none'} onClick={() => app.openDialog('restrict')} />
+      </RibbonGroup>
+      <RibbonGroup label={t('Ink')} priority={0}>
+        <RibbonButton large icon={EyeOff} label={t('Hide Ink')} active={app.hideInk} title={t('Hide or show all ink in the document')} onClick={() => app.setHideInk(!app.hideInk)} />
       </RibbonGroup>
     </>
   )

@@ -3,6 +3,7 @@ import type { Editor } from '@tiptap/react'
 import { NodeSelection } from '@tiptap/pm/state'
 import { X } from 'lucide-react'
 import { diagramCursor, itemsToText, textToItems, type DiagramData } from '../editor/Diagram'
+import { t } from '../i18n'
 
 /** The selected diagram (position and data), or null. */
 export function selectedDiagram(editor: Editor) {
@@ -77,10 +78,10 @@ export function DiagramTextPane({ editor, onClose }: { editor: Editor; onClose: 
     } else commit(`${value.slice(0, start)}\t${value.slice(start)}`, el.selectionStart + 1)
   }
   return (
-    <div className="diagram-pane" role="dialog" aria-label="Diagram text">
+    <div className="diagram-pane" role="dialog" aria-label={t('Diagram text')}>
       <div className="diagram-pane-title">
-        <span>Type your text here</span>
-        <button type="button" className="modal-close" aria-label="Close text pane" onClick={onClose}>
+        <span>{t('Type your text here')}</span>
+        <button type="button" className="modal-close" aria-label={t('Close text pane')} onClick={onClose}>
           <X size={14} />
         </button>
       </div>
@@ -88,14 +89,14 @@ export function DiagramTextPane({ editor, onClose }: { editor: Editor; onClose: 
         ref={ref}
         value={text}
         spellCheck
-        aria-label="Diagram items, one per line"
+        aria-label={t('Diagram items, one per line')}
         onChange={(e) => commit(e.target.value)}
         onKeyDown={onKeyDown}
         onKeyUp={remember}
         onClick={remember}
         onFocus={remember}
       />
-      <p className="diagram-pane-hint">One item per line. Tab indents an item, Shift+Tab moves it back.</p>
+      <p className="diagram-pane-hint">{t('One item per line. Tab indents an item, Shift+Tab moves it back.')}</p>
     </div>
   )
 }

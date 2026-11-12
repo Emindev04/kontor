@@ -1,21 +1,22 @@
 import type { ColorRef, ThemeSlot } from './types'
+import { t, tx } from '../i18n'
 
 export type ThemeColors = Record<ThemeSlot, string>
 
 export const THEME_SLOTS: ThemeSlot[] = ['bg1', 'tx1', 'bg2', 'tx2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6']
 
 export const SLOT_LABELS: Record<ThemeSlot, string> = {
-  bg1: 'Background 1',
-  tx1: 'Text 1',
-  bg2: 'Background 2',
-  tx2: 'Text 2',
-  accent1: 'Accent 1',
-  accent2: 'Accent 2',
-  accent3: 'Accent 3',
-  accent4: 'Accent 4',
-  accent5: 'Accent 5',
-  accent6: 'Accent 6',
-  hlink: 'Hyperlink',
+  bg1: tx('Background 1'),
+  tx1: tx('Text 1'),
+  bg2: tx('Background 2'),
+  tx2: tx('Text 2'),
+  accent1: tx('Accent 1'),
+  accent2: tx('Accent 2'),
+  accent3: tx('Accent 3'),
+  accent4: tx('Accent 4'),
+  accent5: tx('Accent 5'),
+  accent6: tx('Accent 6'),
+  hlink: tx('Hyperlink'),
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -101,14 +102,14 @@ export function luminance(hex: string) {
 /** The five shade/tint rows shown under each theme color in the palette. */
 export function paletteVariants(hex: string): { code: string; label: string }[] {
   const l = rgbToHsl(hex)[2]
-  if (l < 0.15) return [50, 35, 25, 15, 5].map((p) => ({ code: `l${String(p).padStart(2, '0')}`, label: `Lighter ${p}%` }))
-  if (l > 0.9) return [5, 15, 25, 35, 50].map((p) => ({ code: `d${String(p).padStart(2, '0')}`, label: `Darker ${p}%` }))
+  if (l < 0.15) return [50, 35, 25, 15, 5].map((p) => ({ code: `l${String(p).padStart(2, '0')}`, label: t('Lighter {n}%', { n: p }) }))
+  if (l > 0.9) return [5, 15, 25, 35, 50].map((p) => ({ code: `d${String(p).padStart(2, '0')}`, label: t('Darker {n}%', { n: p }) }))
   return [
-    { code: 'l80', label: 'Lighter 80%' },
-    { code: 'l60', label: 'Lighter 60%' },
-    { code: 'l40', label: 'Lighter 40%' },
-    { code: 'd25', label: 'Darker 25%' },
-    { code: 'd50', label: 'Darker 50%' },
+    { code: 'l80', label: t('Lighter 80%') },
+    { code: 'l60', label: t('Lighter 60%') },
+    { code: 'l40', label: t('Lighter 40%') },
+    { code: 'd25', label: t('Darker 25%') },
+    { code: 'd50', label: t('Darker 50%') },
   ]
 }
 

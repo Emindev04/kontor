@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { DrawingView, drawingAttributes, wrapStyle, type DrawingRenderer } from './Drawing'
+import { tx } from '../i18n'
 
 // Charts (Insert > Chart): data lives on the node, the picture is drawn as SVG. Saved as a real
 // chart (with its data) in .docx files.
@@ -20,11 +21,11 @@ export type ChartData = {
 }
 
 export const CHART_PALETTES: Record<string, { label: string; colors: string[] }> = {
-  colorful: { label: 'Colorful', colors: ['#2F6FC4', '#E3742F', '#9E9E9E', '#F2B705', '#4FA3D9', '#5FA84B'] },
-  blue: { label: 'Monochromatic Blue', colors: ['#1F4E8C', '#2F6FC4', '#5B8FD6', '#8FB3E6', '#BCD2F1', '#DEE8F8'] },
-  orange: { label: 'Monochromatic Orange', colors: ['#8A3C0F', '#C25718', '#E3742F', '#EE9D6B', '#F5C3A3', '#FAE1D1'] },
-  green: { label: 'Monochromatic Green', colors: ['#2E5E22', '#447F33', '#5FA84B', '#8DC57E', '#BADDB1', '#DDEFD8'] },
-  gray: { label: 'Monochromatic Gray', colors: ['#262626', '#4D4D4D', '#7A7A7A', '#A6A6A6', '#C9C9C9', '#E6E6E6'] },
+  colorful: { label: tx('Colorful'), colors: ['#2F6FC4', '#E3742F', '#9E9E9E', '#F2B705', '#4FA3D9', '#5FA84B'] },
+  blue: { label: tx('Monochromatic Blue'), colors: ['#1F4E8C', '#2F6FC4', '#5B8FD6', '#8FB3E6', '#BCD2F1', '#DEE8F8'] },
+  orange: { label: tx('Monochromatic Orange'), colors: ['#8A3C0F', '#C25718', '#E3742F', '#EE9D6B', '#F5C3A3', '#FAE1D1'] },
+  green: { label: tx('Monochromatic Green'), colors: ['#2E5E22', '#447F33', '#5FA84B', '#8DC57E', '#BADDB1', '#DDEFD8'] },
+  gray: { label: tx('Monochromatic Gray'), colors: ['#262626', '#4D4D4D', '#7A7A7A', '#A6A6A6', '#C9C9C9', '#E6E6E6'] },
 }
 
 export const DEFAULT_CHART: ChartData = {

@@ -8,6 +8,7 @@ import { RefV } from '../../engine/values'
 import { cellName } from '../../model/address'
 import { useApp } from '../appContext'
 import { Modal, OkCancel } from '../ui'
+import { t } from '../../i18n'
 
 /** Splits the top-level arguments of "NAME(a, b(c, d), "x,y")". */
 export function splitCall(formula: string, name: string): string[] | null {
@@ -90,7 +91,7 @@ export function FunctionArgsDialog({ fn, onClose }: { fn: string; onClose: () =>
     app.focusGrid()
   }
   return (
-    <Modal title="Function Arguments" onClose={onClose} width={520} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Function Arguments')} onClose={onClose} width={520} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="fa">
         <div className="fa-name">{fn}</div>
         <div className="fa-args">
@@ -103,11 +104,11 @@ export function FunctionArgsDialog({ fn, onClose }: { fn: string; onClose: () =>
           ))}
         </div>
         <div className="fa-result">= {result}</div>
-        <p className="fa-desc">{meta?.description ?? 'No description is available for this function.'}</p>
+        <p className="fa-desc">{meta ? t(meta.description) : t('No description is available for this function.')}</p>
         <p className="fa-help">
-          <strong>{label(focus)}</strong> {optional(focus) ? '(optional)' : '(required)'} — argument {focus + 1} of {meta ? `${fn}(${specs.join(', ')})` : fn}.
+          <strong>{label(focus)}</strong> {optional(focus) ? t('(optional)') : t('(required)')} {t('— argument {n} of {function}.', { n: focus + 1, function: meta ? `${fn}(${specs.join(', ')})` : fn })}
         </p>
-        <p className="fa-foot">Formula result = {result} · Cell {cellName(r, c)}</p>
+        <p className="fa-foot">{t('Formula result = {result} · Cell {cell}', { result, cell: cellName(r, c) })}</p>
       </div>
     </Modal>
   )

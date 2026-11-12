@@ -556,6 +556,9 @@ textarea {
   text-align: center;
   line-height: 1.15;
   font-size: 11.5px;
+  /* Long single words (common in German) break with a hyphen instead of running into the next button. */
+  hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 .rb-large > svg:first-child {
@@ -1245,6 +1248,16 @@ label.check {
   font-size: 10.5px;
   line-height: 1.1;
   text-align: center;
+}
+
+.effect-item > span {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  hyphens: auto;
+  overflow-wrap: anywhere;
 }
 
 .effect-item:hover:not(:disabled) {
@@ -2744,6 +2757,56 @@ label.check {
   pointer-events: none;
 }
 
+.compare-list {
+  max-height: 360px;
+  overflow: auto;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.compare-list > li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border, #ddd);
+}
+
+.compare-list ul {
+  margin: 4px 0 0 28px;
+  padding-left: 12px;
+  font-size: 12px;
+}
+
+.equation-preview {
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 1px solid var(--border, #ccc);
+  border-radius: 4px;
+  font-family: Caladea, Georgia, serif;
+  font-size: 24px;
+  text-align: center;
+  background: var(--surface, #fff);
+}
+
+.conn-site {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid #2b6cd4;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.bg-removal-preview {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px;
+  border: 1px solid var(--border, #ccc);
+}
+
 .smart-guide {
   position: absolute;
   pointer-events: none;
@@ -3220,7 +3283,7 @@ label.check {
 
 /* Low-priority items give way first when the window is narrow, as in the original. */
 @container (max-width: 1060px) {
-  .sb-a11y {
+  .statusbar .sb-a11y {
     display: none;
   }
 }
@@ -5134,6 +5197,8 @@ button.section-label:hover {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  width: auto;
+  padding: 0 4px;
   white-space: nowrap;
 }
 

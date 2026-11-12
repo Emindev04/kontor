@@ -9,6 +9,7 @@ import type {
 } from '../model/extras'
 import type { Sheet } from '../model/sheet'
 import type { Workbook } from '../model/workbook'
+import type { CustomTableStyle } from '../model/tableStyles'
 import type { Engine } from '../engine/engine'
 import { chartData, chartSeries } from '../charts/chartData'
 import { seriesColors } from '../charts/renderChart'
@@ -90,7 +91,7 @@ function cfToExcel(r: CFRule): Record<string, unknown> | null {
     case 'errors': return { ...base, type: 'containsText', operator: 'containsErrors' }
     case 'noErrors': return { ...base, type: 'containsText', operator: 'notContainsErrors' }
     case 'dataBar':
-      return { priority: r.priority, type: 'dataBar', cfvo: [cfvo(r.min.type === 'auto' ? { type: 'min' } : r.min), cfvo(r.max.type === 'auto' ? { type: 'max' } : r.max)], color: argb(r.color), gradient: r.gradient, showValue: r.showValue, border: !!r.border, minLength: 0, maxLength: 100 }
+      return { priority: r.priority, type: 'dataBar', cfvo: [cfvo(r.min.type === 'auto' ? { type: 'min' } : r.min), cfvo(r.max.type === 'auto' ? { type: 'max' } : r.max)], color: argb(r.color), gradient: r.gradient, showValue: r.showValue, border: !!r.border, minLength: 0, maxLength: 100, axisPosition: r.axis ?? 'auto', ...(r.negColor ? { negativeBarColorSameAsPositive: false, negativeFillColor: argb(r.negColor) } : {}), ...(r.axisColor ? { axisColor: argb(r.axisColor) } : {}) }
     case 'colorScale': return { priority: r.priority, type: 'colorScale', cfvo: r.stops.map((s) => cfvo(s.v)), color: r.stops.map((s) => argb(s.color)) }
     case 'iconSet': return { priority: r.priority, type: 'iconSet', iconSet: r.set, reverse: r.reverse, showValue: r.showValue, cfvo: [{ type: 'percent', value: 0 }, ...r.thresholds.map(cfvo)] }
   }
@@ -292,7 +293,14 @@ function seriesXml(chart: ChartDef, s: ChartSeries, i: number, data: ReturnType<
   if (kind === 'line' || kind === 'scatter' || kind === 'radar') sp = `<c:spPr><a:ln w="28575" cap="rnd">${solid(color)}<a:round/></a:ln></c:spPr>`
   else if (kind !== 'pie') sp = `<c:spPr>${solid(color)}</c:spPr>`
   const marker = kind === 'line' || kind === 'scatter' || kind === 'radar' ? (chart.markers ? `<c:marker><c:symbol val="circle"/><c:size val="5"/><c:spPr>${solid(color)}</c:spPr></c:marker>` : '<c:marker><c:symbol val="none"/></c:marker>') : ''
-  const pts = kind === 'pie' ? seriesColors(chart, data.categories.length).map((c, j) => `<c:dPt><c:idx val="${j}"/><c:bubble3D val="0"/><c:spPr>${solid(c)}<a:ln><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln></c:spPr></c:dPt>`).join('') : ''
+  // Format Data Point colors (pie slices always get one)
+  const pointColor = (j: number) => chart.pointColors?.[`${i}:${j}`]
+  const own = Object.keys(chart.pointColors ?? {}).filter((k) => k.startsWith(`${i}:`)).map((k) => Number(k.split(':')[1])).sort((a, b) => a - b)
+  const pts = kind === 'pie'
+    ? seriesColors(chart, data.categories.length).map((c, j) => `<c:dPt><c:idx val="${j}"/><c:bubble3D val="0"/><c:spPr>${solid(pointColor(j) ?? c)}<a:ln><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln></c:spPr></c:dPt>`).join('')
+    : kind === 'bar' || kind === 'area'
+      ? own.map((j) => `<c:dPt><c:idx val="${j}"/>${kind === 'bar' ? '<c:invertIfNegative val="0"/>' : ''}<c:bubble3D val="0"/><c:spPr>${solid(pointColor(j)!)}</c:spPr></c:dPt>`).join('')
+      : own.map((j) => `<c:dPt><c:idx val="${j}"/><c:marker><c:symbol val="circle"/><c:size val="5"/><c:spPr>${solid(pointColor(j)!)}</c:spPr></c:marker><c:bubble3D val="0"/></c:dPt>`).join('')
   const trend = s.trendline && kind !== 'pie' && kind !== 'radar' ? `<c:trendline><c:spPr><a:ln w="19050">${solid(color)}<a:prstDash val="sysDash"/></a:ln></c:spPr><c:trendlineType val="${TREND[s.trendline]}"/>${s.trendline === 'movingAverage' ? '<c:period val="2"/>' : ''}<c:dispRSqr val="0"/><c:dispEq val="0"/></c:trendline>` : ''
   const cats = data.categories
   const catXml = kind === 'scatter'
@@ -388,7 +396,7 @@ export function chartXml(chart: ChartDef, wb: Workbook, engine: Engine): string 
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
     '<c:roundedCorners val="0"/>' +
-    `<c:chart>${title}<c:plotArea><c:layout/>${plot}</c:plotArea>${legend}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>` +
+    `<c:chart>${title}<c:plotArea><c:layout/>${plot}${chart.dataTable ? '<c:dTable><c:showHorzBorder val="1"/><c:showVertBorder val="1"/><c:showOutline val="1"/><c:showKeys val="1"/></c:dTable>' : ''}</c:plotArea>${legend}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>` +
     space +
     `<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1000">${chart.fontColor ? solid(chart.fontColor) : ''}</a:defRPr></a:pPr><a:endParaRPr lang="en-US"/></a:p></c:txPr>` +
     '</c:chartSpace>'
@@ -422,7 +430,62 @@ function filterColumnsXml(filters: Record<number, FilterSpec>): string {
     .join('')
 }
 
-function tableXml(t: TableDef, id: number): string {
+/** Adds New Table Style styles to styles.xml: one differential format per table element. */
+export function addTableStyles(xml: string, styles: CustomTableStyle[]): string {
+  const m = /<dxfs count="(\d+)"\s*\/>|<dxfs count="(\d+)">([\s\S]*?)<\/dxfs>/.exec(xml)
+  let count = m ? Number(m[1] ?? m[2]) : 0
+  const added: string[] = []
+  const elements: string[] = []
+  for (const s of styles) {
+    const border = `<border><left style="thin"><color rgb="FF${hex6(s.border)}"/></left><right style="thin"><color rgb="FF${hex6(s.border)}"/></right><top style="thin"><color rgb="FF${hex6(s.border)}"/></top><bottom style="thin"><color rgb="FF${hex6(s.border)}"/></bottom><horizontal style="thin"><color rgb="FF${hex6(s.border)}"/></horizontal></border>`
+    const whole = count++
+    added.push(`<dxf>${border}</dxf>`)
+    const head = count++
+    added.push(`<dxf><font>${s.bold ? '<b/>' : ''}<color rgb="FF${hex6(s.headerText)}"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF${hex6(s.header)}"/><bgColor rgb="FF${hex6(s.header)}"/></patternFill></fill></dxf>`)
+    const band = count++
+    added.push(`<dxf><fill><patternFill patternType="solid"><fgColor rgb="FF${hex6(s.band)}"/><bgColor rgb="FF${hex6(s.band)}"/></patternFill></fill></dxf>`)
+    elements.push(`<tableStyle name="${esc(s.name)}" pivot="0" count="3"><tableStyleElement type="wholeTable" dxfId="${whole}"/><tableStyleElement type="headerRow" dxfId="${head}"/><tableStyleElement type="firstRowStripe" dxfId="${band}"/></tableStyle>`)
+  }
+  const dxfs = `<dxfs count="${count}">${m?.[3] ?? ''}${added.join('')}</dxfs>`
+  let out = m ? xml.replace(m[0], dxfs) : xml.replace(/(<cellStyles[\s\S]*?<\/cellStyles>|<cellStyles[^>]*\/>)/, `$1${dxfs}`)
+  const tsx = `<tableStyles count="${styles.length}" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16">${elements.join('')}</tableStyles>`
+  if (/<tableStyles[\s\S]*?(\/>|<\/tableStyles>)/.test(out)) out = out.replace(/<tableStyles[^>]*\/>|<tableStyles[\s\S]*?<\/tableStyles>/, tsx)
+  else out = out.replace(/(<dxfs[\s\S]*?<\/dxfs>|<dxfs[^>]*\/>)/, `$1${tsx}`)
+  return out
+}
+
+/** Reads the workbook's own table styles back from styles.xml. */
+export function readTableStyles(xml: string): CustomTableStyle[] {
+  const doc = parseXml(xml)
+  const dxfs = kids(deep(doc, NS.main, 'dxfs')[0], NS.main, 'dxf')
+  const rgb = (el: Element | null | undefined) => {
+    const v = el?.getAttribute('rgb')
+    return v && /^[0-9A-Fa-f]{8}$/.test(v) ? '#' + v.slice(2).toUpperCase() : undefined
+  }
+  const out: CustomTableStyle[] = []
+  for (const ts of kids(deep(doc, NS.main, 'tableStyles')[0], NS.main, 'tableStyle')) {
+    if (ts.getAttribute('pivot') !== '0' && ts.getAttribute('table') === '0') continue
+    const el = (type: string) => {
+      const e = kids(ts, NS.main, 'tableStyleElement').find((x) => x.getAttribute('type') === type)
+      return e ? dxfs[Number(e.getAttribute('dxfId'))] : undefined
+    }
+    const head = el('headerRow')
+    const band = el('firstRowStripe')
+    const whole = el('wholeTable')
+    const fill = (d: Element | undefined) => rgb(deep(d ?? null, NS.main, 'fgColor')[0]) ?? rgb(deep(d ?? null, NS.main, 'bgColor')[0])
+    out.push({
+      name: ts.getAttribute('name') ?? 'Table Style',
+      header: fill(head) ?? '#4472C4',
+      headerText: rgb(deep(kid(head ?? null, NS.main, 'font'), NS.main, 'color')[0]) ?? '#FFFFFF',
+      band: fill(band) ?? '#FFFFFF',
+      border: rgb(deep(kid(whole ?? null, NS.main, 'border'), NS.main, 'color')[0]) ?? '#BFBFBF',
+      bold: !!deep(kid(head ?? null, NS.main, 'font'), NS.main, 'b')[0],
+    })
+  }
+  return out
+}
+
+function tableXml(t: TableDef, id: number, custom: Set<string> = new Set()): string {
   const rows = tableRows(t)
   const ref = rangeText(t.range)
   const af = t.header && t.filterButton ? `<autoFilter ref="${rangeText({ ...t.range, r2: t.totals ? t.range.r2 - 1 : t.range.r2 })}">${filterColumnsXml(t.filters)}</autoFilter>` : ''
@@ -443,7 +506,7 @@ function tableXml(t: TableDef, id: number): string {
     `<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="${id}" name="${esc(t.name)}" displayName="${esc(t.name)}" ref="${ref}"${t.header ? '' : ' headerRowCount="0"'}${t.totals ? ' totalsRowCount="1"' : ' totalsRowShown="0"'}>` +
     af +
     `<tableColumns count="${t.columns.length}">${cols}</tableColumns>` +
-    (t.style === 'none' ? '' : `<tableStyleInfo name="${esc(/^TableStyle(Light|Medium|Dark)\d+$/.test(t.style) ? t.style : 'TableStyleMedium2')}" showFirstColumn="${t.firstCol ? 1 : 0}" showLastColumn="${t.lastCol ? 1 : 0}" showRowStripes="${t.bandRows ? 1 : 0}" showColumnStripes="${t.bandCols ? 1 : 0}"/>`) +
+    (t.style === 'none' ? '' : `<tableStyleInfo name="${esc(/^TableStyle(Light|Medium|Dark)\d+$/.test(t.style) || custom.has(t.style) ? t.style : 'TableStyleMedium2')}" showFirstColumn="${t.firstCol ? 1 : 0}" showLastColumn="${t.lastCol ? 1 : 0}" showRowStripes="${t.bandRows ? 1 : 0}" showColumnStripes="${t.bandCols ? 1 : 0}"/>`) +
     '</table>'
   )
 }
@@ -754,7 +817,7 @@ export async function postProcess(buf: ArrayBuffer, wb: Workbook, engine: Engine
       const parts: string[] = []
       for (const t of x.tables) {
         tableN++
-        zip.file(`xl/tables/table${tableN}.xml`, tableXml(t, tableN))
+        zip.file(`xl/tables/table${tableN}.xml`, tableXml(t, tableN, new Set(wb.tableStyles.map((s) => s.name))))
         ct = addOverride(ct, `/xl/tables/table${tableN}.xml`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml')
         const id = nextRid(rels)
         rels = rels.replace('</Relationships>', `<Relationship Id="rId${id}" Type="${REL}/table" Target="../tables/table${tableN}.xml"/></Relationships>`)
@@ -811,6 +874,11 @@ export async function postProcess(buf: ArrayBuffer, wb: Workbook, engine: Engine
     zip.file('xl/workbook.xml', done.workbookXml)
     zip.file(wrPath, done.wbRels)
   }
+  if (wb.tableStyles.length) {
+    const sPath = 'xl/styles.xml'
+    const sx = await zip.file(sPath)?.async('string')
+    if (sx) zip.file(sPath, addTableStyles(sx, wb.tableStyles))
+  }
   if (wb.protection) {
     const wPath = 'xl/workbook.xml'
     let w = await zip.file(wPath)!.async('string')
@@ -818,6 +886,9 @@ export async function postProcess(buf: ArrayBuffer, wb: Workbook, engine: Engine
     w = /<workbookProtection[^>]*\/>/.test(w) ? w.replace(/<workbookProtection[^>]*\/>/, el) : w.replace('<bookViews', `${el}<bookViews`)
     zip.file(wPath, w)
   }
+  // The writer library names another program as the creating application; name ours instead.
+  const appXml = await zip.file('docProps/app.xml')?.async('string')
+  if (appXml) zip.file('docProps/app.xml', appXml.replace(/<Application>[^<]*<\/Application>/, '<Application>Kontor Sheets</Application>'))
   zip.file('[Content_Types].xml', ct)
   const out = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' })
   return new Blob([out as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
@@ -882,7 +953,7 @@ function ruleFromEJ(r: Record<string, unknown>, ranges: Range[], id: number): CF
     case 'timePeriod': return { ...base, type: 'date', period: String(r.timePeriod ?? 'today') as never }
     case 'dataBar': {
       const cf = (r.cfvo as { type?: string; value?: number }[] | undefined) ?? []
-      return { ...base, type: 'dataBar', color: colorFromEJ(r.color) ?? '#638EC6', gradient: r.gradient !== false, min: cfvoFrom(cf[0], 'min'), max: cfvoFrom(cf[1], 'max'), showValue: r.showValue !== false, border: !!r.border }
+      return { ...base, type: 'dataBar', color: colorFromEJ(r.color) ?? '#638EC6', gradient: r.gradient !== false, min: cfvoFrom(cf[0], 'min'), max: cfvoFrom(cf[1], 'max'), showValue: r.showValue !== false, border: !!r.border, ...(r.axisPosition === 'middle' || r.axisPosition === 'none' ? { axis: r.axisPosition } : {}), ...(colorFromEJ(r.negativeFillColor) ? { negColor: colorFromEJ(r.negativeFillColor) } : {}), ...(colorFromEJ(r.axisColor) ? { axisColor: colorFromEJ(r.axisColor) } : {}) }
     }
     case 'colorScale': {
       const cf = (r.cfvo as { type?: string; value?: number }[] | undefined) ?? []
@@ -1137,6 +1208,7 @@ function parseChart(doc: Document, base: Pick<ChartDef, 'id' | 'name' | 'anchor'
   let markers = false
   let smooth = false
   const secondaryAxes = new Set<string>()
+  const pointColors: Record<string, string> = {}
   // value axes that cross at max are secondary
   for (const ax of kids(plot, NS.c, 'valAx')) if (val(kid(ax, NS.c, 'crosses')) === 'max') secondaryAxes.add(val(kid(ax, NS.c, 'axId')) ?? '')
   for (const g of groups) {
@@ -1156,6 +1228,13 @@ function parseChart(doc: Document, base: Pick<ChartDef, 'id' | 'name' | 'anchor'
       const sym = val(kid(kid(s, NS.c, 'marker'), NS.c, 'symbol'))
       if (sym && sym !== 'none') markers = true
       if (val(kid(s, NS.c, 'smooth')) === '1') smooth = true
+      const pie = k.type === 'pie' || k.type === 'doughnut'
+      const defaults = pie ? seriesColors({ palette: 0 } as ChartDef, 256) : []
+      for (const dp of kids(s, NS.c, 'dPt')) {
+        const idx = Number(val(kid(dp, NS.c, 'idx')))
+        const c = colorOf(kid(dp, NS.c, 'spPr')) ?? colorOf(kid(kid(dp, NS.c, 'marker'), NS.c, 'spPr'))
+        if (Number.isInteger(idx) && c && !(pie && defaults[idx]?.toUpperCase() === c.toUpperCase())) pointColors[`${series.length}:${idx}`] = c
+      }
       series.push({
         name: name && /!/.test(name) ? name : name ?? undefined,
         values,
@@ -1204,6 +1283,8 @@ function parseChart(doc: Document, base: Pick<ChartDef, 'id' | 'name' | 'anchor'
   return {
     valueAxis: hasAxisOptions ? valueAxis : undefined,
     errorBars,
+    pointColors: Object.keys(pointColors).length ? pointColors : undefined,
+    dataTable: kid(plot, NS.c, 'dTable') ? true : undefined,
     kind: 'chart',
     ...base,
     type: combo ? 'combo' : first.type,
@@ -1322,6 +1403,11 @@ export async function readPackageExtras(data: ArrayBuffer, wb: Workbook): Promis
   if (!wbXml) return
   const wdoc = parseXml(wbXml)
   const wrels = await relsOf(zip, 'xl/workbook.xml')
+  const stylesXml = await zip.file('xl/styles.xml')?.async('string')
+  if (stylesXml && /<tableStyle /.test(stylesXml)) {
+    const own = readTableStyles(stylesXml)
+    if (own.length) wb.tableStyles = [...wb.tableStyles.filter((s) => !own.some((o) => o.name === s.name)), ...own]
+  }
   const prot = deep(wdoc, NS.main, 'workbookProtection')[0]
   if (prot && prot.getAttribute('lockStructure') === '1') wb.protection = { hash: prot.getAttribute('workbookPassword') ?? (prot.getAttribute('workbookHashValue') ? '*' : ''), structure: true }
   // people who wrote threaded comments

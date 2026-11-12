@@ -1,6 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { DrawingView, drawingAttributes, wrapStyle, type DrawingRenderer } from './Drawing'
 import { shapeSvg } from './Shape'
+import { tx } from '../i18n'
 
 // Diagrams (Insert > Diagram): lists, processes, cycles, hierarchies, relationships, matrices and
 // pyramids drawn from an outline of items. The items and the layout live on the node; the picture is
@@ -23,35 +24,35 @@ export type DiagramItem = { text: string; level: number }
 export type DiagramData = { layout: DiagramLayout; items: DiagramItem[]; colors: string; style: DiagramStyle }
 
 export const DIAGRAM_LAYOUTS: { id: DiagramLayout; label: string; category: string; hint: string }[] = [
-  { id: 'blockList', label: 'Block List', category: 'List', hint: 'Shows items of equal importance as a grid of blocks.' },
-  { id: 'bulletList', label: 'Vertical Bullet List', category: 'List', hint: 'Shows groups of items, each with a heading bar and bullets.' },
-  { id: 'process', label: 'Basic Process', category: 'Process', hint: 'Shows the steps of a process from left to right.' },
-  { id: 'chevron', label: 'Chevron Process', category: 'Process', hint: 'Shows steps as arrows pointing forward, with details below.' },
-  { id: 'cycle', label: 'Basic Cycle', category: 'Cycle', hint: 'Shows stages that repeat in a circle.' },
-  { id: 'radial', label: 'Basic Radial', category: 'Cycle', hint: 'Shows parts around a central idea.' },
-  { id: 'hierarchy', label: 'Organization Chart', category: 'Hierarchy', hint: 'Shows reporting lines or a tree of ideas; indent items to make them children.' },
-  { id: 'venn', label: 'Basic Venn', category: 'Relationship', hint: 'Shows overlapping ideas.' },
-  { id: 'matrix', label: 'Basic Matrix', category: 'Matrix', hint: 'Shows four parts of a whole in quadrants.' },
-  { id: 'pyramid', label: 'Basic Pyramid', category: 'Pyramid', hint: 'Shows levels from the base to the top.' },
+  { id: 'blockList', label: tx('Block List'), category: tx('List'), hint: tx('Shows items of equal importance as a grid of blocks.') },
+  { id: 'bulletList', label: tx('Vertical Bullet List'), category: tx('List'), hint: tx('Shows groups of items, each with a heading bar and bullets.') },
+  { id: 'process', label: tx('Basic Process'), category: tx('Process'), hint: tx('Shows the steps of a process from left to right.') },
+  { id: 'chevron', label: tx('Chevron Process'), category: tx('Process'), hint: tx('Shows steps as arrows pointing forward, with details below.') },
+  { id: 'cycle', label: tx('Basic Cycle'), category: tx('Cycle'), hint: tx('Shows stages that repeat in a circle.') },
+  { id: 'radial', label: tx('Basic Radial'), category: tx('Cycle'), hint: tx('Shows parts around a central idea.') },
+  { id: 'hierarchy', label: tx('Organization Chart'), category: tx('Hierarchy'), hint: tx('Shows reporting lines or a tree of ideas; indent items to make them children.') },
+  { id: 'venn', label: tx('Basic Venn'), category: tx('Relationship'), hint: tx('Shows overlapping ideas.') },
+  { id: 'matrix', label: tx('Basic Matrix'), category: tx('Matrix'), hint: tx('Shows four parts of a whole in quadrants.') },
+  { id: 'pyramid', label: tx('Basic Pyramid'), category: tx('Pyramid'), hint: tx('Shows levels from the base to the top.') },
 ]
 
-export const DIAGRAM_CATEGORIES = ['All', ...Array.from(new Set(DIAGRAM_LAYOUTS.map((l) => l.category)))]
+export const DIAGRAM_CATEGORIES = [tx('All'), ...Array.from(new Set(DIAGRAM_LAYOUTS.map((l) => l.category)))]
 
 export const DIAGRAM_COLORS: Record<string, { label: string; colors: string[] }> = {
-  primary: { label: 'Primary Theme Color', colors: ['#2F6FC4'] },
-  colorful: { label: 'Colorful Range', colors: ['#2F6FC4', '#E3742F', '#9E9E9E', '#F2B705', '#4FA3D9', '#5FA84B'] },
-  blueRange: { label: 'Blue Range', colors: ['#1F4E8C', '#2F6FC4', '#5B8FD6', '#8FB3E6'] },
-  orange: { label: 'Orange', colors: ['#E3742F'] },
-  green: { label: 'Green', colors: ['#5FA84B'] },
-  gray: { label: 'Dark Gray', colors: ['#595959'] },
+  primary: { label: tx('Primary Theme Color'), colors: ['#2F6FC4'] },
+  colorful: { label: tx('Colorful Range'), colors: ['#2F6FC4', '#E3742F', '#9E9E9E', '#F2B705', '#4FA3D9', '#5FA84B'] },
+  blueRange: { label: tx('Blue Range'), colors: ['#1F4E8C', '#2F6FC4', '#5B8FD6', '#8FB3E6'] },
+  orange: { label: tx('Orange'), colors: ['#E3742F'] },
+  green: { label: tx('Green'), colors: ['#5FA84B'] },
+  gray: { label: tx('Dark Gray'), colors: ['#595959'] },
 }
 
 export const DIAGRAM_STYLES: { id: DiagramStyle; label: string }[] = [
-  { id: 'flat', label: 'Simple Fill' },
-  { id: 'subtle', label: 'Subtle Fill' },
-  { id: 'outline', label: 'Outline' },
-  { id: 'gradient', label: 'Gradient' },
-  { id: 'shadow', label: 'Shadow' },
+  { id: 'flat', label: tx('Simple Fill') },
+  { id: 'subtle', label: tx('Subtle Fill') },
+  { id: 'outline', label: tx('Outline') },
+  { id: 'gradient', label: tx('Gradient') },
+  { id: 'shadow', label: tx('Shadow') },
 ]
 
 export const DEFAULT_ITEMS: Record<DiagramLayout, DiagramItem[]> = {

@@ -197,3 +197,52 @@ describe('.pptx package', () => {
     expect(media.length).toBe(1)
   })
 })
+
+describe('.ppsx and .potx', () => {
+  it('only change the main content type', async () => {
+    const pres = sampleDeck()
+    for (const [kind, ct] of [
+      ['ppsx', 'presentationml.slideshow.main+xml'],
+      ['potx', 'presentationml.template.main+xml'],
+    ] as const) {
+      const parts = await buildPptxParts(pres, 'Deck', JSZip, kind)
+      const types = parts.get('[Content_Types].xml') as string
+      expect(types).toContain(`PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.${ct}"`)
+      expect(types).not.toContain('presentationml.presentation.main+xml')
+    }
+  })
+})
+
+describe('transition sounds', () => {
+  it('are stored once as WAV files and referenced from the transition', async () => {
+    const pres = sampleDeck()
+    pres.slides[0].transition = { name: 'fade', duration: 1, advanceOnClick: true, advanceAfter: null, sound: 'chime' }
+    pres.slides[1].transition = { name: 'none', duration: 1, advanceOnClick: true, advanceAfter: null, sound: 'chime' }
+    const parts = await buildPptxParts(pres, 'Deck', JSZip)
+    const wav = parts.get('ppt/media/sound-chime.wav') as Uint8Array
+    expect(new TextDecoder().decode(wav.slice(0, 4))).toBe('RIFF')
+    expect(wav.length).toBeGreaterThan(20000)
+    for (const n of [1, 2]) {
+      const xml = parts.get(`ppt/slides/slide${n}.xml`) as string
+      expect(xml).toMatch(/<p:sndAc><p:stSnd><p:snd r:embed="rId\d+" name="chime.wav"\/><\/p:stSnd><\/p:sndAc><\/p:transition>/)
+      expect(parts.get(`ppt/slides/_rels/slide${n}.xml.rels`)).toContain('Target="../media/sound-chime.wav"')
+    }
+    expect(parts.get('[Content_Types].xml')).toContain('Extension="wav"')
+  })
+})
+
+describe('newer transitions', () => {
+  it('are written with a basic fallback', async () => {
+    const pres = sampleDeck()
+    pres.slides[0].transition = { name: 'morph', duration: 2, advanceOnClick: true, advanceAfter: null }
+    pres.slides[1].transition = { name: 'flip', option: 'fromLeft', duration: 1, advanceOnClick: true, advanceAfter: null }
+    const parts = await buildPptxParts(pres, 'Deck', JSZip)
+    const s1 = parts.get('ppt/slides/slide1.xml') as string
+    expect(s1).toContain('Requires="p159"><p:transition spd="slow" p14:dur="2000"><p159:morph option="byObject"/></p:transition>')
+    expect(s1).toContain('<mc:Fallback><p:transition spd="slow"><p:fade/></p:transition></mc:Fallback>')
+    expect(parts.get('ppt/slides/slide2.xml')).toContain('<p14:flip dir="r"/>')
+    const errors: string[] = []
+    new DOMParser({ onError: (level: string, msg: string) => void (level !== 'warning' && errors.push(msg)) }).parseFromString(s1, 'application/xml')
+    expect(errors).toEqual([])
+  })
+})

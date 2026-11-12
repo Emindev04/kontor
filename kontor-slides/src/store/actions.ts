@@ -15,6 +15,15 @@ import { readImageFile } from '../io/images'
 import { makeRenderCtx, textCtxFor } from '../render/context'
 import { layoutBoxes, STYLE_DEFS } from '../model/layouts'
 import { getActiveEditor } from '../editor/activeEditor'
+import { layoutArea, pictureLayout, type PictureLayoutId } from '../model/pictureLayout'
+import { presColors } from '../model/themes'
+import { resolveColor } from '../model/color'
+import { mapStrings } from '../io/package'
+import { slideBackground } from '../render/context'
+import { slidesFromOutline } from '../model/slidesFromOutline'
+import { equationDoc, equationText } from '../model/equation'
+import { t } from '../i18n'
+import { APP_NAME } from '../brand'
 
 // ---------- Slides ----------
 
@@ -285,7 +294,8 @@ function topLevelSelected(): SlideElement[] {
 
 // ---------- Clipboard ----------
 
-type Clip = { kind: 'elements'; els: SlideElement[]; slideId: string; pastes: number } | { kind: 'slides'; slides: Slide[] }
+/** Copied objects or slides, with the presentation they came from (for Keep Source Formatting and Picture). */
+type Clip = ({ kind: 'elements'; els: SlideElement[]; slideId: string; pastes: number } | { kind: 'slides'; slides: Slide[] }) & { source?: Presentation }
 let clip: Clip | null = null
 
 export function getClipboard() {
@@ -295,12 +305,12 @@ export function getClipboard() {
 export function copySelection() {
   const s = store.get()
   if (s.focus === 'thumbs' && !s.selection.length) {
-    clip = { kind: 'slides', slides: s.pres.slides.filter((x) => s.selectedSlides.includes(x.id)).map((x) => structuredClone(x)) }
+    clip = { kind: 'slides', slides: s.pres.slides.filter((x) => s.selectedSlides.includes(x.id)).map((x) => structuredClone(x)), source: s.pres }
     return clip
   }
   const els = topLevelSelected()
   if (!els.length) return null
-  clip = { kind: 'elements', els: structuredClone(els), slideId: s.slideId, pastes: 0 }
+  clip = { kind: 'elements', els: structuredClone(els), slideId: s.slideId, pastes: 0, source: s.pres }
   return clip
 }
 
@@ -315,9 +325,62 @@ export function cutSelection() {
   }
 }
 
-export function pasteClipboard(c: Clip | null = clip) {
+/** Paste options: Use Destination Theme (default), Keep Source Formatting, or Picture. */
+export type PasteMode = 'destination' | 'keepSource' | 'picture'
+
+/** Theme colors of the source written out as plain colors, so the copy keeps its look in another design. */
+function keepSourceLook<T>(value: T, source: Presentation): T {
+  const colors = presColors(source)
+  return mapStrings(value, (str) => (str.startsWith('theme:') ? resolveColor(str, colors) : str))
+}
+
+export async function pasteClipboard(c: Clip | null = clip, mode: PasteMode = 'destination') {
   if (!c) return
   const s = store.get()
+  if (mode === 'picture' && c.source) {
+    const { elementImage } = await import('../io/slideImages')
+    const src = c.source
+    const items = c.kind === 'elements' ? c.els : []
+    if (c.kind === 'slides') {
+      const { slideImage } = await import('../io/slideImages')
+      const index = src.slides.findIndex((x) => x.id === c.slides[0]?.id)
+      if (index < 0) return
+      const url = await new Promise<string>((resolve) => {
+        slideImage(src, index, 'png', 1280).then((blob) => {
+          const r = new FileReader()
+          r.onload = () => resolve(String(r.result))
+          r.readAsDataURL(blob)
+        })
+      })
+      const img = createImage(url, 1280, Math.round((1280 * src.size.h) / src.size.w), s.pres.size, currentSlide(s).elements)
+      addElements([img])
+      return
+    }
+    if (!items.length) return
+    const whole = items.length === 1 ? items[0] : makeGroup(items.map((e) => cloneElement(e)), uid(), 'Group')
+    const url = await elementImage(src, whole)
+    if (!url) return
+    const b = bounds(whole)
+    const img = createImage(url, Math.round(b.w * 2), Math.round(b.h * 2), s.pres.size, currentSlide(s).elements)
+    addElements([{ ...img, x: b.x + 16, y: b.y + 16, w: b.w, h: b.h }])
+    return
+  }
+  if (mode === 'keepSource' && c.source) {
+    const source = c.source
+    if (c.kind === 'slides') {
+      const copies = c.slides.map((sl, i) => {
+        const copy = keepSourceLook(cloneSlide(sl), source)
+        const rc = makeRenderCtx(source, source.slides.indexOf(sl) + 1 || i + 1, sl.layout)
+        return { ...copy, background: keepSourceLook(slideBackground(sl.background, rc), source) }
+      })
+      const index = currentIndex(s) + 1
+      commit((p) => ({ ...p, slides: [...p.slides.slice(0, index), ...copies, ...p.slides.slice(index)] }), { slideId: copies[0].id, selectedSlides: copies.map((x) => x.id), selection: [] })
+      return
+    }
+    await pasteClipboard({ ...c, els: keepSourceLook(c.els, source), source: undefined })
+    c.pastes++
+    return
+  }
   if (c.kind === 'slides') {
     const copies = c.slides.map(cloneSlide)
     const index = currentIndex(s) + 1
@@ -875,7 +938,7 @@ export function insertSummaryZoom(targetIds?: string[]) {
   const ids = (targetIds?.length ? targetIds : sections.length ? sections : s.pres.slides.slice(0, 6).map((x) => x.id)).slice(0, 12)
   const slide = createSlide('titleOnly', s.pres.size)
   const title = slide.elements[0]
-  if (title?.type === 'shape' && title.text) title.text = { ...title.text, doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Summary' }] }] } }
+  if (title?.type === 'shape' && title.text) title.text = { ...title.text, doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: t('Summary') }] }] } }
   const cols = Math.min(3, ids.length)
   const w = Math.min(s.pres.size.w * 0.26, (s.pres.size.w * 0.84 - (cols - 1) * 24) / cols)
   const h = (w * s.pres.size.h) / s.pres.size.w
@@ -1058,9 +1121,9 @@ export async function createPhotoAlbum(files: File[], o: AlbumOptions) {
   const pics = await Promise.all(files.map(async (f) => ({ name: f.name.replace(/\.[^.]+$/, ''), ...(await readImageFile(f, size)) })))
   const slides: Slide[] = []
   const title = createSlide('title', size)
-  const [t, sub] = title.elements
-  if (t?.type === 'shape' && t.text) t.text = { ...t.text, doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Photo Album' }] }] } }
-  if (sub?.type === 'shape' && sub.text) sub.text = { ...sub.text, doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: `by ${s.pres.author || 'Kontor Slides'}` }] }] } }
+  const [head, sub] = title.elements
+  if (head?.type === 'shape' && head.text) head.text = { ...head.text, doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: t('Photo Album') }] }] } }
+  if (sub?.type === 'shape' && sub.text) sub.text = { ...sub.text, doc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: t('by {name}', { name: s.pres.author || APP_NAME }) }] }] } }
   slides.push(title)
   const per = o.perSlide || 1
   const frameOf = (img: ImageElement): ImageElement => {
@@ -1145,4 +1208,55 @@ export async function setTransparentColor(id: string, fx: number, fy: number, to
   const src = canvas.toDataURL('image/png')
   const sid = store.get().slideId
   commit((p) => updateElements(p, sid, [id], (e) => (e.type === 'image' ? { ...e, src } : e)))
+}
+
+// ---------- Picture Layout and Remove Background ----------
+
+/** Turns the selected pictures into a captioned picture layout (one group). */
+export function applyPictureLayout(layout: PictureLayoutId, caption: string) {
+  const s = store.get()
+  const pics = topLevelSelected().filter((e): e is ImageElement => e.type === 'image')
+  if (!pics.length) return
+  const slide = currentSlide(s)
+  const group = pictureLayout(pics, layout, layoutArea(pics, s.pres.size), caption)
+  const ids = new Set(pics.map((p) => p.id))
+  const firstIdx = Math.min(...pics.map((e) => slide.elements.indexOf(e)))
+  commit(
+    (p) =>
+      updateSlide(p, s.slideId, (sl) => {
+        const rest = sl.elements.filter((e) => !ids.has(e.id))
+        const at = Math.min(firstIdx, rest.length)
+        return { ...sl, elements: [...rest.slice(0, at), group, ...rest.slice(at)] }
+      }),
+    { selection: [group.id] },
+  )
+}
+
+/** Replaces a picture's image (Remove Background keeps its size, crop and formatting). */
+export function replacePictureSource(id: string, src: string) {
+  const sid = store.get().slideId
+  commit((p) => updateElements(p, sid, [id], (e) => (e.type === 'image' ? { ...e, src } : e)))
+}
+
+/** Home > New Slide > Slides from Outline: slides for every top-level line of a text outline. */
+export function insertSlidesFromOutline(text: string) {
+  const s = store.get()
+  const slides = slidesFromOutline(text, s.pres.size)
+  if (!slides.length) return
+  const index = currentIndex(s) + 1
+  commit((p) => ({ ...p, slides: [...p.slides.slice(0, index), ...slides, ...p.slides.slice(index)] }), { slideId: slides[0].id, selectedSlides: slides.map((x) => x.id), selection: [] })
+}
+
+/** Insert > Equation: a text box with the equation, centered on the slide. */
+export function insertEquation(src: string) {
+  const s = store.get()
+  const size = s.pres.size
+  const tb = createTextBox({ x: size.w / 2 - 240, y: size.h / 2 - 40, w: 480, h: 80 }, currentSlide(s).elements)
+  const el: ShapeElement = { ...tb, name: 'Equation', alt: equationText(src), text: { ...tb.text!, doc: equationDoc(src), autofit: 'resize', anchor: 'middle' } }
+  addElements([el])
+}
+
+/** Design > Variants > Effects. */
+export function setEffectScheme(id: string | null) {
+  commit((p) => ({ ...p, effectScheme: id && id !== 'none' ? id : null }))
 }

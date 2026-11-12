@@ -25,10 +25,20 @@ import { ManageSourcesDialog, MarkEntryDialog, NewSourceDialog } from './Citatio
 import { CropDialog, LayoutOptionsDialog } from './DrawingDialogs'
 import { BookmarkDialog, ChartDataDialog, CrossRefDialog, EquationDialog, InsertChartDialog, SignatureDialog } from './ObjectDialogs'
 import { InsertDiagramDialog } from './DiagramDialogs'
+import { DefineBulletDialog, DefineMultilevelDialog } from './ListDialogs'
+import { SortDialog } from './SortDialog'
+import { ManageStylesDialog } from './ManageStylesDialog'
+import { TextEffectsDialog } from './TextEffectsDialog'
+import { CompressDialog } from './CompressDialog'
+import { MergeRuleDialog } from './MergeRuleDialog'
+import { CustomTabsEditor } from './CustomTabsEditor'
+import { LANGUAGES as UI_LANGUAGES, formatNumber, getLanguage, t, tx, type Language } from '../../i18n'
+import { MacrosDialog, RecordMacroDialog } from './MacrosDialog'
+import { CustomTocDialog, IndexDialog, MarkCitationDialog, TableOfAuthoritiesDialog, TableOfFiguresDialog } from './ReferenceDialogs'
 import { EmailMergeDialog, MatchFieldsDialog, RecipientsDialog } from './MergeDialogs'
 
 const IconsDialog = lazy(() => import('./IconsDialog'))
-import { CompareDialog, RestrictDialog, ThesaurusDialog, TrackOptionsDialog } from './ReviewDialogs'
+import { CompareDialog, LockTrackingDialog, RestrictDialog, ThesaurusDialog, TrackOptionsDialog } from './ReviewDialogs'
 import type { AppApi, DialogKind } from '../tabs/types'
 
 type Props = { dialog: DialogKind | null; setDialog: (d: DialogKind | null) => void; editor: Editor; app: AppApi; findQuery: string }
@@ -52,6 +62,36 @@ export function Dialogs({ dialog, setDialog, editor, app }: Props) {
           }}
         />
       )
+    case 'tocCustom':
+      return <CustomTocDialog app={app} onClose={close} />
+    case 'tableOfFigures':
+      return <TableOfFiguresDialog app={app} onClose={close} />
+    case 'markCitation':
+      return <MarkCitationDialog editor={app.mainEditor} onClose={close} />
+    case 'tableOfAuthorities':
+      return <TableOfAuthoritiesDialog editor={app.mainEditor} onClose={close} />
+    case 'indexOptions':
+      return <IndexDialog editor={app.mainEditor} onClose={close} />
+    case 'manageStyles':
+      return <ManageStylesDialog app={app} onClose={close} />
+    case 'lockTracking':
+      return <LockTrackingDialog app={app} onClose={close} />
+    case 'macros':
+      return <MacrosDialog app={app} onClose={close} />
+    case 'recordMacro':
+      return <RecordMacroDialog app={app} onClose={close} />
+    case 'textEffects':
+      return <TextEffectsDialog editor={editor} onClose={close} />
+    case 'compressPictures':
+      return <CompressDialog editor={app.mainEditor} onClose={close} />
+    case 'mergeRule':
+      return <MergeRuleDialog editor={editor} onClose={close} />
+    case 'sortText':
+      return <SortDialog editor={editor} onClose={close} />
+    case 'defineBullet':
+      return <DefineBulletDialog editor={editor} onClose={close} />
+    case 'defineMultilevel':
+      return <DefineMultilevelDialog editor={editor} onClose={close} />
     case 'paragraph':
       return <ParagraphDialog editor={editor} unit={app.settings.unit} onClose={close} />
     case 'pageSetup':
@@ -198,24 +238,23 @@ function GoToDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
     onClose()
   }
   return (
-    <Modal title="Find and Replace – Go To" onClose={onClose} width={440} footer={<OkCancel okLabel={value ? 'Go To' : 'Next'} onOk={go} onCancel={onClose} />}>
+    <Modal title={t('Find and Replace – Go To')} onClose={onClose} width={440} footer={<OkCancel okLabel={value ? t('Go To') : t('Next')} onOk={go} onCancel={onClose} />}>
       <div className="goto">
         <label>
-          Go to what:
-          <select size={2} value={what} onChange={(e) => setWhat(e.target.value as 'page' | 'heading')}>
-            <option value="page">Page</option>
-            <option value="heading">Heading</option>
+          {t('Go to what:')}<select size={2} value={what} onChange={(e) => setWhat(e.target.value as 'page' | 'heading')}>
+            <option value="page">{t('Page')}</option>
+            <option value="heading">{t('Heading')}</option>
           </select>
         </label>
         <label>
-          {what === 'page' ? 'Enter page number:' : 'Enter heading text:'}
+          {what === 'page' ? t('Enter page number:') : t('Enter heading text:')}
           <input autoFocus value={value} list={what === 'heading' ? 'goto-headings' : undefined} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && go()} />
           <datalist id="goto-headings">
             {headings.map((h) => (
               <option key={h.pos} value={h.text} />
             ))}
           </datalist>
-          <small className="dlg-hint">{what === 'page' ? `Enter + and − to move relative to the current page (${app.currentPage} of ${app.pages}).` : `${headings.length} headings in the document.`}</small>
+          <small className="dlg-hint">{what === 'page' ? t('Enter + and − to move relative to the current page ({page} of {pages}).', { page: app.currentPage, pages: app.pages }) : t('{n} headings in the document.', { n: headings.length })}</small>
         </label>
       </div>
     </Modal>
@@ -225,22 +264,22 @@ function GoToDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
 function WordCountDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
   const s = documentStats(app.mainEditor, app.pages)
   const rows: [string, number][] = [
-    ['Pages', s.pages],
-    ['Words', s.words],
-    ['Characters (no spaces)', s.charactersNoSpaces],
-    ['Characters (with spaces)', s.characters],
-    ['Paragraphs', s.paragraphs],
-    ['Lines', s.lines],
+    [t('Pages'), s.pages],
+    [t('Words'), s.words],
+    [t('Characters (no spaces)'), s.charactersNoSpaces],
+    [t('Characters (with spaces)'), s.characters],
+    [t('Paragraphs'), s.paragraphs],
+    [t('Lines'), s.lines],
   ]
   return (
-    <Modal title="Word Count" onClose={onClose} width={340} footer={<button type="button" className="btn btn-primary" onClick={onClose}>Close</button>}>
-      <p className="dlg-hint">{s.selection ? 'Statistics for the selection:' : 'Statistics:'}</p>
+    <Modal title={t('Word Count')} onClose={onClose} width={340} footer={<button type="button" className="btn btn-primary" onClick={onClose}>{t('Close')}</button>}>
+      <p className="dlg-hint">{s.selection ? t('Statistics for the selection:') : t('Statistics:')}</p>
       <table className="stats">
         <tbody>
           {rows.map(([k, v]) => (
             <tr key={k}>
               <td>{k}</td>
-              <td>{v.toLocaleString('en-US')}</td>
+              <td>{formatNumber(v)}</td>
             </tr>
           ))}
         </tbody>
@@ -252,7 +291,7 @@ function WordCountDialog({ app, onClose }: { app: AppApi; onClose: () => void })
 function WatermarkDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
   const w = app.design.watermark
   const [kind, setKind] = useState<'none' | 'text' | 'picture'>(w ? (w.image ? 'picture' : 'text') : 'none')
-  const [text, setText] = useState(w?.text || 'CONFIDENTIAL')
+  const [text, setText] = useState(w?.text || t('CONFIDENTIAL'))
   const [color, setColor] = useState(w?.color ?? '#BFBFBF')
   const [semi, setSemi] = useState(w?.semitransparent ?? true)
   const [layout, setLayout] = useState(w?.layout ?? 'diagonal')
@@ -266,10 +305,10 @@ function WatermarkDialog({ app, onClose }: { app: AppApi; onClose: () => void })
     onClose()
   }
   return (
-    <Modal title="Printed Watermark" onClose={onClose} width={440} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Printed Watermark')} onClose={onClose} width={440} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="dlg-stack">
-        <label><input type="radio" checked={kind === 'none'} onChange={() => setKind('none')} /> No watermark</label>
-        <label><input type="radio" checked={kind === 'picture'} onChange={() => setKind('picture')} /> Picture watermark</label>
+        <label><input type="radio" checked={kind === 'none'} onChange={() => setKind('none')} /> {t('No watermark')}</label>
+        <label><input type="radio" checked={kind === 'picture'} onChange={() => setKind('picture')} /> {t('Picture watermark')}</label>
         <fieldset className="dlg-fieldset" disabled={kind !== 'picture'}>
           <div className="dlg-inline">
             <button
@@ -280,41 +319,37 @@ function WatermarkDialog({ app, onClose }: { app: AppApi; onClose: () => void })
                 if (file) setImage(await readFileAsDataUrl(file))
               }}
             >
-              Select Picture…
-            </button>
-            <span className="dlg-hint">{image ? 'Picture selected' : 'No picture'}</span>
+              {t('Select Picture…')}</button>
+            <span className="dlg-hint">{image ? t('Picture selected') : t('No picture')}</span>
           </div>
           <label className="dlg-inline">
-            Scale:
-            <select value={scale} onChange={(e) => setScale(Number(e.target.value))}>
+            {t('Scale:')}<select value={scale} onChange={(e) => setScale(Number(e.target.value))}>
               {[0.5, 0.75, 1, 1.25, 1.5].map((v) => (
                 <option key={v} value={v}>
                   {v * 100}%
                 </option>
               ))}
             </select>
-            <label><input type="checkbox" checked={washout} onChange={(e) => setWashout(e.target.checked)} /> Washout</label>
+            <label><input type="checkbox" checked={washout} onChange={(e) => setWashout(e.target.checked)} /> {t('Washout')}</label>
           </label>
         </fieldset>
-        <label><input type="radio" checked={kind === 'text'} onChange={() => setKind('text')} /> Text watermark</label>
+        <label><input type="radio" checked={kind === 'text'} onChange={() => setKind('text')} /> {t('Text watermark')}</label>
         <fieldset className="dlg-fieldset" disabled={kind !== 'text'}>
           <label className="dlg-inline">
-            Text:
-            <input list="watermark-texts" value={text} onChange={(e) => setText(e.target.value)} />
+            {t('Text:')}<input list="watermark-texts" value={text} onChange={(e) => setText(e.target.value)} />
             <datalist id="watermark-texts">
-              {['ASAP', 'CONFIDENTIAL', 'DO NOT COPY', 'DRAFT', 'ORIGINAL', 'PERSONAL', 'SAMPLE', 'TOP SECRET', 'URGENT'].map((t) => (
-                <option key={t} value={t} />
+              {[t('ASAP'), t('CONFIDENTIAL'), t('DO NOT COPY'), t('DRAFT'), t('ORIGINAL'), t('PERSONAL'), t('SAMPLE'), t('TOP SECRET'), t('URGENT')].map((w) => (
+                <option key={w} value={w} />
               ))}
             </datalist>
           </label>
           <label className="dlg-inline">
-            Color: <input type="color" value={color} onChange={(e) => setColor(e.target.value.toUpperCase())} />
-            <label><input type="checkbox" checked={semi} onChange={(e) => setSemi(e.target.checked)} /> Semitransparent</label>
+            {t('Color:')}{' '}<input type="color" value={color} onChange={(e) => setColor(e.target.value.toUpperCase())} />
+            <label><input type="checkbox" checked={semi} onChange={(e) => setSemi(e.target.checked)} /> {t('Semitransparent')}</label>
           </label>
           <div className="dlg-inline">
-            Layout:
-            <label><input type="radio" checked={layout === 'diagonal'} onChange={() => setLayout('diagonal')} /> Diagonal</label>
-            <label><input type="radio" checked={layout === 'horizontal'} onChange={() => setLayout('horizontal')} /> Horizontal</label>
+            {t('Layout:')}<label><input type="radio" checked={layout === 'diagonal'} onChange={() => setLayout('diagonal')} /> {t('Diagonal')}</label>
+            <label><input type="radio" checked={layout === 'horizontal'} onChange={() => setLayout('horizontal')} /> {t('Horizontal')}</label>
           </div>
         </fieldset>
       </div>
@@ -333,76 +368,93 @@ function OptionsDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
   const [paste, setPaste] = useState(app.settings.defaultPaste ?? 'keep')
   const [hiddenTabs, setHiddenTabs] = useState<string[]>(app.settings.hiddenTabs ?? [])
   const [qat, setQat] = useState<string[]>(app.settings.qat ?? DEFAULT_QAT)
+  const [uiLanguage, setUiLanguage] = useState<Language>(getLanguage())
   const apply = () => {
-    app.setSettings({ ...app.settings, unit, widowControl: widow, userName: name.trim() || 'Author', userInitials: initials.trim() || 'A', smartQuotes: quotes, autoCorrect, defaultPaste: paste, hiddenTabs, qat })
+    app.setSettings({ ...app.settings, unit, widowControl: widow, userName: name.trim() || t('Author'), userInitials: initials.trim() || 'A', smartQuotes: quotes, autoCorrect, defaultPaste: paste, hiddenTabs, qat })
     app.setSpellcheck(spell)
     onClose()
+    if (uiLanguage !== getLanguage()) app.setInterfaceLanguage(uiLanguage)
   }
   return (
-    <Modal title={`${APP_NAME} Options`} onClose={onClose} width={460} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('{app} Options', { app: APP_NAME })} onClose={onClose} width={460} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="dlg-stack">
         <fieldset className="dlg-fieldset">
-          <legend>Display</legend>
+          <legend>{t('General')}</legend>
           <label className="dlg-inline">
-            Show measurements in units of:
-            <select value={unit} onChange={(e) => setUnit(e.target.value as Unit)}>
+            {t('Interface language:')}{' '}
+            <select value={uiLanguage} onChange={(e) => setUiLanguage(e.target.value as Language)}>
+              {UI_LANGUAGES.map((l) => (
+                <option key={l.id} value={l.id} lang={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {uiLanguage !== getLanguage() && <p className="dlg-hint">{t('The program restarts in the new language when you click OK. Your document stays open.')}</p>}
+        </fieldset>
+        <fieldset className="dlg-fieldset">
+          <legend>{t('Display')}</legend>
+          <label className="dlg-inline">
+            {t('Show measurements in units of:')}<select value={unit} onChange={(e) => setUnit(e.target.value as Unit)}>
               {UNITS.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.label}
+                  {t(u.label)}
                 </option>
               ))}
             </select>
           </label>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Personalize your copy</legend>
+          <legend>{t('Personalize your copy')}</legend>
           <label className="dlg-inline">
-            User name: <input value={name} onChange={(e) => setName(e.target.value)} />
+            {t('User name:')}{' '}<input value={name} onChange={(e) => setName(e.target.value)} />
           </label>
           <label className="dlg-inline">
-            Initials: <input value={initials} maxLength={4} onChange={(e) => setInitials(e.target.value)} />
+            {t('Initials:')}{' '}<input value={initials} maxLength={4} onChange={(e) => setInitials(e.target.value)} />
           </label>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Proofing</legend>
-          <label><input type="checkbox" checked={spell} onChange={(e) => setSpell(e.target.checked)} /> Check spelling as you type</label>
-          <label><input type="checkbox" checked={quotes} onChange={(e) => setQuotes(e.target.checked)} /> Replace "straight quotes" with “smart quotes” as you type</label>
-          <label><input type="checkbox" checked={autoCorrect} onChange={(e) => setAutoCorrect(e.target.checked)} /> Replace text as you type (AutoCorrect)</label>
+          <legend>{t('Proofing')}</legend>
+          <label><input type="checkbox" checked={spell} onChange={(e) => setSpell(e.target.checked)} /> {t('Check spelling as you type')}</label>
+          <label><input type="checkbox" checked={quotes} onChange={(e) => setQuotes(e.target.checked)} /> {t('Replace "straight quotes" with “smart quotes” as you type')}</label>
+          <label><input type="checkbox" checked={autoCorrect} onChange={(e) => setAutoCorrect(e.target.checked)} /> {t('Replace text as you type (AutoCorrect)')}</label>
           <button type="button" className="btn" onClick={() => app.openDialog('autoCorrect')}>
-            AutoCorrect Options…
-          </button>
+            {t('AutoCorrect Options…')}</button>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Cut, copy, and paste</legend>
+          <legend>{t('Cut, copy, and paste')}</legend>
           <label className="dlg-inline">
-            Pasting from other programs:
-            <select value={paste} onChange={(e) => setPaste(e.target.value as typeof paste)}>
-              <option value="keep">Keep Source Formatting</option>
-              <option value="merge">Merge Formatting</option>
-              <option value="text">Keep Text Only</option>
+            {t('Pasting from other programs:')}<select value={paste} onChange={(e) => setPaste(e.target.value as typeof paste)}>
+              <option value="keep">{t('Keep Source Formatting')}</option>
+              <option value="merge">{t('Merge Formatting')}</option>
+              <option value="text">{t('Keep Text Only')}</option>
             </select>
           </label>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Layout</legend>
-          <label><input type="checkbox" checked={widow} onChange={(e) => setWidow(e.target.checked)} /> Widow/Orphan control for all paragraphs</label>
+          <legend>{t('Layout')}</legend>
+          <label><input type="checkbox" checked={widow} onChange={(e) => setWidow(e.target.checked)} /> {t('Widow/Orphan control for all paragraphs')}</label>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Customize the Ribbon</legend>
+          <legend>{t('Customize the Ribbon')}</legend>
           <div className="dlg-checks-grid">
-            {CUSTOMIZABLE_TABS.map((t) => (
-              <label key={t.id}>
-                <input type="checkbox" checked={!hiddenTabs.includes(t.id)} onChange={(e) => setHiddenTabs(e.target.checked ? hiddenTabs.filter((h) => h !== t.id) : [...hiddenTabs, t.id])} /> {t.label}
+            {CUSTOMIZABLE_TABS.map((tab) => (
+              <label key={tab.id}>
+                <input type="checkbox" checked={!hiddenTabs.includes(tab.id)} onChange={(e) => setHiddenTabs(e.target.checked ? hiddenTabs.filter((h) => h !== tab.id) : [...hiddenTabs, tab.id])} /> {t(tab.label)}
               </label>
             ))}
           </div>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Quick Access Toolbar</legend>
+          <legend>{t('Custom tabs and groups')}</legend>
+          <CustomTabsEditor app={app} />
+        </fieldset>
+        <fieldset className="dlg-fieldset">
+          <legend>{t('Quick Access Toolbar')}</legend>
           <div className="dlg-checks-grid">
             {QAT_COMMANDS.map((c) => (
               <label key={c.id}>
-                <input type="checkbox" checked={qat.includes(c.id)} onChange={(e) => setQat(e.target.checked ? QAT_COMMANDS.map((x) => x.id).filter((x) => x === c.id || qat.includes(x)) : qat.filter((q) => q !== c.id))} /> {c.label}
+                <input type="checkbox" checked={qat.includes(c.id)} onChange={(e) => setQat(e.target.checked ? QAT_COMMANDS.map((x) => x.id).filter((x) => x === c.id || qat.includes(x)) : qat.filter((q) => q !== c.id))} /> {t(c.label)}
               </label>
             ))}
           </div>
@@ -413,21 +465,21 @@ function OptionsDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
 }
 
 const SHORTCUTS: [string, [string, string][]][] = [
-  ['File', [['Ctrl+S', 'Save as .docx'], ['Ctrl+O', 'Open'], ['Ctrl+P', 'Print'], ['F12', 'Save As'], ['Ctrl+Alt+N', 'New document']]],
-  ['Editing', [['Ctrl+Z / Ctrl+Y', 'Undo / Redo'], ['Ctrl+X / C / V', 'Cut / Copy / Paste'], ['Ctrl+F', 'Find'], ['Ctrl+H', 'Replace'], ['Ctrl+G', 'Go To'], ['Ctrl+K', 'Insert link'], ['Ctrl+A', 'Select all'], ['Ctrl+Enter', 'Page break'], ['Shift+Enter', 'Line break']]],
-  ['Character', [['Ctrl+B / I / U', 'Bold / Italic / Underline'], ['Ctrl+Shift+D', 'Double underline'], ['Ctrl+= / Ctrl+Shift++', 'Subscript / Superscript'], ['Ctrl+Shift+A', 'All caps'], ['Ctrl+Shift+K', 'Small caps'], ['Ctrl+Shift+> / <', 'Grow / shrink font'], ['Ctrl+] / [', 'Font size +1 / −1 pt'], ['Ctrl+D', 'Font dialog'], ['Ctrl+Space', 'Remove character formatting'], ['Shift+F3', 'Change case'], ['Ctrl+Shift+C / V', 'Copy / paste formatting']]],
-  ['Paragraph', [['Ctrl+L / E / R / J', 'Left / Center / Right / Justify'], ['Ctrl+1 / 2 / 5', 'Single / double / 1.5 line spacing'], ['Ctrl+0', 'Toggle 12 pt space before'], ['Ctrl+M / Ctrl+Shift+M', 'Indent / outdent'], ['Ctrl+T / Ctrl+Shift+T', 'Hanging indent'], ['Ctrl+Q', 'Remove paragraph formatting'], ['Ctrl+Alt+1 … 3', 'Heading 1 … 3'], ['Ctrl+Shift+N', 'Normal style'], ['Ctrl+Shift+L', 'Bullets'], ['Ctrl+*', 'Show/hide ¶']]],
-  ['Other', [['Alt+Shift+D / T', 'Insert date / time'], ['Ctrl+F1', 'Collapse the ribbon'], ['F7', 'Spelling'], ['Esc', 'Close header/footer, stop Format Painter']]],
+  [tx('File'), [['Ctrl+S', tx('Save as .docx')], ['Ctrl+O', tx('Open')], ['Ctrl+P', tx('Print')], ['F12', tx('Save As')], ['Ctrl+Alt+N', tx('New document')]]],
+  [tx('Editing'), [['Ctrl+Z / Ctrl+Y', tx('Undo / Redo')], ['Ctrl+X / C / V', tx('Cut / Copy / Paste')], ['Ctrl+F', tx('Find')], ['Ctrl+H', tx('Replace')], ['Ctrl+G', tx('Go To')], ['Ctrl+K', tx('Insert link')], ['Ctrl+A', tx('Select all')], ['Ctrl+Enter', tx('Page break')], ['Shift+Enter', tx('Line break')]]],
+  [tx('Character'), [['Ctrl+B / I / U', tx('Bold / Italic / Underline')], ['Ctrl+Shift+D', tx('Double underline')], ['Ctrl+= / Ctrl+Shift++', tx('Subscript / Superscript')], ['Ctrl+Shift+A', tx('All caps')], ['Ctrl+Shift+K', tx('Small caps')], ['Ctrl+Shift+> / <', tx('Grow / shrink font')], ['Ctrl+] / [', tx('Font size +1 / −1 pt')], ['Ctrl+D', tx('Font dialog')], ['Ctrl+Space', tx('Remove character formatting')], ['Shift+F3', tx('Change case')], ['Ctrl+Shift+C / V', tx('Copy / paste formatting')]]],
+  [tx('Paragraph'), [['Ctrl+L / E / R / J', tx('Left / Center / Right / Justify')], ['Ctrl+1 / 2 / 5', tx('Single / double / 1.5 line spacing')], ['Ctrl+0', tx('Toggle 12 pt space before')], ['Ctrl+M / Ctrl+Shift+M', tx('Indent / outdent')], ['Ctrl+T / Ctrl+Shift+T', tx('Hanging indent')], ['Ctrl+Q', tx('Remove paragraph formatting')], ['Ctrl+Alt+1 … 3', tx('Heading 1 … 3')], ['Ctrl+Shift+N', tx('Normal style')], ['Ctrl+Shift+L', tx('Bullets')], ['Ctrl+*', tx('Show/hide ¶')]]],
+  [tx('Other'), [['Alt+Shift+D / T', tx('Insert date / time')], ['Ctrl+F1', tx('Collapse the ribbon')], ['F7', tx('Spelling')], ['Esc', tx('Close header/footer, stop Format Painter')]]],
 ]
 
 function HelpDialog({ onClose }: { onClose: () => void }) {
   return (
-    <Modal title={`${APP_NAME} Help`} onClose={onClose} width={640} footer={<button type="button" className="btn btn-primary" onClick={onClose}>Close</button>}>
-      <p className="dlg-hint">Keyboard shortcuts. On a Mac, use ⌘ instead of Ctrl. Double-click the top or bottom margin to edit headers and footers; double-click the body to return.</p>
+    <Modal title={t('{app} Help', { app: APP_NAME })} onClose={onClose} width={640} footer={<button type="button" className="btn btn-primary" onClick={onClose}>{t('Close')}</button>}>
+      <p className="dlg-hint">{t('Keyboard shortcuts. On a Mac, use ⌘ instead of Ctrl. Double-click the top or bottom margin to edit headers and footers; double-click the body to return.')}</p>
       <div className="shortcut-cols">
         {SHORTCUTS.map(([group, list]) => (
           <section key={group}>
-            <h3>{group}</h3>
+            <h3>{t(group)}</h3>
             <table className="shortcuts">
               <tbody>
                 {list.map(([k, v]) => (
@@ -435,7 +487,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
                     <td>
                       <kbd>{k}</kbd>
                     </td>
-                    <td>{v}</td>
+                    <td>{t(v)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -449,25 +501,25 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
 
 /** Ribbon tabs that Options › Customize the Ribbon can hide (Home always stays). */
 const CUSTOMIZABLE_TABS = [
-  { id: 'insert', label: 'Insert' }, { id: 'draw', label: 'Draw' }, { id: 'design', label: 'Design' }, { id: 'layout', label: 'Layout' }, { id: 'references', label: 'References' },
-  { id: 'mailings', label: 'Mailings' }, { id: 'review', label: 'Review' }, { id: 'view', label: 'View' }, { id: 'help', label: 'Help' },
+  { id: 'insert', label: tx('Insert') }, { id: 'draw', label: tx('Draw') }, { id: 'design', label: tx('Design') }, { id: 'layout', label: tx('Layout') }, { id: 'references', label: tx('References') },
+  { id: 'mailings', label: tx('Mailings') }, { id: 'review', label: tx('Review') }, { id: 'view', label: tx('View') }, { id: 'help', label: tx('Help') },
 ]
 
 const WHATS_NEW: [string, string[]][] = [
-  ['Version 0.4', ['Diagrams: lists, processes, cycles, hierarchies, Venn, matrix and pyramid layouts with a text pane', 'Groups of shapes are saved as one drawing group in .docx files', 'Track Changes records formatting changes', 'Combine Documents merges a reviewer’s copy', 'Live preview of paste options', 'Undo and Redo history lists, customizable Quick Access Toolbar and status bar', 'Pages can be centered or bottom-aligned vertically', 'The ribbon shrinks group by group on narrow windows']],
-  ['Version 0.3', ['Citations and bibliography, index, paste options and Paste Special', 'Right-to-left paragraphs, Selection Pane and grouping, text in shapes', 'Table rows that break across pages']],
-  ['Version 0.2', ['Comments, Track Changes, Compare, footnotes and endnotes', 'Sections, columns, floating pictures, shapes, charts and equations', 'Read Mode, Outline, Draft and Multiple Pages views']],
+  ['0.4', [tx('Diagrams: lists, processes, cycles, hierarchies, Venn, matrix and pyramid layouts with a text pane'), tx('Groups of shapes are saved as one drawing group in .docx files'), tx('Track Changes records formatting changes'), tx('Combine Documents merges a reviewer’s copy'), tx('Live preview of paste options'), tx('Undo and Redo history lists, customizable Quick Access Toolbar and status bar'), tx('Pages can be centered or bottom-aligned vertically'), tx('The ribbon shrinks group by group on narrow windows')]],
+  ['0.3', [tx('Citations and bibliography, index, paste options and Paste Special'), tx('Right-to-left paragraphs, Selection Pane and grouping, text in shapes'), tx('Table rows that break across pages')]],
+  ['0.2', [tx('Comments, Track Changes, Compare, footnotes and endnotes'), tx('Sections, columns, floating pictures, shapes, charts and equations'), tx('Read Mode, Outline, Draft and Multiple Pages views')]],
 ]
 
 function WhatsNewDialog({ onClose }: { onClose: () => void }) {
   return (
-    <Modal title="What's New" onClose={onClose} width={520} footer={<button type="button" className="btn btn-primary" onClick={onClose}>Close</button>}>
+    <Modal title={t('What\'s New')} onClose={onClose} width={520} footer={<button type="button" className="btn btn-primary" onClick={onClose}>{t('Close')}</button>}>
       {WHATS_NEW.map(([version, items]) => (
         <section key={version}>
-          <h3>{version}</h3>
+          <h3>{t('Version {version}', { version })}</h3>
           <ul className="dlg-list">
             {items.map((i) => (
-              <li key={i}>{i}</li>
+              <li key={i}>{t(i)}</li>
             ))}
           </ul>
         </section>
@@ -477,22 +529,22 @@ function WhatsNewDialog({ onClose }: { onClose: () => void }) {
 }
 
 const TRAINING: [string, string][] = [
-  ['Create a document', 'File › New starts a blank document or one from a template. Your work is saved in this browser automatically; Ctrl+S saves a .docx copy.'],
-  ['Format text quickly', 'Pick a style in Home › Styles for headings and quotes, so a table of contents and the Navigation pane can find them.'],
-  ['Lay out pages', 'Layout › Margins, Orientation, Size and Columns set up the page. Insert › Header, Footer and Page Number add running text.'],
-  ['Add pictures and diagrams', 'Insert › Pictures, Shapes, Diagram and Chart. Select an object to see its own tab, with layout, colors, wrapping and size.'],
-  ['Collaborate', 'Review › New Comment adds a note; Track Changes records edits so that others can accept or reject them. Compare and Combine merge versions.'],
-  ['Find your way', 'Search (Alt+Q) finds text, View › Navigation Pane lists the headings, and Ctrl+G goes to a page.'],
+  [tx('Create a document'), tx('File › New starts a blank document or one from a template. Your work is saved in this browser automatically; Ctrl+S saves a .docx copy.')],
+  [tx('Format text quickly'), tx('Pick a style in Home › Styles for headings and quotes, so a table of contents and the Navigation pane can find them.')],
+  [tx('Lay out pages'), tx('Layout › Margins, Orientation, Size and Columns set up the page. Insert › Header, Footer and Page Number add running text.')],
+  [tx('Add pictures and diagrams'), tx('Insert › Pictures, Shapes, Diagram and Chart. Select an object to see its own tab, with layout, colors, wrapping and size.')],
+  [tx('Collaborate'), tx('Review › New Comment adds a note; Track Changes records edits so that others can accept or reject them. Compare and Combine merge versions.')],
+  [tx('Find your way'), tx('Search (Alt+Q) finds text, View › Navigation Pane lists the headings, and Ctrl+G goes to a page.')],
 ]
 
 function TrainingDialog({ onClose }: { onClose: () => void }) {
   return (
-    <Modal title="Training: Getting Started" onClose={onClose} width={560} footer={<button type="button" className="btn btn-primary" onClick={onClose}>Close</button>}>
+    <Modal title={t('Training: Getting Started')} onClose={onClose} width={560} footer={<button type="button" className="btn btn-primary" onClick={onClose}>{t('Close')}</button>}>
       <div className="dlg-stack">
         {TRAINING.map(([title, text]) => (
           <section key={title}>
-            <strong>{title}</strong>
-            <p className="dlg-hint">{text}</p>
+            <strong>{t(title)}</strong>
+            <p className="dlg-hint">{t(text)}</p>
           </section>
         ))}
       </div>
@@ -502,33 +554,31 @@ function TrainingDialog({ onClose }: { onClose: () => void }) {
 
 function FeedbackDialog({ onClose }: { onClose: () => void }) {
   const [text, setText] = useState('')
-  const [kind, setKind] = useState('I like something')
+  const [kind, setKind] = useState(() => t('I like something'))
   const body = `${kind}\n\n${text}\n\n— ${APP_NAME} ${APP_VERSION}, ${navigator.userAgent}`
   return (
     <Modal
-      title="Feedback"
+      title={t('Feedback')}
       onClose={onClose}
       width={480}
       footer={
         <>
           <span className="spacer" />
           <button type="button" className="btn" disabled={!text.trim()} onClick={() => downloadBlob(new Blob([body], { type: 'text/plain' }), 'feedback.txt')}>
-            Save as File
-          </button>
+            {t('Save as File')}</button>
           <button type="button" className="btn btn-primary" disabled={!text.trim()} onClick={() => void navigator.clipboard?.writeText(body).then(onClose)}>
-            Copy to Clipboard
-          </button>
+            {t('Copy to Clipboard')}</button>
         </>
       }
     >
       <div className="dlg-stack">
-        <p className="dlg-hint">Write down what you like, what doesn't work or what you miss. Copy it to post it where the project collects feedback (for example its issue tracker).</p>
-        <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Kind of feedback">
-          <option>I like something</option>
-          <option>I don't like something</option>
-          <option>I have a suggestion</option>
+        <p className="dlg-hint">{t('Write down what you like, what doesn\'t work or what you miss. Copy it to post it where the project collects feedback (for example its issue tracker).')}</p>
+        <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label={t('Kind of feedback')}>
+          <option value={t('I like something')}>{t('I like something')}</option>
+          <option value={t('I don\'t like something')}>{t('I don\'t like something')}</option>
+          <option value={t('I have a suggestion')}>{t('I have a suggestion')}</option>
         </select>
-        <textarea rows={6} value={text} aria-label="Feedback" onChange={(e) => setText(e.target.value)} />
+        <textarea rows={6} value={text} aria-label={t('Feedback')} onChange={(e) => setText(e.target.value)} />
       </div>
     </Modal>
   )
@@ -545,18 +595,15 @@ function HyphenationDialog({ app, onClose }: { app: AppApi; onClose: () => void 
     onClose()
   }
   return (
-    <Modal title="Hyphenation" onClose={onClose} width={380} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Hyphenation')} onClose={onClose} width={380} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="dlg-stack">
-        <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Automatically hyphenate document</label>
-        <label><input type="checkbox" checked={caps} onChange={(e) => setCaps(e.target.checked)} /> Hyphenate words in CAPS</label>
+        <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {t('Automatically hyphenate document')}</label>
+        <label><input type="checkbox" checked={caps} onChange={(e) => setCaps(e.target.checked)} /> {t('Hyphenate words in CAPS')}</label>
         <label className="dlg-inline">
-          Hyphenation zone: <input type="number" min={0} step={0.05} value={zone} onChange={(e) => setZone(Number(e.target.value) || 0)} /> in
-        </label>
+          {t('Hyphenation zone:')}{' '}<input type="number" min={0} step={0.05} value={zone} onChange={(e) => setZone(Number(e.target.value) || 0)} /> {t('in')}</label>
         <label className="dlg-inline">
-          Limit consecutive hyphens to:
-          <input type="number" min={0} step={1} value={limit} onChange={(e) => setLimit(Math.max(0, Math.round(Number(e.target.value) || 0)))} /> (0 = no limit)
-        </label>
-        <p className="dlg-hint">The zone and the limit are saved with the document for other programs; on screen the browser's own hyphenation applies.</p>
+          {t('Limit consecutive hyphens to:')}<input type="number" min={0} step={1} value={limit} onChange={(e) => setLimit(Math.max(0, Math.round(Number(e.target.value) || 0)))} /> {t('(0 = no limit)')}</label>
+        <p className="dlg-hint">{t('The zone and the limit are saved with the document for other programs; on screen the browser\'s own hyphenation applies.')}</p>
       </div>
     </Modal>
   )
@@ -564,13 +611,13 @@ function HyphenationDialog({ app, onClose }: { app: AppApi; onClose: () => void 
 
 function AboutDialog({ onClose }: { onClose: () => void }) {
   return (
-    <Modal title={`About ${APP_NAME}`} onClose={onClose} width={420} footer={<button type="button" className="btn btn-primary" onClick={onClose}>OK</button>}>
+    <Modal title={t('About {app}', { app: APP_NAME })} onClose={onClose} width={420} footer={<button type="button" className="btn btn-primary" onClick={onClose}>{t('OK')}</button>}>
       <p>
         <strong>{APP_NAME}</strong> {APP_VERSION}
         <br />
-        Part of the free {SUITE_NAME} office suite.
+        {t('Part of the free {suite} office suite.', { suite: SUITE_NAME })}
       </p>
-      <p className="dlg-hint">Runs entirely in your browser; documents are stored on this device. Built with open-source libraries: React, TipTap/ProseMirror, docx, JSZip, Lucide icons and the Carlito/Caladea fonts.</p>
+      <p className="dlg-hint">{t('Runs entirely in your browser; documents are stored on this device. Built with open-source libraries: React, TipTap/ProseMirror, docx, JSZip, Lucide icons and the Carlito/Caladea fonts.')}</p>
     </Modal>
   )
 }
@@ -585,10 +632,9 @@ function DateTimeDialog({ editor, app, onClose }: { editor: Editor; app: AppApi;
     onClose()
   }
   return (
-    <Modal title="Date and Time" onClose={onClose} width={380} footer={<OkCancel onOk={apply} onCancel={onClose} extra={<label><input type="checkbox" checked={auto} disabled={!app.hfEdit} onChange={(e) => setAuto(e.target.checked)} /> Update automatically</label>} />}>
+    <Modal title={t('Date and Time')} onClose={onClose} width={380} footer={<OkCancel onOk={apply} onCancel={onClose} extra={<label><input type="checkbox" checked={auto} disabled={!app.hfEdit} onChange={(e) => setAuto(e.target.checked)} /> {t('Update automatically')}</label>} />}>
       <label className="dlg-stack">
-        Available formats:
-        <select size={11} value={format} onChange={(e) => setFormat(Number(e.target.value))} onDoubleClick={apply}>
+        {t('Available formats:')}<select size={11} value={format} onChange={(e) => setFormat(Number(e.target.value))} onDoubleClick={apply}>
           {DATE_FORMATS.map((f, i) => (
             <option key={i} value={i}>
               {f(now)}
@@ -601,16 +647,16 @@ function DateTimeDialog({ editor, app, onClose }: { editor: Editor; app: AppApi;
 }
 
 const SYMBOL_SETS: [string, string][] = [
-  ['Latin-1 Supplement', '¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ'],
-  ['General Punctuation', '–—‘’‚“”„†‡•…‰′″‹›‼⁄'],
-  ['Currency Symbols', '€£¥¢₹₽₩₺₿$¤'],
-  ['Letterlike Symbols', '℃℉№℗℘ℝ™Ω℮⅓⅔⅛⅜⅝⅞'],
-  ['Arrows', '←↑→↓↔↕↖↗↘↙⇐⇑⇒⇓⇔'],
-  ['Mathematical Operators', '∀∂∃∅∇∈∉∋∏∑−∓∕∗√∝∞∠∧∨∩∪∫∬∮∴∵∼≅≈≠≡≤≥⊂⊃⊆⊇⊕⊗⊥⋅'],
-  ['Greek', 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω'],
-  ['Geometric Shapes', '■□▪▫▬▲△▶▷▼▽◀◁◆◇◊○●◐◑★☆'],
-  ['Dingbats', '✁✂✃✄✆✇✈✉✌✍✎✏✐✑✒✓✔✕✖✗✘✙✚✛✜✝✞✟✠✡✢✣✤✥✦✧✩✪✫✬✭✮✯✰❶❷❸❹❺❻❼❽❾❿➔➘➙➚➛➜➝➞➟➠➡➢➣➤'],
-  ['Emoji', '😀😁😂🙂😉😍😎🤔👍👎👏🙏💡📌📎✅❌⚠️⭐🔥🎉📅📞✉️'],
+  [tx('Latin-1 Supplement'), '¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ'],
+  [tx('General Punctuation'), '–—‘’‚“”„†‡•…‰′″‹›‼⁄'],
+  [tx('Currency Symbols'), '€£¥¢₹₽₩₺₿$¤'],
+  [tx('Letterlike Symbols'), '℃℉№℗℘ℝ™Ω℮⅓⅔⅛⅜⅝⅞'],
+  [tx('Arrows'), '←↑→↓↔↕↖↗↘↙⇐⇑⇒⇓⇔'],
+  [tx('Mathematical Operators'), '∀∂∃∅∇∈∉∋∏∑−∓∕∗√∝∞∠∧∨∩∪∫∬∮∴∵∼≅≈≠≡≤≥⊂⊃⊆⊇⊕⊗⊥⋅'],
+  [tx('Greek'), 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω'],
+  [tx('Geometric Shapes'), '■□▪▫▬▲△▶▷▼▽◀◁◆◇◊○●◐◑★☆'],
+  [tx('Dingbats'), '✁✂✃✄✆✇✈✉✌✍✎✏✐✑✒✓✔✕✖✗✘✙✚✛✜✝✞✟✠✡✢✣✤✥✦✧✩✪✫✬✭✮✯✰❶❷❸❹❺❻❼❽❾❿➔➘➙➚➛➜➝➞➟➠➡➢➣➤'],
+  [tx('Emoji'), '😀😁😂🙂😉😍😎🤔👍👎👏🙏💡📌📎✅❌⚠️⭐🔥🎉📅📞✉️'],
 ]
 
 function SymbolDialog({ editor, onClose }: { editor: Editor; onClose: () => void }) {
@@ -621,24 +667,23 @@ function SymbolDialog({ editor, onClose }: { editor: Editor; onClose: () => void
   }
   return (
     <Modal
-      title="Symbol"
+      title={t('Symbol')}
       onClose={onClose}
       width={560}
       footer={
         <OkCancel
-          okLabel="Insert"
+          okLabel={t('Insert')}
           onOk={() => insert(selected)}
           onCancel={onClose}
-          extra={<span className="dlg-hint">{selected ? `Character code: U+${selected.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}` : 'Double-click a symbol to insert it.'}</span>}
+          extra={<span className="dlg-hint">{selected ? t('Character code: U+{code}', { code: selected.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0') }) : t('Double-click a symbol to insert it.')}</span>}
         />
       }
     >
       <label className="dlg-inline">
-        Subset:
-        <select value={set} onChange={(e) => setSet(Number(e.target.value))}>
+        {t('Subset:')}<select value={set} onChange={(e) => setSet(Number(e.target.value))}>
           {SYMBOL_SETS.map(([name], i) => (
             <option key={name} value={i}>
-              {name}
+              {t(name)}
             </option>
           ))}
         </select>
@@ -662,14 +707,14 @@ function InsertTableDialog({ editor, onClose }: { editor: Editor; onClose: () =>
     onClose()
   }
   return (
-    <Modal title="Insert Table" onClose={onClose} width={320} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Insert Table')} onClose={onClose} width={320} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <fieldset className="dlg-fieldset">
-        <legend>Table size</legend>
+        <legend>{t('Table size')}</legend>
         <label className="dlg-inline">
-          Number of columns: <input type="number" min={1} max={63} value={cols} onChange={(e) => setCols(Number(e.target.value))} />
+          {t('Number of columns:')}{' '}<input type="number" min={1} max={63} value={cols} onChange={(e) => setCols(Number(e.target.value))} />
         </label>
         <label className="dlg-inline">
-          Number of rows: <input type="number" min={1} max={500} value={rows} onChange={(e) => setRows(Number(e.target.value))} />
+          {t('Number of rows:')}{' '}<input type="number" min={1} max={500} value={rows} onChange={(e) => setRows(Number(e.target.value))} />
         </label>
       </fieldset>
     </Modal>
@@ -686,10 +731,9 @@ function PageNumberFormatDialog({ app, onClose }: { app: AppApi; onClose: () => 
     onClose()
   }
   return (
-    <Modal title="Page Number Format" onClose={onClose} width={340} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Page Number Format')} onClose={onClose} width={340} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <label className="dlg-inline">
-        Number format:
-        <select value={format} onChange={(e) => setFormat(e.target.value as PageNumberFormat)}>
+        {t('Number format:')}<select value={format} onChange={(e) => setFormat(e.target.value as PageNumberFormat)}>
           {formats.map((f) => (
             <option key={f} value={f}>
               {[1, 2, 3].map((n) => formatPageNumber(n, f)).join(', ')}, …
@@ -698,11 +742,10 @@ function PageNumberFormatDialog({ app, onClose }: { app: AppApi; onClose: () => 
         </select>
       </label>
       <fieldset className="dlg-fieldset">
-        <legend>Page numbering</legend>
-        <label><input type="radio" checked={!restart} onChange={() => setRestart(false)} /> Continue from previous section</label>
+        <legend>{t('Page numbering')}</legend>
+        <label><input type="radio" checked={!restart} onChange={() => setRestart(false)} /> {t('Continue from previous section')}</label>
         <label className="dlg-inline">
-          <input type="radio" checked={restart} onChange={() => setRestart(true)} /> Start at:
-          <input type="number" min={0} value={start} disabled={!restart} onChange={(e) => setStart(Number(e.target.value))} />
+          <input type="radio" checked={restart} onChange={() => setRestart(true)} /> {t('Start at:')}<input type="number" min={0} value={start} disabled={!restart} onChange={(e) => setStart(Number(e.target.value))} />
         </label>
       </fieldset>
     </Modal>
@@ -718,34 +761,34 @@ function luminance(color: string) {
 
 function AccessibilityDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
   const issues = useMemo(() => {
-    const out: { kind: 'Error' | 'Warning'; text: string; pos: number }[] = []
+    const out: { kind: 'error' | 'warning'; text: string; pos: number }[] = []
     let lastLevel = 0
     app.mainEditor.state.doc.descendants((node, pos) => {
-      if (node.type.name === 'image' && !node.attrs.alt) out.push({ kind: 'Error', text: 'Missing alternative text (picture)', pos })
+      if (node.type.name === 'image' && !node.attrs.alt) out.push({ kind: 'error', text: t('Missing alternative text (picture)'), pos })
       if (node.type.name === 'heading') {
-        if (!node.textContent.trim()) out.push({ kind: 'Warning', text: 'Empty heading', pos })
-        if (lastLevel && node.attrs.level > lastLevel + 1) out.push({ kind: 'Warning', text: `Skipped heading level (Heading ${lastLevel} → Heading ${node.attrs.level})`, pos })
+        if (!node.textContent.trim()) out.push({ kind: 'warning', text: t('Empty heading'), pos })
+        if (lastLevel && node.attrs.level > lastLevel + 1) out.push({ kind: 'warning', text: t('Skipped heading level (Heading {from} → Heading {to})', { from: lastLevel, to: node.attrs.level }), pos })
         lastLevel = node.attrs.level
       }
       if (node.type.name === 'table') {
         let headerCells = false
         node.firstChild?.forEach((c) => (headerCells ||= c.type.name === 'tableHeader'))
-        if (!headerCells) out.push({ kind: 'Warning', text: 'Table has no header row', pos })
+        if (!headerCells) out.push({ kind: 'warning', text: t('Table has no header row'), pos })
       }
       if (node.isText) {
         const color = node.marks.find((m) => m.type.name === 'textStyle')?.attrs.color as string | undefined
-        if (color && luminance(color) > 0.8) out.push({ kind: 'Warning', text: 'Hard-to-read text contrast', pos })
+        if (color && luminance(color) > 0.8) out.push({ kind: 'warning', text: t('Hard-to-read text contrast'), pos })
       }
     })
     return out
   }, [app.mainEditor])
   return (
-    <Modal title="Accessibility" onClose={onClose} width={460} footer={<button type="button" className="btn btn-primary" onClick={onClose}>Close</button>}>
+    <Modal title={t('Accessibility')} onClose={onClose} width={460} footer={<button type="button" className="btn btn-primary" onClick={onClose}>{t('Close')}</button>}>
       {issues.length ? (
         <ul className="issues">
           {issues.map((i, n) => (
             <li key={n}>
-              <span className={cls('issue-kind', i.kind === 'Error' && 'is-error')}>{i.kind}</span>
+              <span className={cls('issue-kind', i.kind === 'error' && 'is-error')}>{i.kind === 'error' ? t('Error') : t('Warning')}</span>
               <span>{i.text}</span>
               <button
                 type="button"
@@ -755,13 +798,12 @@ function AccessibilityDialog({ app, onClose }: { app: AppApi; onClose: () => voi
                   onClose()
                 }}
               >
-                Go to
-              </button>
+                {t('Go to')}</button>
             </li>
           ))}
         </ul>
       ) : (
-        <p>No issues found. This document should be easy to read for everyone, including people who use assistive technology.</p>
+        <p>{t('No issues found. This document should be easy to read for everyone, including people who use assistive technology.')}</p>
       )}
     </Modal>
   )
@@ -787,27 +829,25 @@ function CaptionDialog({ editor, onClose }: { editor: Editor; onClose: () => voi
     onClose()
   }
   return (
-    <Modal title="Caption" onClose={onClose} width={380} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Caption')} onClose={onClose} width={380} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="dlg-stack">
         <label className="dlg-inline">
-          Caption: <input value={`${label} ${count + 1}${text ? `: ${text}` : ''}`} readOnly />
+          {t('Caption:')}{' '}<input value={`${label} ${count + 1}${text ? `: ${text}` : ''}`} readOnly />
         </label>
         <label className="dlg-inline">
-          Text: <input autoFocus value={text} onChange={(e) => setText(e.target.value)} />
+          {t('Text:')}{' '}<input autoFocus value={text} onChange={(e) => setText(e.target.value)} />
         </label>
         <label className="dlg-inline">
-          Label:
-          <select value={label} onChange={(e) => setLabel(e.target.value)}>
-            <option>Figure</option>
-            <option>Table</option>
-            <option>Equation</option>
+          {t('Label:')}<select value={label} onChange={(e) => setLabel(e.target.value)}>
+            <option value="Figure">{t('Figure')}</option>
+            <option value="Table">{t('Table')}</option>
+            <option value="Equation">{t('Equation')}</option>
           </select>
         </label>
         <label className="dlg-inline">
-          Position:
-          <select value={position} onChange={(e) => setPosition(e.target.value as 'below' | 'above')}>
-            <option value="below">Below selected item</option>
-            <option value="above">Above selected item</option>
+          {t('Position:')}<select value={position} onChange={(e) => setPosition(e.target.value as 'below' | 'above')}>
+            <option value="below">{t('Below selected item')}</option>
+            <option value="above">{t('Above selected item')}</option>
           </select>
         </label>
       </div>
@@ -823,11 +863,10 @@ function ImageUrlDialog({ editor, onClose }: { editor: Editor; onClose: () => vo
     onClose()
   }
   return (
-    <Modal title="Insert Picture from Address" onClose={onClose} width={440} footer={<OkCancel okLabel="Insert" onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Insert Picture from Address')} onClose={onClose} width={440} footer={<OkCancel okLabel={t('Insert')} onOk={apply} onCancel={onClose} />}>
       <label className="dlg-stack">
-        Picture address (URL):
-        <input autoFocus placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && apply()} />
-        <small className="dlg-hint">Pictures from other websites can only be saved into .docx files if the website allows it.</small>
+        {t('Picture address (URL):')}<input autoFocus placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && apply()} />
+        <small className="dlg-hint">{t('Pictures from other websites can only be saved into .docx files if the website allows it.')}</small>
       </label>
     </Modal>
   )
@@ -842,17 +881,16 @@ function AltTextDialog({ editor, onClose }: { editor: Editor; onClose: () => voi
     onClose()
   }
   return (
-    <Modal title="Alt Text" onClose={onClose} width={400} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Alt Text')} onClose={onClose} width={400} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       {isImage ? (
         <div className="dlg-stack">
           <label className="dlg-stack">
-            How would you describe this picture to someone who can't see it?
-            <textarea autoFocus rows={4} value={alt} disabled={decorative} onChange={(e) => setAlt(e.target.value)} />
+            {t('How would you describe this picture to someone who can\'t see it?')}<textarea autoFocus rows={4} value={alt} disabled={decorative} onChange={(e) => setAlt(e.target.value)} />
           </label>
-          <label><input type="checkbox" checked={decorative} onChange={(e) => setDecorative(e.target.checked)} /> Mark as decorative</label>
+          <label><input type="checkbox" checked={decorative} onChange={(e) => setDecorative(e.target.checked)} /> {t('Mark as decorative')}</label>
         </div>
       ) : (
-        <p>Select a picture first.</p>
+        <p>{t('Select a picture first.')}</p>
       )}
     </Modal>
   )

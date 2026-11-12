@@ -1,3 +1,4 @@
+import { defaultLevels, encodeMultilevel, type LevelFormat, type ListLevel } from '../editor/customLists'
 import JSZip from 'jszip'
 import type { JSONContent } from '@tiptap/core'
 import { matchPaper, type HeaderFooter, type PageBorder, type PageDesign, type PageNumberFormat, type PageSetup, type Watermark } from '../pageSetup'
@@ -44,6 +45,11 @@ type PProps = {
   ilvl?: number
   dropCap?: 'dropped' | 'margin'
   dir?: 'rtl'
+  outlineLevel?: number
+  contextualSpacing?: boolean
+  suppressLineNumbers?: boolean
+  mirrorIndents?: boolean
+  noHyphenate?: boolean
   tabStops?: { pos: number; align: string; leader: string }[]
 }
 
@@ -66,6 +72,9 @@ type RProps = {
   position?: number
   scale?: number
   effect?: string
+  glow?: string
+  reflection?: boolean
+  gradient?: string
 }
 
 type Style = { type: string; name: string; basedOn?: string; p: PProps; r: RProps }
@@ -190,6 +199,12 @@ function parsePPr(pPr: Element | null): PProps {
   }
   const bidi = kid(pPr, 'bidi')
   if (bidi && on(bidi)) p.dir = 'rtl'
+  const outline = num(val(kid(pPr, 'outlineLvl')))
+  if (outline != null && outline < 9) p.outlineLevel = outline + 1
+  for (const [tag, key] of [['contextualSpacing', 'contextualSpacing'], ['suppressLineNumbers', 'suppressLineNumbers'], ['mirrorIndents', 'mirrorIndents'], ['suppressAutoHyphens', 'noHyphenate']] as const) {
+    const el = kid(pPr, tag)
+    if (el) p[key] = on(el)
+  }
   const frame = kid(pPr, 'framePr')
   const drop = val(frame, 'dropCap')
   if (drop === 'drop' || drop === 'margin') p.dropCap = drop === 'drop' ? 'dropped' : 'margin'
@@ -244,6 +259,22 @@ function parseRPr(rPr: Element | null, ctx?: Pick<Ctx, 'theme'>): RProps {
   if (w != null) r.scale = w
   for (const [tag, effect] of [['emboss', 'emboss'], ['imprint', 'engrave'], ['outline', 'outline'], ['shadow', 'shadow']] as const) {
     if (on(kid(rPr, tag))) r.effect = effect
+  }
+  // Newer text effects (w14): glow, reflection and gradient fill.
+  const w14 = (name: string) => Array.from(rPr.children).find((c) => c.localName === name && c.namespaceURI !== W_NS)
+  const fxColor = (el: Element | undefined) => {
+    const c = el ? Array.from(el.getElementsByTagName('*')).find((x) => x.localName === 'srgbClr') : undefined
+    const v = c?.getAttribute('w14:val') ?? (c ? Array.from(c.attributes).find((a) => a.localName === 'val')?.value : undefined)
+    return hex(v ?? undefined)
+  }
+  const glow = w14('glow')
+  if (glow) r.glow = fxColor(glow) ?? '#4472C4'
+  if (w14('reflection')) r.reflection = true
+  const fill = w14('textFill')
+  const grad = fill && Array.from(fill.getElementsByTagName('*')).find((x) => x.localName === 'gradFill')
+  if (grad) {
+    const stops = Array.from(grad.getElementsByTagName('*')).filter((x) => x.localName === 'gs').map((g) => fxColor(g)).filter(Boolean)
+    if (stops.length) r.gradient = `${stops[0]},${stops[stops.length - 1]}`
   }
   return r
 }
@@ -625,6 +656,9 @@ function marksFor(r: RProps, expected: RProps, charStyle: string | null): JSONCo
   if (r.position) ts.baselineShift = r.position
   if (r.scale && r.scale !== 100) ts.scale = r.scale
   if (r.effect) ts.textEffect = r.effect
+  if (r.glow) ts.glow = r.glow
+  if (r.reflection) ts.reflection = true
+  if (r.gradient) ts.gradient = r.gradient
   if (Object.keys(ts).length) marks.push({ type: 'textStyle', attrs: ts })
   return marks.length ? marks : undefined
 }
@@ -633,6 +667,26 @@ function marksFor(r: RProps, expected: RProps, charStyle: string | null): JSONCo
 type Inline = JSONContent | { pageBreak: true } | { block: JSONContent }
 
 /** Converts a paragraph's runs, hyperlinks and fields. Page breaks split the paragraph later. */
+/** XE (index entry) and TA (table of authorities citation) field codes as hidden entry nodes. */
+export function hiddenFieldNode(instr: string): JSONContent | null {
+  const code = instr.trim()
+  const quoted = (sw: string) => code.match(new RegExp(`\\\\${sw}\\s+"([^"]*)"`))?.[1]
+  if (/^XE\b/i.test(code)) {
+    const term = code.match(/^XE\s+"([^"]*)"/i)?.[1]
+    if (!term) return null
+    const [main, sub = ''] = term.split(':')
+    return { type: 'indexEntry', attrs: { term: main, sub } }
+  }
+  if (/^TA\b/i.test(code)) {
+    const long = quoted('l') ?? ''
+    const short = quoted('s') ?? ''
+    const category = Number(code.match(/\\c\s+(\d+)/)?.[1] ?? 1)
+    if (!long && !short) return null
+    return { type: 'authorityEntry', attrs: { long, short, category } }
+  }
+  return null
+}
+
 async function runs(ctx: Ctx, parent: Element, kind: BlockKind, paraRun: RProps, link: string | null, out: Inline[], field: { state: 'none' | 'instr' | 'result'; instr: string; skip: boolean }) {
   for (const el of Array.from(parent.children)) {
     if (el.namespaceURI === M_NS) {
@@ -702,6 +756,9 @@ async function runs(ctx: Ctx, parent: Element, kind: BlockKind, paraRun: RProps,
                   field.skip = true
                 }
               } else if (type === 'end') {
+                // Index (XE) and citation (TA) fields have no result: they become hidden entries.
+                const hidden = field.state === 'instr' ? hiddenFieldNode(field.instr) : null
+                if (hidden) out.push(hidden)
                 field.state = 'none'
                 field.skip = false
               }
@@ -843,6 +900,7 @@ async function runs(ctx: Ctx, parent: Element, kind: BlockKind, paraRun: RProps,
         const kindName = instr === 'PAGE' ? 'page' : instr === 'NUMPAGES' ? 'numPages' : null
         if (kindName && ctx.fields) out.push({ type: 'field', attrs: { kind: kindName } })
         else if ((instr === 'REF' || instr === 'PAGEREF') && words[1] && !ctx.fields) out.push({ type: 'crossRef', attrs: { target: words[1], refType: 'bookmark', show: instr === 'PAGEREF' ? 'page' : 'text' } })
+        else if (hiddenFieldNode(val(el, 'instr') ?? '')) out.push(hiddenFieldNode(val(el, 'instr') ?? '')!)
         else await runs(ctx, el, kind, paraRun, link, out, field)
         break
       }
@@ -922,6 +980,11 @@ function paragraphAttrs(kind: BlockKind, p: PProps): Record<string, unknown> {
   if (p.borders) a.borders = p.borders
   if (p.dropCap) a.dropCap = p.dropCap
   if (p.dir) a.dir = p.dir
+  if (p.outlineLevel && kind.type !== 'heading') a.outlineLevel = p.outlineLevel
+  if (p.contextualSpacing && kind.pStyle !== 'listParagraph') a.contextualSpacing = true
+  if (p.suppressLineNumbers) a.suppressLineNumbers = true
+  if (p.mirrorIndents) a.mirrorIndents = true
+  if (p.noHyphenate) a.noHyphenate = true
   if (p.tabStops?.length) a.tabStops = p.tabStops
   return a
 }
@@ -966,9 +1029,20 @@ async function paragraph(ctx: Ctx, el: Element): Promise<ParaResult> {
 function listInfo(ctx: Ctx, numId: string, ilvl: number) {
   const level = ctx.numbering.get(numId)?.[ilvl] ?? ctx.numbering.get(numId)?.[0]
   if (!level || level.fmt === 'none') return null
+  // Multilevel definitions with compound numbers (1.1, 1.a) are kept as a whole.
+  const all = ctx.numbering.get(numId) ?? []
+  const legal = all.every((l, i) => !l || (l.fmt === 'decimal' && l.text === `${Array.from({ length: i + 1 }, (_, k) => `%${k + 1}`).join('.')}.`))
+  if (legal && all.length > 1) return { type: 'orderedList', listStyle: 'legal', start: all[0]?.start ?? 1 }
+  if (all.some((l, i) => i > 0 && l && l.fmt !== 'bullet' && (l.text.match(/%[1-9]/g) ?? []).length > 1)) {
+    const fmt: Record<string, LevelFormat> = { decimal: 'decimal', decimalZero: 'decimal-zero', lowerLetter: 'lower-alpha', upperLetter: 'upper-alpha', lowerRoman: 'lower-roman', upperRoman: 'upper-roman', bullet: 'bullet', none: 'none' }
+    const levels: ListLevel[] = Array.from({ length: 9 }, (_, i) => (all[i] ? { f: fmt[all[i].fmt] ?? 'decimal', t: all[i].text } : defaultLevels()[i]))
+    return { type: 'orderedList', listStyle: encodeMultilevel(levels), start: all[0]?.start ?? 1 }
+  }
   if (level.fmt === 'bullet') {
     const ch = level.text
-    const style = ch === 'o' ? 'circle' : ch === '' || ch === '■' || ch === '▪' ? 'square' : ch === '' || ch === '◆' ? 'diamond' : ch === '' || ch === '➢' ? 'arrow' : ch === '' || ch === '✓' ? 'check' : ch === '–' || ch === '-' ? 'dash' : ch === '★' ? 'star' : null
+    let style = ch === 'o' ? 'circle' : ch === '' || ch === '■' || ch === '▪' ? 'square' : ch === '' || ch === '◆' ? 'diamond' : ch === '' || ch === '➢' ? 'arrow' : ch === '' || ch === '✓' ? 'check' : ch === '–' || ch === '-' ? 'dash' : ch === '★' ? 'star' : null
+    // Other characters (not the symbol fonts' private codes) stay custom bullets.
+    if (!style && ch && ch !== '•' && ch !== '·' && ch !== '' && !/[\uE000-\uF8FF]/.test(ch) && Array.from(ch).length === 1) style = `sym:${ch}`
     return { type: 'bulletList', listStyle: style, start: 1 }
   }
   const paren = level.text.endsWith(')')
@@ -1208,6 +1282,8 @@ function pageSetup(sectPr: Element | null): Partial<PageSetup> {
   if (mar) {
     const m = (k: string) => Math.max(0, (num(val(mar, k)) ?? 1440) / TWIP_PER_IN)
     out.margins = { top: m('top'), bottom: m('bottom'), left: m('left'), right: m('right') }
+    const gutter = num(val(mar, 'gutter'))
+    if (gutter) out.gutter = Math.round((gutter / TWIP_PER_IN) * 1000) / 1000
     const hd = num(val(mar, 'header'))
     const fd = num(val(mar, 'footer'))
     if (hd != null) out.headerDistance = hd / TWIP_PER_IN
@@ -1251,6 +1327,7 @@ export async function importDocx(file: File | Blob): Promise<ImportResult> {
   const trackChanges = !!(settings && on(kid(settings.documentElement, 'trackRevisions')))
   const oddEven = !!(settings && on(kid(settings.documentElement, 'evenAndOddHeaders')))
   const mirrored = !!(settings && on(kid(settings.documentElement, 'mirrorMargins')))
+  const gutterAtTop = !!(settings && on(kid(settings.documentElement, 'gutterAtTop')))
   const base: Ctx = {
     zip,
     styles,
@@ -1339,7 +1416,7 @@ export async function importDocx(file: File | Blob): Promise<ImportResult> {
 
   return {
     content: { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] },
-    setup: { ...pageSetup(sectPr), ...(oddEven ? { differentOddEven: true } : {}), ...(mirrored ? { mirrored: true } : {}) },
+    setup: { ...pageSetup(sectPr), ...(oddEven ? { differentOddEven: true } : {}), ...(mirrored ? { mirrored: true } : {}), ...(gutterAtTop ? { gutterPosition: 'top' as const } : {}) },
     design,
     headerFooter,
     comments,

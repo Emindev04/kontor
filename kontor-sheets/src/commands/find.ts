@@ -4,6 +4,7 @@ import type { Sheet } from '../model/sheet'
 import { wildcard } from '../engine/functions/helpers'
 import type { Doc } from './doc'
 import { cellView } from './display'
+import { tx } from '../i18n'
 
 export type FindOptions = {
   query: string
@@ -85,7 +86,7 @@ function replaceIn(text: string, o: FindOptions, repl: string): string {
 export function replaceAll(doc: Doc, o: FindOptions, repl: string): number {
   const hits = findAll(doc, { ...o, lookIn: 'formulas' })
   let n = 0
-  doc.transact('Replace', () => {
+  doc.transact(tx('Replace'), () => {
     for (const h of hits) {
       const input = doc.inputText(h.r, h.c, h.sheet)
       const next = replaceIn(input, o, repl)
@@ -114,7 +115,7 @@ export function replaceCurrent(doc: Doc, o: FindOptions, repl: string): boolean 
     try {
       const p = doc.prepareInput(next)
       const old = sheet.get(r, c)
-      doc.transact('Replace', () => doc.write(sheet, r, c, { ...p.data, s: old?.s, link: old?.link }))
+      doc.transact(tx('Replace'), () => doc.write(sheet, r, c, { ...p.data, s: old?.s, link: old?.link }))
     } catch {
       return false
     }
@@ -147,6 +148,7 @@ export function goToSpecial(doc: Doc, kind: SpecialKind): number {
     const first = sheet.x.objects[0]
     if (!first) return 0
     doc.selObj = first.id
+    doc.selObjs = []
     doc.emit()
     return sheet.x.objects.length
   }

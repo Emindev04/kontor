@@ -10,10 +10,11 @@ import { addSheet, autofitColumns, autofitRows, deleteCells, freezePanes, insert
 import { quickSort } from './commands/sort'
 import { exportCsv, exportHtml, importCsv } from './io/csv'
 import { downloadBlob, pickFile, safeFilename } from './io/download'
-import { forgetFile, loadAutosaveAsync, loadAutosaveSync, onSystemOpenFile, openFilePicker, saveFile, storeAutosave, type FileType } from './io/fileAccess'
+import { desktop, forgetFile, loadAutosaveAsync, loadAutosaveSync, onSystemOpenFile, openFilePicker, saveFile, storeAutosave, type FileType } from './io/fileAccess'
 import { fromJSON, toJSON, type JWorkbook } from './io/json'
 import { loadRecent, noteRecent } from './io/recent'
 import { TEMPLATES } from './templates'
+import { t, tx } from './i18n'
 import { DEFAULT_DOC_TITLE } from './brand'
 import { AppContext, type AppApi, type DialogSpec, type PaneKind, type ViewMode } from './components/appContext'
 import { activeContext, addObject, arrangeObject, deleteObject, duplicateObject, newPicture, selectedObject, tableAt } from './commands/objects'
@@ -44,18 +45,22 @@ const DialogHost = lazy(() => import('./components/dialogs/DialogHost').then((m)
 
 const STORAGE_KEY = 'kontor-sheets:workbook'
 
-const XLSX: FileType = { description: 'XLSX workbook', extensions: ['xlsx'], mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+const XLSX: FileType = { description: t('XLSX workbook'), extensions: ['xlsx'], mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
 const OPEN_TYPES: FileType[] = [
   { ...XLSX, extensions: ['xlsx', 'xlsm'] },
-  { description: 'OpenDocument spreadsheet', extensions: ['ods'], mime: 'application/vnd.oasis.opendocument.spreadsheet' },
-  { description: 'Comma or tab separated text', extensions: ['csv', 'tsv', 'txt'], mime: 'text/plain' },
+  { description: t('Binary workbook (.xls, .xlsb)'), extensions: ['xls', 'xlsb'], mime: 'application/vnd.ms-excel' },
+  { description: t('OpenDocument spreadsheet'), extensions: ['ods'], mime: 'application/vnd.oasis.opendocument.spreadsheet' },
+  { description: t('Comma or tab separated text'), extensions: ['csv', 'tsv', 'txt'], mime: 'text/plain' },
 ]
 const SAVE_TYPES = {
   xlsx: XLSX,
-  csv: { description: 'CSV (comma separated)', extensions: ['csv'], mime: 'text/csv' },
-  txt: { description: 'Text (tab separated)', extensions: ['txt'], mime: 'text/plain' },
-  html: { description: 'Web page', extensions: ['html'], mime: 'text/html' },
-  ods: { description: 'OpenDocument spreadsheet', extensions: ['ods'], mime: 'application/vnd.oasis.opendocument.spreadsheet' },
+  csv: { description: t('CSV (comma separated)'), extensions: ['csv'], mime: 'text/csv' },
+  txt: { description: t('Text (tab separated)'), extensions: ['txt'], mime: 'text/plain' },
+  html: { description: t('Web page'), extensions: ['html'], mime: 'text/html' },
+  ods: { description: t('OpenDocument spreadsheet'), extensions: ['ods'], mime: 'application/vnd.oasis.opendocument.spreadsheet' },
+  xls: { description: t('97-2003 workbook (.xls)'), extensions: ['xls'], mime: 'application/vnd.ms-excel' },
+  xlsb: { description: t('Binary workbook (.xlsb)'), extensions: ['xlsb'], mime: 'application/vnd.ms-excel.sheet.binary.macroEnabled.12' },
+  pdf: { description: t('PDF document'), extensions: ['pdf'], mime: 'application/pdf' },
 } satisfies Record<string, FileType>
 
 function docFromStored(raw: string | null | undefined): Doc | null {
@@ -157,29 +162,34 @@ export function App() {
       if (result === 'cancelled') return
       void noteRecent(doc.title, toJSON(doc.wb, doc.activeIndex))
       doc.modified = false
-      doc.status = result === 'saved' ? 'Saved' : 'Downloaded as .xlsx'
+      doc.status = result === 'saved' ? t('Saved') : t('Downloaded as .xlsx')
       doc.emit()
       setTimeout(() => {
         doc.status = ''
         doc.emit()
       }, 2500)
     } catch (e) {
-      alert(`The workbook could not be saved: ${(e as Error).message}`)
+      alert(t('The workbook could not be saved: {error}', { error: (e as Error).message }))
     }
   }, [doc, alert])
   const save = useCallback(() => writeXlsx(false), [writeXlsx])
 
   const saveAs = useCallback(
-    async (format: 'xlsx' | 'csv' | 'ods' | 'txt' | 'html') => {
+    async (format: 'xlsx' | 'csv' | 'ods' | 'txt' | 'html' | 'xls' | 'xlsb' | 'pdf') => {
       if (format === 'xlsx') return writeXlsx(true)
       const name = safeFilename(doc.title)
       try {
-        const blob =
-          format === 'csv' ? exportCsv(doc) : format === 'txt' ? exportCsv(doc, '\t') : format === 'html' ? exportHtml(doc) : await (await import('./io/ods')).exportOds(doc.wb, doc.engine)
+        let blob: Blob
+        if (format === 'pdf') {
+          const pdf = await (await import('./io/print')).exportPdf(doc)
+          if (!pdf) return
+          blob = pdf
+        } else if (format === 'xls' || format === 'xlsb') blob = await (await import('./io/legacy')).exportLegacy(doc.wb, doc.engine, format)
+        else blob = format === 'csv' ? exportCsv(doc) : format === 'txt' ? exportCsv(doc, '\t') : format === 'html' ? exportHtml(doc) : await (await import('./io/ods')).exportOds(doc.wb, doc.engine)
         const type = SAVE_TYPES[format]
         await saveFile(blob, `${name}.${type.extensions[0]}`, type, { saveAs: true, remember: false })
       } catch (e) {
-        alert(`The workbook could not be saved: ${(e as Error).message}`)
+        alert(t('The workbook could not be saved: {error}', { error: (e as Error).message }))
       }
     },
     [doc, writeXlsx, alert],
@@ -202,12 +212,15 @@ export function App() {
       else if (/\.ods$/i.test(file.name)) {
         const { importOds } = await import('./io/ods')
         loadBook(await importOds(await file.arrayBuffer()), name)
+      } else if (/\.(xls|xlsb)$/i.test(file.name)) {
+        const { importLegacy } = await import('./io/legacy')
+        loadBook(await importLegacy(await file.arrayBuffer()), name)
       } else {
         const { importXlsx } = await import('./io/xlsx')
         loadBook(await importXlsx(await file.arrayBuffer()), name)
       }
     } catch (e) {
-      alert(`This file could not be opened: ${(e as Error).message}`)
+      alert(t('This file could not be opened: {error}', { error: (e as Error).message }))
     }
   }, [loadBook, alert])
 
@@ -238,7 +251,7 @@ export function App() {
       forgetFile()
       loadBook(new Workbook(), DEFAULT_DOC_TITLE)
     }
-    if (doc.modified) confirm('Start a new workbook? Changes that were not saved as a file stay only until AutoSave stores the new workbook.', run, 'New Workbook')
+    if (doc.modified) confirm(t('Start a new workbook? Changes that were not saved as a file stay only until AutoSave stores the new workbook.'), run, t('New Workbook'))
     else run()
   }, [doc, loadBook, confirm])
 
@@ -275,7 +288,7 @@ export function App() {
         const text = await navigator.clipboard.readText()
         if (text) pasteExternal(doc, text, '')
       } catch {
-        alert('Your browser blocked access to the clipboard. Use Ctrl+V (Cmd+V on a Mac) to paste.')
+        alert(t('Your browser blocked access to the clipboard. Use Ctrl+V (Cmd+V on a Mac) to paste.'))
       }
     },
     [doc, alert],
@@ -319,7 +332,7 @@ export function App() {
     const b = doc.boundToUsed(rg)
     const r2 = rg.r1 === rg.r2 && rg.c1 === rg.c2 ? rg.r1 + h - 1 : b.r2
     const c2 = rg.r1 === rg.r2 && rg.c1 === rg.c2 ? rg.c1 + w - 1 : b.c2
-    doc.transact('Format Painter', () => {
+    doc.transact(tx('Format Painter'), () => {
       for (let r = rg.r1; r <= r2; r++)
         for (let c = rg.c1; c <= c2; c++) {
           const s = styles[(r - rg.r1) % h][(c - rg.c1) % w]
@@ -365,10 +378,10 @@ export function App() {
     img.onload = () => {
       const scale = Math.min(1, 480 / img.naturalWidth, 360 / img.naturalHeight)
       const id = doc.wb.addImage(url)
-      addObject(doc, newPicture(doc, id, Math.round(img.naturalWidth * scale), Math.round(img.naturalHeight * scale), file.name.replace(/\.[^.]+$/, '') ? 'Picture' : 'Picture'), 'Insert Picture')
+      addObject(doc, newPicture(doc, id, Math.round(img.naturalWidth * scale), Math.round(img.naturalHeight * scale), file.name.replace(/\.[^.]+$/, '') ? 'Picture' : 'Picture'), tx('Insert Picture'))
       setTab('shapeFormat')
     }
-    img.onerror = () => alert('This picture could not be read.')
+    img.onerror = () => alert(t('This picture could not be read.'))
     img.src = url
   }, [doc, alert])
 
@@ -387,7 +400,7 @@ export function App() {
       saveAs,
       openRecent: async (id: string, name: string) => {
         const book = await loadRecent(id)
-        if (!book) return alert(`"${name}" is no longer stored in this browser. Open it from your device.`)
+        if (!book) return alert(t('"{name}" is no longer stored in this browser. Open it from your device.', { name }))
         forgetFile()
         loadBook(fromJSON(book), name)
       },
@@ -494,7 +507,7 @@ export function App() {
         if (lower === 'h') return act(() => setDialog({ kind: 'replace' }))
         if (lower === 'g') return act(() => setDialog({ kind: 'goto' }))
         if (lower === 'k') return act(() => setDialog({ kind: 'hyperlink' }))
-        if (lower === 'e' && !e.shiftKey) return act(() => { const r = flashFill(doc); if (typeof r === 'string') alert(r, 'Flash Fill') })
+        if (lower === 'e' && !e.shiftKey) return act(() => { const r = flashFill(doc); if (typeof r === 'string') alert(r, t('Flash Fill')) })
         if ((lower === 't' || lower === 'l') && !e.shiftKey) return act(() => (tableAt(doc.sheet, doc.sel.active.r, doc.sel.active.c) ? undefined : setDialog({ kind: 'createTable' })))
         if (lower === 'l' && e.shiftKey) return act(() => { const err = toggleAutoFilter(doc); if (err) alert(err) })
         if (k === 'F3') return act(() => setDialog({ kind: e.shiftKey ? 'createNames' : 'nameManager' }))
@@ -542,10 +555,10 @@ export function App() {
       return o ? objectContextItems(api, o, { arrange: (h) => arrangeObject(doc, o.id, h), del: () => deleteObject(doc, o.id), dup: () => duplicateObject(doc, o.id) }) : []
     }
     const common: MenuItem[] = [
-      { label: 'Cut', shortcut: 'Ctrl+X', onClick: () => copy(true) },
-      { label: 'Copy', shortcut: 'Ctrl+C', onClick: () => copy(false) },
-      { label: 'Paste', shortcut: 'Ctrl+V', onClick: () => paste() },
-      { label: 'Paste Special…', onClick: () => setDialog({ kind: 'pasteSpecial' }) },
+      { label: t('Cut'), shortcut: 'Ctrl+X', onClick: () => copy(true) },
+      { label: t('Copy'), shortcut: 'Ctrl+C', onClick: () => copy(false) },
+      { label: t('Paste'), shortcut: 'Ctrl+V', onClick: () => paste() },
+      { label: t('Paste Special…'), onClick: () => setDialog({ kind: 'pasteSpecial' }) },
       'separator',
     ]
     const rows = selectedIndexes(doc, 'row')
@@ -553,44 +566,44 @@ export function App() {
     if (kind === 'col')
       return [
         ...common,
-        { label: 'Insert', onClick: () => insertDelete(doc, 'col', doc.activeRange.c1, doc.activeRange.c2 - doc.activeRange.c1 + 1) },
-        { label: 'Delete', onClick: () => insertDelete(doc, 'col', doc.activeRange.c1, -(doc.activeRange.c2 - doc.activeRange.c1 + 1)) },
-        { label: 'Clear Contents', onClick: () => doc.clear('contents') },
+        { label: t('Insert'), onClick: () => insertDelete(doc, 'col', doc.activeRange.c1, doc.activeRange.c2 - doc.activeRange.c1 + 1) },
+        { label: t('Delete'), onClick: () => insertDelete(doc, 'col', doc.activeRange.c1, -(doc.activeRange.c2 - doc.activeRange.c1 + 1)) },
+        { label: t('Clear Contents'), onClick: () => doc.clear('contents') },
         'separator',
-        { label: 'Format Cells…', onClick: () => setDialog({ kind: 'formatCells' }) },
-        { label: 'Column Width…', onClick: () => setDialog({ kind: 'colWidth' }) },
-        { label: 'AutoFit Column Width', onClick: () => autofitColumns(doc, cols) },
-        { label: 'Hide', onClick: () => setHidden(doc, 'col', cols, true) },
-        { label: 'Unhide', onClick: () => setHidden(doc, 'col', expandHidden(doc, 'col'), false) },
+        { label: t('Format Cells…'), onClick: () => setDialog({ kind: 'formatCells' }) },
+        { label: t('Column Width…'), onClick: () => setDialog({ kind: 'colWidth' }) },
+        { label: t('AutoFit Column Width'), onClick: () => autofitColumns(doc, cols) },
+        { label: t('Hide'), onClick: () => setHidden(doc, 'col', cols, true) },
+        { label: t('Unhide'), onClick: () => setHidden(doc, 'col', expandHidden(doc, 'col'), false) },
       ]
     if (kind === 'row')
       return [
         ...common,
-        { label: 'Insert', onClick: () => insertDelete(doc, 'row', doc.activeRange.r1, doc.activeRange.r2 - doc.activeRange.r1 + 1) },
-        { label: 'Delete', onClick: () => insertDelete(doc, 'row', doc.activeRange.r1, -(doc.activeRange.r2 - doc.activeRange.r1 + 1)) },
-        { label: 'Clear Contents', onClick: () => doc.clear('contents') },
+        { label: t('Insert'), onClick: () => insertDelete(doc, 'row', doc.activeRange.r1, doc.activeRange.r2 - doc.activeRange.r1 + 1) },
+        { label: t('Delete'), onClick: () => insertDelete(doc, 'row', doc.activeRange.r1, -(doc.activeRange.r2 - doc.activeRange.r1 + 1)) },
+        { label: t('Clear Contents'), onClick: () => doc.clear('contents') },
         'separator',
-        { label: 'Format Cells…', onClick: () => setDialog({ kind: 'formatCells' }) },
-        { label: 'Row Height…', onClick: () => setDialog({ kind: 'rowHeight' }) },
-        { label: 'AutoFit Row Height', onClick: () => autofitRows(doc, rows) },
-        { label: 'Hide', onClick: () => setHidden(doc, 'row', rows, true) },
-        { label: 'Unhide', onClick: () => setHidden(doc, 'row', expandHidden(doc, 'row'), false) },
+        { label: t('Format Cells…'), onClick: () => setDialog({ kind: 'formatCells' }) },
+        { label: t('Row Height…'), onClick: () => setDialog({ kind: 'rowHeight' }) },
+        { label: t('AutoFit Row Height'), onClick: () => autofitRows(doc, rows) },
+        { label: t('Hide'), onClick: () => setHidden(doc, 'row', rows, true) },
+        { label: t('Unhide'), onClick: () => setHidden(doc, 'row', expandHidden(doc, 'row'), false) },
       ]
     return [
       ...common,
-      { label: 'Insert…', onClick: () => setDialog({ kind: 'insertCells' }) },
-      { label: 'Delete…', onClick: () => setDialog({ kind: 'deleteCells' }) },
-      { label: 'Clear Contents', onClick: () => doc.clear('contents') },
+      { label: t('Insert…'), onClick: () => setDialog({ kind: 'insertCells' }) },
+      { label: t('Delete…'), onClick: () => setDialog({ kind: 'deleteCells' }) },
+      { label: t('Clear Contents'), onClick: () => doc.clear('contents') },
       'separator',
-      { label: 'Sort A to Z', onClick: () => quickSort(doc, false) },
-      { label: 'Sort Z to A', onClick: () => quickSort(doc, true) },
-      { label: 'Custom Sort…', onClick: () => setDialog({ kind: 'sort' }) },
+      { label: t('Sort A to Z'), onClick: () => quickSort(doc, false) },
+      { label: t('Sort Z to A'), onClick: () => quickSort(doc, true) },
+      { label: t('Custom Sort…'), onClick: () => setDialog({ kind: 'sort' }) },
       'separator',
       ...cellExtraItems(api),
       'separator',
-      { label: 'Format Cells…', shortcut: 'Ctrl+1', onClick: () => setDialog({ kind: 'formatCells' }) },
-      { label: 'Define Name…', onClick: () => setDialog({ kind: 'defineName' }) },
-      { label: doc.sheet.get(doc.sel.active.r, doc.sel.active.c)?.link ? 'Edit Link…' : 'Link…', shortcut: 'Ctrl+K', onClick: () => setDialog({ kind: 'hyperlink' }) },
+      { label: t('Format Cells…'), shortcut: 'Ctrl+1', onClick: () => setDialog({ kind: 'formatCells' }) },
+      { label: t('Define Name…'), onClick: () => setDialog({ kind: 'defineName' }) },
+      { label: doc.sheet.get(doc.sel.active.r, doc.sel.active.c)?.link ? t('Edit Link…') : t('Link…'), shortcut: 'Ctrl+K', onClick: () => setDialog({ kind: 'hyperlink' }) },
     ]
   }
 
@@ -600,7 +613,7 @@ export function App() {
     doc.emit()
   }
 
-  const status = saveState === 'saving' ? 'Saving…' : saveState === 'failed' ? 'Not saved (storage full)' : saveState === 'off' ? (doc.modified ? 'Not saved' : 'Saved') : 'Saved to this browser'
+  const status = saveState === 'saving' ? t('Saving…') : saveState === 'failed' ? t('Not saved (storage full)') : saveState === 'off' ? (doc.modified ? t('Not saved') : t('Saved')) : desktop ? t('Saved on this computer') : t('Saved to this browser')
 
   return (
     <AppContext.Provider value={api}>
@@ -621,6 +634,13 @@ export function App() {
               onOpenFormat={() => setPane('format')}
               onFilter={(x, y, target, col) => setFilterMenu({ x, y, target, col })}
             />
+            {doc.windowHidden && (
+              <div className="window-hidden">
+                <button type="button" className="btn" onClick={() => { doc.windowHidden = false; doc.emit() }}>
+                  {t('Unhide')}
+                </button>
+              </div>
+            )}
           </div>
           {pane && (
             <Suspense fallback={null}>
@@ -638,9 +658,9 @@ export function App() {
               focusGrid()
             }}
             onTemplate={(id) => {
-              const t = TEMPLATES.find((x) => x.id === id)!
+              const tpl = TEMPLATES.find((x) => x.id === id)!
               forgetFile()
-              loadBook(t.build(), id === 'blank' ? DEFAULT_DOC_TITLE : t.label)
+              loadBook(tpl.build(), id === 'blank' ? DEFAULT_DOC_TITLE : t(tpl.label))
             }}
           />
           </Suspense>

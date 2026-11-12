@@ -23,6 +23,32 @@ export interface CustomView {
   showHeadings: boolean
 }
 
+/** One entry of Review > Show Changes: who changed what, when, and the cell's old and new content. */
+export interface ChangeRecord {
+  label: string
+  author: string
+  /** ISO date and time. */
+  time: string
+  sheet: string
+  /** Changed cells (up to 20) with their content before and after. */
+  cells: { r: number; c: number; old: string; new: string }[]
+  /** Number of changed cells (may be more than listed). */
+  count: number
+}
+
+/** A cell written by a recorded macro step (style kept as formatting, not as a style id). */
+export type MacroCell = { r: number; c: number; v?: import('./types').Scalar; f?: string; style?: import('./style').Style; link?: string; clear?: boolean }
+
+/** A macro made with Record Macro: the cell changes of each recorded command. */
+export interface Macro {
+  name: string
+  /** Use Relative References: replayed relative to the active cell. */
+  relative: boolean
+  /** Active cell when recording started. */
+  origin: { r: number; c: number }
+  steps: { label: string; cells: MacroCell[] }[]
+}
+
 export class Workbook {
   sheets: Sheet[] = []
   styles = new StyleTable()
@@ -34,6 +60,10 @@ export class Workbook {
   /** Protect Workbook: structure locked (no adding, deleting, renaming or moving sheets). */
   protection: { hash: string; structure: boolean } | null = null
   customViews: CustomView[] = []
+  /** Review > Show Changes: the most recent edits (kept with the workbook, newest last). */
+  changes: ChangeRecord[] = []
+  /** Recorded macros (View > Macros). */
+  macros: Macro[] = []
   /** Cell styles made with New Cell Style (name and the formatting they apply). */
   customStyles: { name: string; patch: import('./style').StylePatch }[] = []
   /** Table styles made with New Table Style. */

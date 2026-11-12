@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/core'
 import { currentFont, currentFontSize } from './commands'
+import { tx } from '../i18n'
 
 // Named styles: the built-in ones (Normal, Headings, Title, Quote …) can be modified, and documents
 // can have their own paragraph and character styles. Definitions become CSS for the page and
@@ -31,39 +32,39 @@ export type StyleDefs = Record<string, StyleDef>
 
 /** The built-in styles in gallery order, with the look the stylesheet gives them. */
 export const BUILTIN_STYLES: StyleDef[] = [
-  { id: 'normal', name: 'Normal', kind: 'paragraph', format: { size: 11, spaceAfter: 8, lineHeight: '1.08' } },
-  { id: 'noSpacing', name: 'No Spacing', kind: 'paragraph', basedOn: 'normal', format: { spaceAfter: 0, lineHeight: '1' } },
-  { id: 'h1', name: 'Heading 1', kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 16, spaceBefore: 12, spaceAfter: 0 } },
-  { id: 'h2', name: 'Heading 2', kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 13, spaceBefore: 2, spaceAfter: 0 } },
-  { id: 'title', name: 'Title', kind: 'paragraph', basedOn: 'normal', format: { size: 28, spaceAfter: 0, letterSpacing: -0.5 } },
-  { id: 'subtitle', name: 'Subtitle', kind: 'paragraph', basedOn: 'normal', format: { color: '#5A5A5A', letterSpacing: 0.75 } },
-  { id: 'subtleEmphasis', name: 'Subtle Emphasis', kind: 'character', format: { italic: true, color: '#404040' } },
-  { id: 'emphasis', name: 'Emphasis', kind: 'character', format: { italic: true } },
-  { id: 'intenseEmphasis', name: 'Intense Emphasis', kind: 'character', format: { italic: true } },
-  { id: 'strong', name: 'Strong', kind: 'character', format: { bold: true } },
-  { id: 'quote', name: 'Quote', kind: 'paragraph', basedOn: 'normal', format: { italic: true, color: '#404040', align: 'center' } },
-  { id: 'intenseQuote', name: 'Intense Quote', kind: 'paragraph', basedOn: 'normal', format: { italic: true, align: 'center' } },
-  { id: 'subtleReference', name: 'Subtle Reference', kind: 'character', format: { smallCaps: true, color: '#5A5A5A' } },
-  { id: 'intenseReference', name: 'Intense Reference', kind: 'character', format: { bold: true, smallCaps: true } },
-  { id: 'bookTitle', name: 'Book Title', kind: 'character', format: { bold: true, italic: true } },
-  { id: 'listParagraph', name: 'List Paragraph', kind: 'paragraph', basedOn: 'normal', format: { indentLeft: 0.5 } },
-  { id: 'h3', name: 'Heading 3', kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 12, spaceBefore: 2, spaceAfter: 0 } },
-  { id: 'h4', name: 'Heading 4', kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 11, italic: true, spaceBefore: 2, spaceAfter: 0 } },
-  { id: 'h5', name: 'Heading 5', kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 11, spaceBefore: 2, spaceAfter: 0 } },
-  { id: 'h6', name: 'Heading 6', kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 11, spaceBefore: 2, spaceAfter: 0 } },
-  { id: 'caption', name: 'Caption', kind: 'paragraph', basedOn: 'normal', format: { size: 9, italic: true, color: '#44546A' } },
+  { id: 'normal', name: tx('Normal'), kind: 'paragraph', format: { size: 11, spaceAfter: 8, lineHeight: '1.08' } },
+  { id: 'noSpacing', name: tx('No Spacing'), kind: 'paragraph', basedOn: 'normal', format: { spaceAfter: 0, lineHeight: '1' } },
+  { id: 'h1', name: tx('Heading 1'), kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 16, spaceBefore: 12, spaceAfter: 0 } },
+  { id: 'h2', name: tx('Heading 2'), kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 13, spaceBefore: 2, spaceAfter: 0 } },
+  { id: 'title', name: tx('Title'), kind: 'paragraph', basedOn: 'normal', format: { size: 28, spaceAfter: 0, letterSpacing: -0.5 } },
+  { id: 'subtitle', name: tx('Subtitle'), kind: 'paragraph', basedOn: 'normal', format: { color: '#5A5A5A', letterSpacing: 0.75 } },
+  { id: 'subtleEmphasis', name: tx('Subtle Emphasis'), kind: 'character', format: { italic: true, color: '#404040' } },
+  { id: 'emphasis', name: tx('Emphasis'), kind: 'character', format: { italic: true } },
+  { id: 'intenseEmphasis', name: tx('Intense Emphasis'), kind: 'character', format: { italic: true } },
+  { id: 'strong', name: tx('Strong'), kind: 'character', format: { bold: true } },
+  { id: 'quote', name: tx('Quote'), kind: 'paragraph', basedOn: 'normal', format: { italic: true, color: '#404040', align: 'center' } },
+  { id: 'intenseQuote', name: tx('Intense Quote'), kind: 'paragraph', basedOn: 'normal', format: { italic: true, align: 'center' } },
+  { id: 'subtleReference', name: tx('Subtle Reference'), kind: 'character', format: { smallCaps: true, color: '#5A5A5A' } },
+  { id: 'intenseReference', name: tx('Intense Reference'), kind: 'character', format: { bold: true, smallCaps: true } },
+  { id: 'bookTitle', name: tx('Book Title'), kind: 'character', format: { bold: true, italic: true } },
+  { id: 'listParagraph', name: tx('List Paragraph'), kind: 'paragraph', basedOn: 'normal', format: { indentLeft: 0.5 } },
+  { id: 'h3', name: tx('Heading 3'), kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 12, spaceBefore: 2, spaceAfter: 0 } },
+  { id: 'h4', name: tx('Heading 4'), kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 11, italic: true, spaceBefore: 2, spaceAfter: 0 } },
+  { id: 'h5', name: tx('Heading 5'), kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 11, spaceBefore: 2, spaceAfter: 0 } },
+  { id: 'h6', name: tx('Heading 6'), kind: 'heading', basedOn: 'normal', next: 'normal', format: { size: 11, spaceBefore: 2, spaceAfter: 0 } },
+  { id: 'caption', name: tx('Caption'), kind: 'paragraph', basedOn: 'normal', format: { size: 9, italic: true, color: '#44546A' } },
 ]
 
 /** Style sets (Design > Document Formatting): own looks for title and headings. */
 export const STYLE_SETS: { id: string; label: string; styles: Record<string, StyleFormat> }[] = [
-  { id: 'default', label: 'Default', styles: {} },
-  { id: 'classic', label: 'Classic', styles: { title: { font: 'Cambria', align: 'center' }, h1: { font: 'Cambria', bold: true, color: '#000000' }, h2: { font: 'Cambria', bold: true, color: '#000000' }, h3: { font: 'Cambria', italic: true, color: '#000000' } } },
-  { id: 'modern', label: 'Modern', styles: { title: { allCaps: true, letterSpacing: 2, size: 26 }, h1: { allCaps: true, letterSpacing: 1, size: 14 }, h2: { allCaps: true, size: 12 } } },
-  { id: 'centered', label: 'Centered', styles: { title: { align: 'center' }, subtitle: { align: 'center' }, h1: { align: 'center', size: 15 }, h2: { align: 'center' } } },
-  { id: 'lined', label: 'Lined', styles: { title: { borderBottom: '#2F6FC4' }, h1: { borderBottom: '#2F6FC4' }, h2: { borderBottom: '#BFBFBF' } } },
-  { id: 'shaded', label: 'Shaded', styles: { title: { shading: '#DCE6F2' }, h1: { shading: '#2F6FC4', color: '#FFFFFF' }, h2: { shading: '#DCE6F2' } } },
-  { id: 'bold', label: 'Bold', styles: { title: { bold: true, size: 30 }, h1: { bold: true, size: 17 }, h2: { bold: true, size: 14 }, h3: { bold: true } } },
-  { id: 'minimal', label: 'Minimal', styles: { title: { size: 24, color: '#404040' }, h1: { size: 14, color: '#404040' }, h2: { size: 12, color: '#595959' }, h3: { color: '#595959' } } },
+  { id: 'default', label: tx('Default'), styles: {} },
+  { id: 'classic', label: tx('Classic'), styles: { title: { font: 'Cambria', align: 'center' }, h1: { font: 'Cambria', bold: true, color: '#000000' }, h2: { font: 'Cambria', bold: true, color: '#000000' }, h3: { font: 'Cambria', italic: true, color: '#000000' } } },
+  { id: 'modern', label: tx('Modern'), styles: { title: { allCaps: true, letterSpacing: 2, size: 26 }, h1: { allCaps: true, letterSpacing: 1, size: 14 }, h2: { allCaps: true, size: 12 } } },
+  { id: 'centered', label: tx('Centered'), styles: { title: { align: 'center' }, subtitle: { align: 'center' }, h1: { align: 'center', size: 15 }, h2: { align: 'center' } } },
+  { id: 'lined', label: tx('Lined'), styles: { title: { borderBottom: '#2F6FC4' }, h1: { borderBottom: '#2F6FC4' }, h2: { borderBottom: '#BFBFBF' } } },
+  { id: 'shaded', label: tx('Shaded'), styles: { title: { shading: '#DCE6F2' }, h1: { shading: '#2F6FC4', color: '#FFFFFF' }, h2: { shading: '#DCE6F2' } } },
+  { id: 'bold', label: tx('Bold'), styles: { title: { bold: true, size: 30 }, h1: { bold: true, size: 17 }, h2: { bold: true, size: 14 }, h3: { bold: true } } },
+  { id: 'minimal', label: tx('Minimal'), styles: { title: { size: 24, color: '#404040' }, h1: { size: 14, color: '#404040' }, h2: { size: 12, color: '#595959' }, h3: { color: '#595959' } } },
 ]
 
 export function builtin(id: string) {

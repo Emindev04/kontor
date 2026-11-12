@@ -26,9 +26,11 @@ import { slideTitleText as slideTitle } from './model/accessibility'
 import { pickFile } from './components/ui'
 import type { DialogKind, UiApi } from './components/tabs/types'
 import { addRecent, clearLocal, downloadBlob, loadLocal, loadRecent, safeFilename, saveLocal } from './io/storage'
-import { forgetFile, onSystemOpenFile, openFilePicker, saveFile, type FileType } from './io/fileAccess'
+import { forgetFile, onSystemOpenFile, openFilePicker, saveFile } from './io/fileAccess'
+import { extOf, FILE_TYPES, OPEN_TYPE, readPresentationFile, writePresentation, type SaveKind } from './io/formats'
+import { t } from './i18n'
+import { initWindowSync, windowNumber } from './io/windowSync'
 
-const PPTX: FileType = { description: 'PPTX presentation', extensions: ['pptx'], mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }
 
 type SaveState = 'saved' | 'saving' | 'failed' | 'idle'
 
@@ -102,45 +104,49 @@ export default function App() {
   }, [revision, title, autoSave, loaded])
 
   useEffect(() => {
-    document.title = `${title} - ${APP_NAME}`
+    document.title = `${title}${windowNumber > 1 ? `:${windowNumber}` : ''} - ${APP_NAME}`
   }, [title])
+
+  // Other windows on this presentation (View > New Window) stay in step once the document is loaded.
+  useEffect(() => (loaded ? initWindowSync() : undefined), [loaded])
 
   // ---------- File actions ----------
 
   /** Save writes back into the open .pptx file; with `asNew` (Save As) it asks where to save. */
-  const writePptx = useCallback(async (asNew: boolean) => {
+  const writeFile = useCallback(async (asNew: boolean, kind: SaveKind = 'pptx') => {
     if (store.get().editingId) A.exitEditing()
     const s = store.get()
-    const { exportPptx } = await import('./io/pptxExport')
     try {
-      const blob = await exportPptx(s.pres, s.title)
-      const result = await saveFile(blob, `${safeFilename(s.title)}.pptx`, PPTX, { saveAs: asNew })
+      const blob = await writePresentation(s.pres, s.title, kind)
+      // Only .pptx is the program's own format: other types are saved as a copy (Save As).
+      const result = await saveFile(blob, `${safeFilename(s.title)}.${kind}`, { ...FILE_TYPES[kind], description: t(FILE_TYPES[kind].description) }, { saveAs: asNew || kind !== 'pptx', remember: kind === 'pptx' })
       if (result === 'cancelled') return
       addRecent(s.title, s.pres)
       setBackstage(false)
     } catch (err) {
       console.error(err)
-      window.alert('Sorry, the presentation could not be saved as .pptx.')
+      window.alert(t('Sorry, the presentation could not be saved as .{ext}.', { ext: kind }))
     }
   }, [])
-  const save = useCallback(() => writePptx(false), [writePptx])
-  const saveAs = useCallback(() => writePptx(true), [writePptx])
+  const save = useCallback(() => writeFile(false), [writeFile])
+  const saveAs = useCallback((kind?: SaveKind) => writeFile(true, kind), [writeFile])
 
   const openPresentationFile = useCallback(async (file: File) => {
     try {
-      const { importPptx } = await import('./io/pptxImport')
-      const { pres, title } = await importPptx(file)
+      const { pres, title } = await readPresentationFile(file)
       resetDocument(pres, title)
       addRecent(title, pres)
       setBackstage(false)
+      // A slide show file (.ppsx) opens straight into the slide show.
+      if (extOf(file.name) === 'ppsx' || extOf(file.name) === 'ppsm') store.set({ show: { start: 0, presenter: false } })
     } catch (err) {
       console.error(err)
-      window.alert(`Sorry, ${file.name} could not be opened. ${(err as Error).message ?? ''}`)
+      window.alert(`${t('Sorry, {name} could not be opened.', { name: file.name })} ${(err as Error).message ?? ''}`)
     }
   }, [])
 
   const open = useCallback(async () => {
-    const file = await openFilePicker([PPTX], 'pptx')
+    const file = await openFilePicker([{ ...OPEN_TYPE, description: t(OPEN_TYPE.description) }], 'pptx')
     if (file) await openPresentationFile(file)
   }, [openPresentationFile])
 
@@ -148,7 +154,7 @@ export default function App() {
   useEffect(() => onSystemOpenFile('pptx', (file) => void openPresentationFile(file)), [openPresentationFile])
 
   const newPresentation = useCallback((pres?: Presentation) => {
-    if (!window.confirm('Start a new presentation? The current one is replaced (save it to a file first if you want to keep it).')) return
+    if (!window.confirm(t('Start a new presentation? The current one is replaced (save it to a file first if you want to keep it).'))) return
     forgetFile()
     resetDocument(pres ?? createPresentation(), DEFAULT_DOC_TITLE)
     setBackstage(false)
@@ -157,7 +163,7 @@ export default function App() {
   const openRecent = useCallback(async (id: string) => {
     const saved = await loadRecent(id).catch(() => null)
     if (!saved) {
-      window.alert('This presentation is no longer stored in this browser.')
+      window.alert(t('This presentation is no longer stored in this browser.'))
       return
     }
     forgetFile()
@@ -167,7 +173,7 @@ export default function App() {
   }, [])
 
   const closeDocument = useCallback(() => {
-    if (!window.confirm('Close this presentation? It is removed from this browser.')) return
+    if (!window.confirm(t('Close this presentation? It is removed from this browser.'))) return
     clearLocal()
     forgetFile()
     resetDocument(createPresentation(), DEFAULT_DOC_TITLE)
@@ -272,7 +278,7 @@ export default function App() {
       const { kind, replaceId } = (e as CustomEvent<{ kind: 'video' | 'audio'; replaceId?: string }>).detail
       const [file] = await pickFile(kind === 'video' ? 'video/*' : 'audio/*')
       if (!file) return
-      if (file.size > 60 * 1024 * 1024 && !window.confirm('This file is large and makes the presentation slow to save. Insert it anyway?')) return
+      if (file.size > 60 * 1024 * 1024 && !window.confirm(t('This file is large and makes the presentation slow to save. Insert it anyway?'))) return
       await A.insertMediaFile(file, replaceId)
     }
     window.addEventListener('kontor:insert-media', onInsertMedia)
@@ -571,7 +577,7 @@ export default function App() {
   const backstageRef = useRef(false)
   backstageRef.current = backstage
 
-  const status = saveState === 'saving' ? 'Saving…' : saveState === 'failed' ? 'Not saved' : autoSave ? 'Saved to this browser' : 'AutoSave off'
+  const status = saveState === 'saving' ? t('Saving…') : saveState === 'failed' ? t('Not saved') : autoSave ? t('Saved to this browser') : t('AutoSave off')
   const s = store.get()
 
   return (
@@ -605,7 +611,7 @@ export default function App() {
                   <SlideCanvas onFormatShape={() => store.set({ pane: 'formatShape' })} onFormatBackground={() => store.set({ pane: 'formatBackground' })} />
                 ) : (
                   <button type="button" className="empty-deck" onClick={() => A.newSlide()}>
-                    Click to add first slide
+                    {t('Click to add first slide')}
                   </button>
                 )}
                 {preview && (

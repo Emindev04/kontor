@@ -7,6 +7,7 @@ import type { Scalar } from '../model/types'
 import { shiftFormula } from '../engine/refs'
 import type { Doc } from './doc'
 import { blocked } from './review'
+import { tx } from '../i18n'
 
 export type FillMode = 'auto' | 'copy' | 'series' | 'formats' | 'noFormats'
 
@@ -135,7 +136,7 @@ export function fillRange(doc: Doc, src: Range, dst: Range, mode: FillMode = 'au
     doc.selectRange(dst)
     return
   }
-  doc.transact('AutoFill', () => {
+  doc.transact(tx('AutoFill'), () => {
     const lines = vertical ? src.c2 - src.c1 + 1 : src.r2 - src.r1 + 1
     const len = vertical ? src.r2 - src.r1 + 1 : src.c2 - src.c1 + 1
     for (let li = 0; li < lines; li++) {
@@ -220,7 +221,7 @@ export function fillSeries(doc: Doc, o: SeriesOptions) {
     fillRange(doc, src, rg, 'auto')
     return
   }
-  doc.transact('Series', () => {
+  doc.transact(tx('Series'), () => {
     const lines = o.byRows ? rg.r2 - rg.r1 + 1 : rg.c2 - rg.c1 + 1
     const len = o.byRows ? rg.c2 - rg.c1 + 1 : rg.r2 - rg.r1 + 1
     for (let li = 0; li < lines; li++) {

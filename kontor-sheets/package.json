@@ -34,7 +34,8 @@
     "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "build": {
     "appId": "io.github.kontor.sheets",
@@ -59,6 +60,15 @@
         ],
         "name": "XLSX Workbook",
         "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      },
+      {
+        "role": "Editor",
+        "ext": [
+          "xls",
+          "xlsb"
+        ],
+        "name": "Binary Workbook",
+        "mimeType": "application/vnd.ms-excel"
       },
       {
         "role": "Editor",
@@ -88,6 +98,13 @@
             "arm64",
             "x64"
           ]
+        },
+        {
+          "target": "pkg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         }
       ],
       "hardenedRuntime": false
@@ -100,6 +117,12 @@
       "target": [
         {
           "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "msi",
           "arch": [
             "x64"
           ]
@@ -136,6 +159,16 @@
     },
     "deb": {
       "artifactName": "Kontor-Sheets-linux-x64.${ext}"
+    },
+    "msi": {
+      "artifactName": "Kontor-Sheets-windows-x64.msi",
+      "perMachine": true,
+      "oneClick": false
+    },
+    "pkg": {
+      "artifactName": "Kontor-Sheets-mac-${arch}.pkg",
+      "identity": null,
+      "installLocation": "/Applications"
     }
   }
 }

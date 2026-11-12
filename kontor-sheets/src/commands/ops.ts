@@ -7,6 +7,7 @@ import { cellView } from './display'
 import { refArea } from '../engine/parser'
 import { adjustExtras, objectsFollowCells, rewriteExtrasFormulas } from './extrasAdjust'
 import { blocked, structureBlocked } from './review'
+import { t, tx } from '../i18n'
 
 type Axis = 'row' | 'col'
 
@@ -86,7 +87,7 @@ function adjustMerges(sheet: Sheet, axis: Axis, at: number, count: number) {
 /** Inserts (count > 0) or deletes (count < 0) whole rows or columns at `at`. */
 export function insertDelete(doc: Doc, axis: Axis, at: number, count: number, sheet = doc.sheet) {
   if (blocked(doc, count > 0 ? (axis === 'row' ? 'insertRows' : 'insertColumns') : axis === 'row' ? 'deleteRows' : 'deleteColumns', undefined, sheet)) return
-  const label = `${count > 0 ? 'Insert' : 'Delete'} ${axis === 'row' ? 'Rows' : 'Columns'}`
+  const label = count > 0 ? (axis === 'row' ? tx('Insert Rows') : tx('Insert Columns')) : axis === 'row' ? tx('Delete Rows') : tx('Delete Columns')
   doc.transact(label, () => {
     noteAll(doc)
     shiftCells(sheet, axis, at, count)
@@ -175,7 +176,7 @@ function moveBlock(doc: Doc, sheet: Sheet, block: Range, dr: number, dc: number,
 export function insertCells(doc: Doc, shift: 'down' | 'right', rg = doc.activeRange) {
   const sheet = doc.sheet
   if (blocked(doc, 'cells', [rg])) return
-  doc.transact('Insert Cells', () => {
+  doc.transact(tx('Insert Cells'), () => {
     noteAll(doc)
     const used = sheet.used()
     if (shift === 'down') {
@@ -191,7 +192,7 @@ export function insertCells(doc: Doc, shift: 'down' | 'right', rg = doc.activeRa
 export function deleteCells(doc: Doc, shift: 'up' | 'left', rg = doc.activeRange) {
   const sheet = doc.sheet
   if (blocked(doc, 'cells', [rg])) return
-  doc.transact('Delete Cells', () => {
+  doc.transact(tx('Delete Cells'), () => {
     noteAll(doc)
     const used = sheet.used()
     if (shift === 'up') {
@@ -210,19 +211,19 @@ const INVALID_SHEET_CHARS = /[\\/?*[\]:]/
 
 export function validateSheetName(doc: Doc, name: string, except?: Sheet): string | null {
   const n = name.trim()
-  if (!n) return 'The sheet name cannot be empty.'
-  if (n.length > 31) return 'The sheet name can have at most 31 characters.'
-  if (INVALID_SHEET_CHARS.test(n)) return 'The sheet name cannot contain : \\ / ? * [ or ].'
-  if (n.startsWith("'") || n.endsWith("'")) return 'The sheet name cannot start or end with an apostrophe.'
-  if (n.toLowerCase() === 'history') return '"History" is a reserved name.'
+  if (!n) return t('The sheet name cannot be empty.')
+  if (n.length > 31) return t('The sheet name can have at most 31 characters.')
+  if (INVALID_SHEET_CHARS.test(n)) return t('The sheet name cannot contain : \\ / ? * [ or ].')
+  if (n.startsWith("'") || n.endsWith("'")) return t('The sheet name cannot start or end with an apostrophe.')
+  if (n.toLowerCase() === 'history') return t('"History" is a reserved name.')
   const other = doc.wb.sheetByName(n)
-  if (other && other !== except) return 'That name is already taken. Try a different one.'
+  if (other && other !== except) return t('That name is already taken. Try a different one.')
   return null
 }
 
 export function addSheet(doc: Doc, at = doc.activeIndex + 1) {
   if (structureBlocked(doc)) return
-  doc.transact('Insert Sheet', () => {
+  doc.transact(tx('Insert Sheet'), () => {
     doc.noteWorkbook()
     doc.wb.addSheet(undefined, at)
     doc.activeIndex = at
@@ -232,9 +233,9 @@ export function addSheet(doc: Doc, at = doc.activeIndex + 1) {
 export function deleteSheet(doc: Doc, index = doc.activeIndex): string | null {
   if (structureBlocked(doc)) return null
   const visible = doc.wb.sheets.filter((s) => !s.hidden)
-  if (visible.length <= 1) return 'A workbook must contain at least one visible sheet.'
+  if (visible.length <= 1) return t('A workbook must contain at least one visible sheet.')
   const sheet = doc.wb.sheets[index]
-  doc.transact('Delete Sheet', () => {
+  doc.transact(tx('Delete Sheet'), () => {
     noteAll(doc)
     doc.wb.sheets.splice(index, 1)
     rewriteFormulas(doc, (f) => deleteSheetRefs(f, sheet.name))
@@ -252,7 +253,7 @@ export function renameSheet(doc: Doc, index: number, name: string): string | nul
   if (err) return err
   const old = sheet.name
   if (old === name.trim()) return null
-  doc.transact('Rename Sheet', () => {
+  doc.transact(tx('Rename Sheet'), () => {
     noteAll(doc)
     sheet.name = name.trim()
     rewriteFormulas(doc, (f) => renameSheetRefs(f, old, sheet.name))
@@ -263,7 +264,7 @@ export function renameSheet(doc: Doc, index: number, name: string): string | nul
 export function moveSheet(doc: Doc, from: number, to: number) {
   if (structureBlocked(doc)) return
   if (from === to) return
-  doc.transact('Move Sheet', () => {
+  doc.transact(tx('Move Sheet'), () => {
     doc.noteWorkbook()
     const [s] = doc.wb.sheets.splice(from, 1)
     doc.wb.sheets.splice(to > from ? to - 1 : to, 0, s)
@@ -274,7 +275,7 @@ export function moveSheet(doc: Doc, from: number, to: number) {
 export function duplicateSheet(doc: Doc, index = doc.activeIndex, to = index + 1) {
   if (structureBlocked(doc)) return
   const src = doc.wb.sheets[index]
-  doc.transact('Copy Sheet', () => {
+  doc.transact(tx('Copy Sheet'), () => {
     doc.noteWorkbook()
     let name = ''
     for (let i = 2; ; i++) {
@@ -309,7 +310,7 @@ export function duplicateSheet(doc: Doc, index = doc.activeIndex, to = index + 1
 
 export function setTabColor(doc: Doc, index: number, color: string | undefined) {
   const s = doc.wb.sheets[index]
-  doc.transact('Tab Color', () => {
+  doc.transact(tx('Tab Color'), () => {
     doc.noteProps(s)
     s.tabColor = color
   })
@@ -317,9 +318,9 @@ export function setTabColor(doc: Doc, index: number, color: string | undefined) 
 
 export function hideSheet(doc: Doc, index = doc.activeIndex): string | null {
   if (structureBlocked(doc)) return null
-  if (doc.wb.sheets.filter((s) => !s.hidden).length <= 1) return 'A workbook must contain at least one visible sheet.'
+  if (doc.wb.sheets.filter((s) => !s.hidden).length <= 1) return t('A workbook must contain at least one visible sheet.')
   const s = doc.wb.sheets[index]
-  doc.transact('Hide Sheet', () => {
+  doc.transact(tx('Hide Sheet'), () => {
     doc.noteProps(s)
     s.hidden = true
     let i = index
@@ -332,7 +333,7 @@ export function hideSheet(doc: Doc, index = doc.activeIndex): string | null {
 export function unhideSheet(doc: Doc, index: number) {
   if (structureBlocked(doc)) return
   const s = doc.wb.sheets[index]
-  doc.transact('Unhide Sheet', () => {
+  doc.transact(tx('Unhide Sheet'), () => {
     doc.noteProps(s)
     s.hidden = false
     doc.activeIndex = index
@@ -344,7 +345,7 @@ export function unhideSheet(doc: Doc, index: number) {
 export function setSizes(doc: Doc, axis: Axis, indexes: number[], px: number) {
   if (blocked(doc, axis === 'row' ? 'formatRows' : 'formatColumns')) return
   const sheet = doc.sheet
-  doc.transact(axis === 'row' ? 'Row Height' : 'Column Width', () => {
+  doc.transact(axis === 'row' ? tx('Row Height') : tx('Column Width'), () => {
     doc.noteProps(sheet)
     const ax = axis === 'row' ? sheet.rows : sheet.cols
     objectsFollowCells(sheet, () => {
@@ -363,7 +364,7 @@ export function setSizes(doc: Doc, axis: Axis, indexes: number[], px: number) {
 export function setHidden(doc: Doc, axis: Axis, indexes: number[], hidden: boolean) {
   if (blocked(doc, axis === 'row' ? 'formatRows' : 'formatColumns')) return
   const sheet = doc.sheet
-  doc.transact(hidden ? 'Hide' : 'Unhide', () => {
+  doc.transact(hidden ? tx('Hide') : tx('Unhide'), () => {
     doc.noteProps(sheet)
     const ax = axis === 'row' ? sheet.rows : sheet.cols
     objectsFollowCells(sheet, () => {
@@ -416,7 +417,7 @@ export function autofitColumns(doc: Doc, cols: number[]) {
     const view = cellView(doc, sheet, r, c, st)
     widths.set(c, Math.max(widths.get(c) ?? 0, doc.measure(view.text, st) + 8))
   }
-  doc.transact('AutoFit Column Width', () => {
+  doc.transact(tx('AutoFit Column Width'), () => {
     doc.noteProps(sheet)
     objectsFollowCells(sheet, () => {
       for (const c of cols) {
@@ -432,7 +433,7 @@ export function autofitColumns(doc: Doc, cols: number[]) {
 
 export function autofitRows(doc: Doc, rows: number[]) {
   const sheet = doc.sheet
-  doc.transact('AutoFit Row Height', () => {
+  doc.transact(tx('AutoFit Row Height'), () => {
     doc.noteProps(sheet)
     for (const r of rows) {
       sheet.rows.manual.delete(r)
@@ -446,7 +447,7 @@ export function autofitRows(doc: Doc, rows: number[]) {
 
 export function setDefaultColWidth(doc: Doc, px: number) {
   const sheet = doc.sheet
-  doc.transact('Default Width', () => {
+  doc.transact(tx('Default Width'), () => {
     doc.noteProps(sheet)
     sheet.cols.def = Math.max(1, Math.round(px))
     sheet.cols.touch()
@@ -476,15 +477,15 @@ export function freezePanes(doc: Doc, rows: number, cols: number) {
 const NAME_RE = /^[A-Za-z_\\][A-Za-z0-9_.\\]*$/
 
 export function validateName(doc: Doc, name: string, scope?: number, except?: string): string | null {
-  if (!NAME_RE.test(name)) return 'Names must start with a letter or underscore and contain no spaces.'
-  if (/^[A-Za-z]{1,3}\d{1,7}$/.test(name) || /^[Rr]\d*[Cc]\d*$/.test(name) || /^[RrCc]$/.test(name)) return 'A name cannot look like a cell reference.'
+  if (!NAME_RE.test(name)) return t('Names must start with a letter or underscore and contain no spaces.')
+  if (/^[A-Za-z]{1,3}\d{1,7}$/.test(name) || /^[Rr]\d*[Cc]\d*$/.test(name) || /^[RrCc]$/.test(name)) return t('A name cannot look like a cell reference.')
   const existing = doc.wb.getName(name, scope)
-  if (existing && existing.scope === scope && existing.name.toUpperCase() !== except?.toUpperCase()) return 'That name already exists. Names must be unique.'
+  if (existing && existing.scope === scope && existing.name.toUpperCase() !== except?.toUpperCase()) return t('That name already exists. Names must be unique.')
   return null
 }
 
 export function defineName(doc: Doc, name: string, ref: string, scope?: number, comment?: string, replace?: { name: string; scope?: number }) {
-  doc.transact('Define Name', () => {
+  doc.transact(tx('Define Name'), () => {
     doc.noteWorkbook()
     if (replace) {
       const old = doc.wb.getName(replace.name, replace.scope)
@@ -498,7 +499,7 @@ export function defineName(doc: Doc, name: string, ref: string, scope?: number, 
 export function deleteName(doc: Doc, name: string, scope?: number) {
   const n = doc.wb.getName(name, scope)
   if (!n) return
-  doc.transact('Delete Name', () => {
+  doc.transact(tx('Delete Name'), () => {
     doc.noteWorkbook()
     doc.wb.deleteName(n)
     doc.engine.namesChanged()
@@ -520,7 +521,7 @@ export function createNamesFromSelection(doc: Doc, opts: { top: boolean; left: b
   if (opts.left) for (let r = rg.r1; r <= rg.r2; r++) created.push([clean(doc.value(r, rg.c1)), abs(r, rg.c1 + 1, r, rg.c2)])
   if (opts.bottom) for (let c = rg.c1; c <= rg.c2; c++) created.push([clean(doc.value(rg.r2, c)), abs(rg.r1, c, rg.r2 - 1, c)])
   if (opts.right) for (let r = rg.r1; r <= rg.r2; r++) created.push([clean(doc.value(r, rg.c2)), abs(r, rg.c1, r, rg.c2 - 1)])
-  doc.transact('Create Names', () => {
+  doc.transact(tx('Create Names'), () => {
     doc.noteWorkbook()
     for (const [name, ref] of created) if (name && !validateName(doc, name)) doc.wb.setName({ name, ref })
     doc.engine.namesChanged()

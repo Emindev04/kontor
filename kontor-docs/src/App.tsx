@@ -15,11 +15,13 @@ import {
 import { PX_PER_IN, loadSettings, saveSettings, type Settings } from './units'
 import { downloadBlob, safeFilename } from './io/download'
 import { forgetFile, loadAutosaveAsync, loadAutosaveSync, onSystemOpenFile, openFilePicker, saveFile, storeAutosave, type FileType } from './io/fileAccess'
-import { printPages } from './io/print'
+import { printPages, type PrintOptions } from './io/print'
 import { DEFAULT_QAT, TitleBar, type TitleBarActions } from './components/TitleBar'
 import { watchClipboard } from './editor/clipboardHistory'
 import { Ribbon, prefetchTabs, type TabId } from './components/Ribbon'
 import { Ruler } from './components/Ruler'
+import { VerticalRuler } from './components/VerticalRuler'
+import { InkOverlay, type InkTool } from './components/InkOverlay'
 import { StatusBar } from './components/StatusBar'
 import type { SaveFormat, Section as BackstageSection } from './components/Backstage'
 import { FindPanel } from './components/FindPanel'
@@ -29,12 +31,15 @@ import { MiniToolbar } from './components/MiniToolbar'
 import { PasteOptionsButton } from './components/PasteOptionsButton'
 import { cls } from './components/ui'
 import { placeDrawing } from './editor/placeDrawing'
+import { attachTableTool, type TableTool } from './editor/drawTable'
+import { loadMacros, pickCommand, saveMacros, startRecording, type Recorder } from './editor/macros'
+import { setLanguage as setUiLanguage, t, tx } from './i18n'
 import { crossRefText, setRefContext, type CrossRefAttrs } from './editor/Objects'
 import { stylesCss, type StyleDefs } from './editor/styleDefs'
 import { DEFAULT_PEN, type BorderPen, type CellBorders } from './editor/TableExtras'
 import { DEFAULT_AUTOCORRECT } from './editor/AutoCorrect'
 import { setCitationContext, type CitationStyle, type Sources } from './editor/Citations'
-import { archiveDocument, loadArchived, touchDocument } from './library'
+import { addVersion, archiveDocument, loadArchived, touchDocument } from './library'
 
 // Panes, dialogs and the File backstage load when first opened.
 const Backstage = lazy(() => import('./components/Backstage').then((m) => ({ default: m.Backstage })))
@@ -83,23 +88,33 @@ type Stored = {
   docId?: string
   sources?: Sources
   citationStyle?: CitationStyle
+  /** Review › Track Changes › Lock Tracking: password hash ("" = no password). */
+  trackLock?: string | null
 }
 
-const DOCX: FileType = { description: 'DOCX document', extensions: ['docx'], mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+const DOCX: FileType = { description: tx('DOCX document'), extensions: ['docx'], mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
 const OPEN_TYPES: FileType[] = [
   DOCX,
-  { description: 'OpenDocument text', extensions: ['odt'], mime: 'application/vnd.oasis.opendocument.text' },
-  { description: 'Markdown', extensions: ['md', 'markdown'], mime: 'text/markdown' },
-  { description: 'Web page', extensions: ['html', 'htm'], mime: 'text/html' },
-  { description: 'Plain text', extensions: ['txt'], mime: 'text/plain' },
+  { description: tx('OpenDocument text'), extensions: ['odt'], mime: 'application/vnd.oasis.opendocument.text' },
+  { description: tx('Markdown'), extensions: ['md', 'markdown'], mime: 'text/markdown' },
+  { description: tx('Web page'), extensions: ['html', 'htm'], mime: 'text/html' },
+  { description: tx('Plain text'), extensions: ['txt'], mime: 'text/plain' },
+  { description: tx('Rich Text Format'), extensions: ['rtf'], mime: 'application/rtf' },
+  { description: tx('Legacy .doc document'), extensions: ['doc'], mime: 'application/msword' },
 ]
+// Labels the document stylesheet shows with the formatting marks (CSS cannot translate them itself).
+document.documentElement.style.setProperty('--label-page-break', JSON.stringify(t('Page Break')))
+document.documentElement.style.setProperty('--label-column-break', JSON.stringify(t('Column Break')))
+
+/** The file type with its description in the interface language. */
+const localizedType = (type: FileType): FileType => ({ ...type, description: t(type.description) })
 const SAVE_TYPES: Record<string, FileType> = {
   docx: DOCX,
   odt: OPEN_TYPES[1],
   md: { ...OPEN_TYPES[2], extensions: ['md'] },
   html: { ...OPEN_TYPES[3], extensions: ['html'] },
   txt: OPEN_TYPES[4],
-  rtf: { description: 'Rich Text Format', extensions: ['rtf'], mime: 'application/rtf' },
+  rtf: OPEN_TYPES[5],
 }
 
 function parseStored(raw: string | null | undefined): Stored | null {
@@ -135,11 +150,12 @@ export type LoadedDocument = {
   docId?: string
   sources?: Sources
   citationStyle?: CitationStyle
+  trackLock?: string | null
 }
 
 export function App() {
   const stored = useMemo(loadStored, [])
-  const [title, setTitle] = useState(stored?.title ?? DEFAULT_DOC_TITLE)
+  const [title, setTitle] = useState(stored?.title ?? t(DEFAULT_DOC_TITLE))
   const [docId, setDocId] = useState(() => stored?.docId ?? newId())
   const [setup, setSetup] = useState<PageSetup>({ ...DEFAULT_SETUP, ...stored?.setup })
   const savedDefaults = useMemo(loadDefaults, [])
@@ -199,6 +215,7 @@ export function App() {
   const [showReviewingPane, setShowReviewingPane] = useState(false)
   const [restriction, setRestrictionState] = useState<Restriction>(stored?.restriction ?? 'none')
   const [restrictionHash, setRestrictionHash] = useState<string | null>(stored?.restrictionHash ?? null)
+  const [trackLock, setTrackLock] = useState<string | null>(stored?.trackLock ?? null)
   const [pagesEl, setPagesEl] = useState<HTMLDivElement | null>(null)
   const [notes, setNotes] = useState<Notes>(stored?.notes ?? {})
   const [noteSettings, setNoteSettings] = useState<NoteSettings>({ ...DEFAULT_NOTE_SETTINGS, ...stored?.noteSettings })
@@ -209,6 +226,13 @@ export function App() {
   const [overview, setOverview] = useState<'multiple' | 'sideBySide' | null>(null)
   const [tablePen, setTablePen] = useState<BorderPen>(DEFAULT_PEN)
   const [borderPainter, setBorderPainter] = useState(false)
+  const [tableTool, setTableTool] = useState<TableTool | null>(null)
+  const [inkTool, setInkTool] = useState<InkTool | null>(null)
+  // Options › Customize Ribbon › Add Command: the group waiting for a clicked ribbon command.
+  const [picking, setPicking] = useState<{ tab: string; group: string } | null>(null)
+  const [hideInk, setHideInk] = useState(false)
+  // View › Macros: the macro being recorded.
+  const [macroRec, setMacroRec] = useState<{ name: string; description: string; recorder: Recorder; paused: boolean } | null>(null)
   const [darkPage, setDarkPage] = useState(false)
   const [outline, setOutline] = useState<OutlineOptions>({ level: 0, firstLineOnly: false, showFormatting: true })
   const [drawKind, setDrawKind] = useState<string | null>(null)
@@ -252,7 +276,7 @@ export function App() {
   const editor = useEditor({
     extensions: createExtensions({
       pagination: controller,
-      getAuthor: () => settingsRef.current.userName || 'Author',
+      getAuthor: () => settingsRef.current.userName || t('Author'),
       getNoteSettings: () => noteSettingsRef.current,
       getPasteMode: () => settingsRef.current.defaultPaste ?? 'keep',
       getAutoCorrect: () => ({ smartQuotes: settingsRef.current.smartQuotes, autoCorrect: settingsRef.current.autoCorrect, entries: settingsRef.current.autoCorrectEntries ?? DEFAULT_AUTOCORRECT }),
@@ -265,7 +289,7 @@ export function App() {
     }),
     content: stored?.content ?? '<p></p>',
     shouldRerenderOnTransaction: true,
-    editorProps: { attributes: { spellcheck: 'true', lang: 'en-US', 'aria-label': 'Document body' } },
+    editorProps: { attributes: { spellcheck: 'true', lang: 'en-US', 'aria-label': t('Document body') } },
     onUpdate: () => setVersion((v) => v + 1),
   })
 
@@ -279,7 +303,7 @@ export function App() {
     extensions: createExtensions({ resolveField: (kind) => fieldValue(kind, fieldCtx.current) }),
     content: '<p></p>',
     shouldRerenderOnTransaction: true,
-    editorProps: { attributes: { spellcheck: 'true', lang: 'en-US', 'aria-label': 'Header or footer' } },
+    editorProps: { attributes: { spellcheck: 'true', lang: 'en-US', 'aria-label': t('Header or footer') } },
     onUpdate: ({ editor: e }) => {
       const slot = hfSlot.current
       if (slot) setHeaderFooter((hf) => ({ ...hf, [slot]: e.getJSON() }))
@@ -292,7 +316,7 @@ export function App() {
     extensions: createExtensions({}),
     content: '<p></p>',
     shouldRerenderOnTransaction: true,
-    editorProps: { attributes: { spellcheck: 'true', lang: 'en-US', 'aria-label': 'Note text' } },
+    editorProps: { attributes: { spellcheck: 'true', lang: 'en-US', 'aria-label': t('Note text') } },
     onUpdate: ({ editor: e }) => {
       const id = noteSlot.current
       if (id) setNotes((n) => ({ ...n, [id]: e.getJSON() }))
@@ -347,10 +371,18 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, hfEditor, hfEdit?.slot, hfEdit?.page, restriction])
 
-  // Restrict Editing: "Tracked changes" keeps Track Changes switched on.
+  // Restrict Editing: "Tracked changes" (and Lock Tracking) keeps Track Changes switched on.
   useEffect(() => {
-    if (editor && restriction === 'tracked' && !isTracking(editor.state)) editor.commands.setTrackChanges(true)
+    if (editor && (restriction === 'tracked' || trackLock != null) && !isTracking(editor.state)) editor.commands.setTrackChanges(true)
   })
+
+  /** The document with everything that is stored for it (AutoSave, recent documents, versions). */
+  const snapshot = (): Stored | null =>
+    editor
+      ? { version: 2, title, content: editor.getJSON(), setup, design, headerFooter, language, comments, trackChanges: isTracking(editor.state), restriction, restrictionHash, notes, noteSettings, styles: styleDefs, docId, sources, citationStyle, trackLock }
+      : null
+  const snapshotRef = useRef(snapshot)
+  snapshotRef.current = snapshot
 
   // Autosave to the browser (localStorage), slightly delayed.
   useEffect(() => {
@@ -361,16 +393,20 @@ export function App() {
     if (!autoSave || !editor) return
     setSaveState('saving')
     const t = setTimeout(() => {
-      const doc: Stored = { version: 2, title, content: editor.getJSON(), setup, design, headerFooter, language, comments, trackChanges: isTracking(editor.state), restriction, restrictionHash, notes, noteSettings, styles: styleDefs, docId, sources, citationStyle }
+      const doc = snapshot()
+      if (!doc) return
       storeAutosave(STORAGE_KEY, JSON.stringify(doc))
         .then(() => {
-          touchDocument({ id: docId, title, modified: new Date().toISOString(), words: editor.storage.characterCount.words() })
+          const words = editor.storage.characterCount.words()
+          touchDocument({ id: docId, title, modified: new Date().toISOString(), words })
+          // Version history: at most one automatic version every ten minutes.
+          void addVersion(docId, doc, words, 10 * 60 * 1000)
           setSaveState('saved')
         })
         .catch(() => setSaveState('failed'))
     }, 600)
     return () => clearTimeout(t)
-  }, [version, title, setup, design, headerFooter, language, comments, restriction, restrictionHash, notes, noteSettings, styleDefs, docId, autoSave, editor, sources, citationStyle])
+  }, [version, title, setup, design, headerFooter, language, comments, restriction, restrictionHash, notes, noteSettings, styleDefs, docId, autoSave, editor, sources, citationStyle, trackLock])
 
   // Citations, bibliographies and indexes show sources and page numbers: refresh them when those change.
   useEffect(() => {
@@ -427,6 +463,26 @@ export function App() {
     }
   }, [borderPainter, editor, tablePen])
 
+  // Customize Ribbon › Add Command: the next ribbon command clicked joins the group.
+  useEffect(() => {
+    if (!picking || !editor) return
+    return pickCommand(editor, (c) => {
+      setPicking(null)
+      if (c) {
+        const s = settingsRef.current
+        const customTabs = (s.customTabs ?? []).map((tab) => (tab.id !== picking.tab ? tab : { ...tab, groups: tab.groups.map((g) => (g.id !== picking.group ? g : { ...g, items: [...g.items, c] })) }))
+        setSettings({ ...s, customTabs })
+      }
+      setDialog('options')
+    })
+  }, [picking, editor, setSettings])
+
+  // Table › Draw Table and Eraser.
+  useEffect(() => {
+    if (!tableTool || !editor) return
+    return attachTableTool(editor.view, tableTool, () => setTableTool(null))
+  }, [tableTool, editor])
+
   // Format Painter: applied to the next selection (double-click keeps it on until Esc).
   useEffect(() => {
     if (!painter || !editor) return
@@ -468,17 +524,21 @@ export function App() {
       else {
         const formats = await import('./io/formats')
         if (format === 'md') blob = new Blob([formats.exportMarkdown(editor.getJSON())], { type: 'text/markdown' })
-        else if (format === 'rtf') blob = new Blob([formats.exportRtf(editor.getJSON())], { type: 'application/rtf' })
+        else if (format === 'rtf') blob = new Blob([formats.exportRtf(editor.getJSON(), title)], { type: 'application/rtf' })
         else if (format === 'odt') blob = await formats.exportOdt(editor.getJSON(), title)
       }
       if (!blob) return
-      const type = SAVE_TYPES[format]
+      const type = localizedType(SAVE_TYPES[format])
       try {
         const result = await saveFile(blob, `${name}.${type.extensions[0]}`, type, { saveAs, remember: format === 'docx' })
+        if (result !== 'cancelled') {
+          const doc = snapshotRef.current()
+          if (doc) void addVersion(doc.docId!, doc, editor.storage.characterCount.words())
+        }
         if (result === 'saved') setBackstage(false)
       } catch (error) {
         console.error(error)
-        alert(`The document could not be saved: ${(error as Error).message}`)
+        alert(t('The document could not be saved: {error}', { error: (error as Error).message }))
       }
     },
     [editor, exportDocument, title, design],
@@ -517,6 +577,7 @@ export function App() {
       setStyleDefs(() => doc.styles ?? defaults.styles ?? {})
       setSources(doc.sources ?? {})
       setCitationStyle(doc.citationStyle ?? 'apa')
+      setTrackLock(doc.trackLock ?? null)
       setHeaderFooter({ ...EMPTY_HEADER_FOOTER, ...doc.headerFooter })
       setBackstage(false)
       editor.commands.focus('start')
@@ -527,9 +588,9 @@ export function App() {
   const openRecent = useCallback(
     (id: string) => {
       const doc = loadArchived<Stored>(id)
-      if (!doc) return alert('This document is no longer stored in this browser.')
+      if (!doc) return alert(t('This document is no longer stored in this browser.'))
       forgetFile()
-      loadDocument({ title: doc.title, content: doc.content, setup: doc.setup, design: doc.design, headerFooter: doc.headerFooter, comments: doc.comments, trackChanges: doc.trackChanges, notes: doc.notes, noteSettings: doc.noteSettings, styles: doc.styles, sources: doc.sources, citationStyle: doc.citationStyle }, id)
+      loadDocument({ title: doc.title, content: doc.content, setup: doc.setup, design: doc.design, headerFooter: doc.headerFooter, comments: doc.comments, trackChanges: doc.trackChanges, notes: doc.notes, noteSettings: doc.noteSettings, styles: doc.styles, sources: doc.sources, citationStyle: doc.citationStyle, trackLock: doc.trackLock }, id)
     },
     [loadDocument],
   )
@@ -540,7 +601,7 @@ export function App() {
     const id = newId()
     if (!editor.commands.addComment(id)) return
     const { userName, userInitials } = settingsRef.current
-    setComments((c) => ({ ...c, [id]: { id, author: userName || 'Author', initials: userInitials || 'A', date: new Date().toISOString(), text: '', resolved: false, replies: [] } }))
+    setComments((c) => ({ ...c, [id]: { id, author: userName || t('Author'), initials: userInitials || 'A', date: new Date().toISOString(), text: '', resolved: false, replies: [] } }))
     setShowComments(true)
     setActiveComment(id)
     setEditingComment(id)
@@ -568,7 +629,7 @@ export function App() {
 
   const openDocumentFile = useCallback(async (file: File) => {
     if (!editor) return
-    const base = file.name.replace(/\.(docx|odt|md|markdown|html?|txt)$/i, '')
+    const base = file.name.replace(/\.(docx|odt|md|markdown|html?|txt|rtf|doc)$/i, '')
     try {
       if (/\.docx$/i.test(file.name)) {
         const { importDocx } = await import('./io/docxImport')
@@ -580,6 +641,14 @@ export function App() {
       } else if (/\.(md|markdown)$/i.test(file.name)) {
         const { importMarkdown } = await import('./io/formats')
         loadDocument({ title: base, content: importMarkdown(await file.text()) })
+      } else if (/\.rtf$/i.test(file.name)) {
+        const { importRtf, readRtfFile } = await import('./io/rtf')
+        const result = importRtf(await readRtfFile(file))
+        loadDocument({ title: base, content: result.html || '<p></p>' })
+      } else if (/\.doc$/i.test(file.name)) {
+        const { importDoc } = await import('./io/doc')
+        const result = importDoc(new Uint8Array(await file.arrayBuffer()))
+        loadDocument({ title: result.title || base, content: result.html || '<p></p>' })
       } else if (/\.html?$/i.test(file.name)) {
         loadDocument({ title: base, content: await file.text() })
       } else {
@@ -591,13 +660,13 @@ export function App() {
       }
     } catch (error) {
       console.error(error)
-      alert(`${APP_NAME} could not open this file. Is it a valid document?`)
+      alert(t('{app} could not open this file. Is it a valid document?', { app: APP_NAME }))
     }
   }, [editor, loadDocument])
 
   const openFile = useCallback(async () => {
     if (!editor) return
-    const file = await openFilePicker(OPEN_TYPES, 'docx')
+    const file = await openFilePicker(OPEN_TYPES.map(localizedType), 'docx')
     if (file) await openDocumentFile(file)
   }, [editor, openDocumentFile])
 
@@ -613,7 +682,7 @@ export function App() {
     if (!editor || loadAutosaveSync(STORAGE_KEY) !== undefined) return
     void loadAutosaveAsync(STORAGE_KEY).then((raw) => {
       const doc = parseStored(raw)
-      if (doc) loadDocument({ title: doc.title, content: doc.content, setup: doc.setup, design: doc.design, headerFooter: doc.headerFooter, comments: doc.comments, trackChanges: doc.trackChanges, notes: doc.notes, noteSettings: doc.noteSettings, styles: doc.styles, sources: doc.sources, citationStyle: doc.citationStyle }, doc.docId)
+      if (doc) loadDocument({ title: doc.title, content: doc.content, setup: doc.setup, design: doc.design, headerFooter: doc.headerFooter, comments: doc.comments, trackChanges: doc.trackChanges, notes: doc.notes, noteSettings: doc.noteSettings, styles: doc.styles, sources: doc.sources, citationStyle: doc.citationStyle, trackLock: doc.trackLock }, doc.docId)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor])
@@ -622,19 +691,19 @@ export function App() {
     (html: string) => {
       if (!editor) return
       forgetFile()
-      loadDocument({ title: DEFAULT_DOC_TITLE, content: html })
+      loadDocument({ title: t(DEFAULT_DOC_TITLE), content: html })
     },
     [editor, loadDocument],
   )
 
-  const print = useCallback(() => {
+  const print = useCallback((options?: PrintOptions) => {
     setBackstage(false)
     setHfEdit(null)
     const run = () =>
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           const el = document.querySelector<HTMLElement>('.pages')
-          if (el) printPages(el, controller.result.pages, paperH * PX_PER_IN + PAGE_GAP, paperW * PX_PER_IN, paperH * PX_PER_IN)
+          if (el) printPages(el, controller.result.pages, paperH * PX_PER_IN + PAGE_GAP, paperW * PX_PER_IN, paperH * PX_PER_IN, options)
         }),
       )
     if (viewMode !== 'print') {
@@ -671,6 +740,7 @@ export function App() {
       const mod = e.metaKey || e.ctrlKey
       const key = e.key.toLowerCase()
       if (e.key === 'Escape') {
+        setInkTool(null)
         if (painter) setPainter(null)
         else if (hfEdit && !dialog) setHfEdit(null)
         else if (noteEdit && !dialog) closeNote()
@@ -721,6 +791,9 @@ export function App() {
         } else if (e.code === 'KeyX') {
           e.preventDefault()
           setDialog('markEntry')
+        } else if (e.code === 'KeyI') {
+          e.preventDefault()
+          setDialog('markCitation')
         } else if (e.code === 'KeyP' && hfEdit) {
           e.preventDefault()
           activeEditor.chain().focus().insertField('page').run()
@@ -856,7 +929,7 @@ export function App() {
     },
     print,
     scrollToPos,
-    user: { name: settings.userName || 'Author', initials: settings.userInitials || 'A' },
+    user: { name: settings.userName || t('Author'), initials: settings.userInitials || 'A' },
     comments,
     setComments,
     activeComment,
@@ -874,6 +947,35 @@ export function App() {
     setTablePen,
     borderPainter,
     setBorderPainter,
+    trackLock,
+    setTrackLock,
+    macroRecording: macroRec ? (macroRec.paused ? 'paused' : 'recording') : null,
+    startMacro: (name, description) => {
+      if (macroRec) macroRec.recorder.stop()
+      setMacroRec({ name, description, recorder: startRecording(editor), paused: false })
+      editor.commands.focus()
+    },
+    stopMacro: () => {
+      if (!macroRec) return
+      const steps = macroRec.recorder.stop()
+      setMacroRec(null)
+      saveMacros([...loadMacros().filter((m) => m.name !== macroRec.name), { name: macroRec.name, description: macroRec.description, steps, created: new Date().toISOString() }])
+    },
+    pauseMacro: () => {
+      if (!macroRec) return
+      macroRec.recorder.pause(!macroRec.paused)
+      setMacroRec({ ...macroRec, paused: !macroRec.paused })
+    },
+    tableTool,
+    setTableTool,
+    pickRibbonCommand: (tab, group) => {
+      setDialog(null)
+      setPicking({ tab, group })
+    },
+    inkTool,
+    setInkTool,
+    hideInk,
+    setHideInk,
     overview,
     setOverview,
     darkPage,
@@ -902,6 +1004,12 @@ export function App() {
         // Storage full or blocked: the defaults only apply to this document.
       }
     },
+    setInterfaceLanguage: (lang) => {
+      // The language change reloads the program: store the document first so it opens again unchanged.
+      const doc = snapshotRef.current()
+      const stored = doc ? storeAutosave(STORAGE_KEY, JSON.stringify(doc)).catch(() => undefined) : Promise.resolve()
+      void stored.then(() => setUiLanguage(lang))
+    },
     hideBodyWhileHf,
     setHideBodyWhileHf,
     notes,
@@ -928,7 +1036,7 @@ export function App() {
 
   const hasComments = Object.keys(comments).length > 0 && showMarkup.comments && markupView !== 'none' && markupView !== 'original'
   const hasMarkupPane = hasComments && viewMode === 'print'
-  const status = !autoSave ? 'Not saved automatically' : saveState === 'failed' ? 'Too large to save in this browser' : saveState === 'saving' ? 'Saving…' : 'Saved'
+  const status = !autoSave ? t('Not saved automatically') : saveState === 'failed' ? t('Too large to save in this browser') : saveState === 'saving' ? t('Saving…') : t('Saved')
   const isPrint = viewMode === 'print'
   const titleActions: TitleBarActions = {
     new: () => newDocument('<p></p>'),
@@ -963,7 +1071,7 @@ export function App() {
         }
       } else {
         downloadBlob(blob, file.name)
-        alert('Your browser cannot share files directly, so a copy was downloaded. Attach it to an e-mail or upload it to share it.')
+        alert(t('Your browser cannot share files directly, so a copy was downloaded. Attach it to an e-mail or upload it to share it.'))
       }
     },
   }
@@ -1046,7 +1154,7 @@ export function App() {
               onEditHeaderFooter={(edit) => (edit ? setHfEdit(edit) : app.closeHeaderFooter())}
               controller={controller}
               stylesCss={stylesCss(styleDefs, design.styleSet)}
-              markupClass={cls(`markup-${markupView}`, darkPage && 'dark-page', viewMode === 'outline' && `is-outline outline-level-${outline.level}`, viewMode === 'outline' && outline.firstLineOnly && 'outline-first-line', viewMode === 'outline' && !outline.showFormatting && 'outline-plain', viewMode === 'draft' && 'is-draft', hfEdit && hideBodyWhileHf && 'hide-body', !showMarkup.insDel && 'hide-revisions', (!showMarkup.comments || markupView === 'none' || markupView === 'original') && 'hide-comments')}
+              markupClass={cls(`markup-${markupView}`, darkPage && 'dark-page', viewMode === 'outline' && `is-outline outline-level-${outline.level}`, viewMode === 'outline' && outline.firstLineOnly && 'outline-first-line', viewMode === 'outline' && !outline.showFormatting && 'outline-plain', viewMode === 'draft' && 'is-draft', hfEdit && hideBodyWhileHf && 'hide-body', !showMarkup.insDel && 'hide-revisions', hideInk && 'hide-ink', (!showMarkup.comments || markupView === 'none' || markupView === 'original') && 'hide-comments')}
               hasMarkupPane={hasMarkupPane}
               pagesRef={setPagesEl}
               notes={notes}
@@ -1061,6 +1169,8 @@ export function App() {
                 if (rect && kind && pagesEl) placeDrawing(editor, pagesEl, paperW * PX_PER_IN, kind, rect)
               }}
             >
+              {inkTool && isPrint && !hfEdit && <InkOverlay editor={editor} tool={inkTool} pageWidth={paperW * PX_PER_IN} />}
+              {showRuler && isPrint && !hfEdit && <VerticalRuler setup={setup} setSetup={setSetup} page={Math.min(pages - 1, controller.pageOfPos(editor.state.selection.head))} stride={paperH * PX_PER_IN + PAGE_GAP} unit={settings.unit} />}
               {hasMarkupPane && (
                 <Suspense fallback={null}>
                   <CommentsPane
@@ -1087,7 +1197,27 @@ export function App() {
         {showClipboardPane && !focusMode && <Suspense fallback={null}><ClipboardPane editor={editor} onClose={() => setShowClipboardPane(false)} /></Suspense>}
         {showDiagramPane && selectedObject === 'diagram' && !focusMode && <Suspense fallback={null}><DiagramTextPane editor={editor} onClose={() => setShowDiagramPane(false)} /></Suspense>}
         {showStylesPane && !focusMode && (
-          <Suspense fallback={null}><StylesPane editor={activeEditor} defs={styleDefs} setDefs={setStyleDefs} onClose={() => setShowStylesPane(false)} onModify={(id) => setStyleDialog({ id })} /></Suspense>
+          <Suspense fallback={null}><StylesPane editor={activeEditor} defs={styleDefs} setDefs={setStyleDefs} onClose={() => setShowStylesPane(false)} onModify={(id) => setStyleDialog({ id })} onManage={() => setDialog('manageStyles')} /></Suspense>
+        )}
+        {picking && (
+          <div className="macro-recording" role="status" data-macro-control="">
+            {t('Click a command on the ribbon to add it to the group (Esc to cancel).')}
+            <button type="button" className="btn btn-small" onClick={() => (setPicking(null), setDialog('options'))}>
+              {t('Cancel')}
+            </button>
+          </div>
+        )}
+        {macroRec && (
+          <div className="macro-recording" role="status" data-macro-control="">
+            <span className="macro-dot" aria-hidden="true" />
+            {macroRec.paused ? t('Macro recording paused: {name}', { name: macroRec.name }) : t('Recording macro: {name}', { name: macroRec.name })}
+            <button type="button" className="btn btn-small" onMouseDown={(e) => e.preventDefault()} onClick={() => app.pauseMacro()}>
+              {macroRec.paused ? t('Resume Recorder') : t('Pause Recording')}
+            </button>
+            <button type="button" className="btn btn-small" onMouseDown={(e) => e.preventDefault()} onClick={() => app.stopMacro()}>
+              {t('Stop Recording')}
+            </button>
+          </div>
         )}
         {(dialog === 'find' || dialog === 'replace') && (
           <FindPanel key={find.seq} editor={editor} initialQuery={find.query} withReplace={dialog === 'replace'} onClose={() => setDialog(null)} />
@@ -1098,8 +1228,7 @@ export function App() {
         <StatusBar app={app} editor={editor} onWordCount={() => setDialog('wordCount')} onGoTo={() => openFind('goto')} />
       ) : (
         <button type="button" className="focus-exit" onClick={() => setFocusMode(false)}>
-          Exit Focus
-        </button>
+          {t('Exit Focus')}</button>
       )}
 
       {viewMode === 'read' && <Suspense fallback={null}><ReadMode editor={editor} title={title} onExit={() => setViewMode('print')} onFind={() => openFind('find')} /></Suspense>}
@@ -1138,6 +1267,12 @@ export function App() {
             onPrint={print}
             docId={docId}
             onOpenRecent={openRecent}
+            onRestoreVersion={(data) => {
+              const doc = data as Stored
+              const current = snapshotRef.current()
+              if (current) void addVersion(docId, current, editor.storage.characterCount.words())
+              loadDocument({ title: doc.title, content: doc.content, setup: doc.setup, design: doc.design, headerFooter: doc.headerFooter, comments: doc.comments, trackChanges: doc.trackChanges, notes: doc.notes, noteSettings: doc.noteSettings, styles: doc.styles, sources: doc.sources, citationStyle: doc.citationStyle, trackLock: doc.trackLock }, docId)
+            }}
             initialSection={backstageSection}
             onOptions={() => {
               setBackstage(false)

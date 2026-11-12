@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { ChevronDown, ChevronUp, LayoutGrid, MoveDownRight, type LucideIcon } from 'lucide-react'
+import { getLanguage, t } from '../i18n'
+
+/** German keyboards label Ctrl and Shift as Strg and Umschalt. */
+const keyNames = (shortcut: string) => (getLanguage() === 'de' ? shortcut.replace(/\bCtrl\+/g, 'Strg+').replace(/\bShift\+/g, 'Umschalt+') : shortcut)
 
 export const cls = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ')
 
@@ -112,7 +116,7 @@ export function RibbonGroup({
 }) {
   const level = useContext(RibbonFitContext).get(label) ?? 0
   const launcher = onLauncher && (
-    <button type="button" className="rg-launcher" title={launcherTitle ?? `${label} settings`} aria-label={launcherTitle ?? `${label} settings`} onMouseDown={keepFocus} onClick={onLauncher}>
+    <button type="button" className="rg-launcher" title={launcherTitle ?? t('{group} settings', { group: label })} aria-label={launcherTitle ?? t('{group} settings', { group: label })} onMouseDown={keepFocus} onClick={onLauncher}>
       <MoveDownRight size={10} />
     </button>
   )
@@ -264,7 +268,7 @@ export function MenuList({ items, close }: { items: MenuItem[]; close: () => voi
               {item.label}
               {item.detail && <small>{item.detail}</small>}
             </span>
-            {item.shortcut && <span className="menu-shortcut">{item.shortcut}</span>}
+            {item.shortcut && <span className="menu-shortcut">{keyNames(item.shortcut)}</span>}
           </button>
         ),
       )}
@@ -328,7 +332,7 @@ export function SplitButton(props: ButtonProps & { items?: MenuItem[]; children?
         <Icon size={large ? 30 : 16} strokeWidth={large ? 1.3 : 1.8} />
         {showLabel && !large && <span className="rb-text">{label}</span>}
       </button>
-      <button type="button" className={cls('rb split-arrow', large && 'split-arrow-large')} aria-haspopup="true" aria-label={`${label}: more options`} disabled={disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className={cls('rb split-arrow', large && 'split-arrow-large')} aria-haspopup="true" aria-label={t('{name}: more options', { name: label })} disabled={disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         {large && <span className="rb-text">{label}</span>}
         <ChevronDown size={10} />
       </button>
@@ -408,7 +412,7 @@ export function ComboBox({
           }
         }}
       />
-      <button type="button" className="combo-btn" aria-label={`Choose ${title.toLowerCase()}`} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className="combo-btn" aria-label={t('Choose {name}', { name: title })} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <ChevronDown size={12} />
       </button>
       {open && (
@@ -454,7 +458,7 @@ export function ColorSplitButton({
         </span>
         {large && <span className="rb-text">{label}</span>}
       </button>
-      <button type="button" className="rb split-arrow" aria-haspopup="true" aria-label={`${label}: choose color`} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className="rb split-arrow" aria-haspopup="true" aria-label={t('{name}: choose color', { name: label })} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <ChevronDown size={10} />
       </button>
       {open && (
@@ -527,10 +531,10 @@ export function Spinner({
           }}
         />
         <span className="spinner-arrows">
-          <button type="button" tabIndex={-1} aria-label={`Increase ${label}`} onMouseDown={keepFocus} onClick={() => onChange(clamp(value + step))}>
+          <button type="button" tabIndex={-1} aria-label={t('Increase {name}', { name: label })} onMouseDown={keepFocus} onClick={() => onChange(clamp(value + step))}>
             <ChevronUp size={9} />
           </button>
-          <button type="button" tabIndex={-1} aria-label={`Decrease ${label}`} onMouseDown={keepFocus} onClick={() => onChange(clamp(value - step))}>
+          <button type="button" tabIndex={-1} aria-label={t('Decrease {name}', { name: label })} onMouseDown={keepFocus} onClick={() => onChange(clamp(value - step))}>
             <ChevronDown size={9} />
           </button>
         </span>
@@ -575,7 +579,7 @@ export function Modal({
       <div className="modal" role="dialog" aria-modal="true" aria-label={title} style={width ? { width: `min(${width}px, calc(100vw - 32px))` } : undefined} onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-title">
           <span>{title}</span>
-          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="modal-close" aria-label={t('Close')} onClick={onClose}>
             ×
           </button>
         </div>
@@ -596,7 +600,7 @@ export function OkCancel({ onOk, onCancel, okLabel = 'OK', extra }: { onOk: () =
         {okLabel}
       </button>
       <button type="button" className="btn" onClick={onCancel}>
-        Cancel
+        {t('Cancel')}
       </button>
     </>
   )

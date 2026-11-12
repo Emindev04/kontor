@@ -4,6 +4,7 @@ import { SlideView, presProps } from '../render/SlideView'
 import { beginTransaction, currentIndex, currentSlide, endTransaction, store, useStore } from '../store/store'
 import * as A from '../store/actions'
 import { cls } from './ui'
+import { t } from '../i18n'
 
 const NOTES_KEY = 'kontor-slides:notes-height'
 const NOTES_DEFAULT = 64
@@ -41,7 +42,7 @@ export function NotesPane() {
         className="notes-divider"
         role="separator"
         aria-orientation="horizontal"
-        aria-label="Resize notes"
+        aria-label={t('Resize notes')}
         onPointerDown={(e) => {
           dragging.current = { y: e.clientY, h: shown }
           ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
@@ -58,8 +59,8 @@ export function NotesPane() {
       />
       <textarea
         className="notes-text"
-        aria-label="Notes"
-        placeholder="Click to add notes"
+        aria-label={t('Notes')}
+        placeholder={t('Click to add notes')}
         spellCheck={spell}
         lang={lang}
         value={slide.notes}
@@ -132,8 +133,8 @@ export function SlideSorter() {
           </div>
           <div className="sorter-meta">
             <span className="thumb-num">{i + 1}</span>
-            {slide.transition && slide.transition.name !== 'none' && <span title="Transition">★</span>}
-            {slide.transition?.advanceAfter != null && <span>{slide.transition.advanceAfter.toFixed(0)}s</span>}
+            {slide.transition && slide.transition.name !== 'none' && <span title={t('Transition')}>★</span>}
+            {slide.transition?.advanceAfter != null && <span>{t('{n}s', { n: slide.transition.advanceAfter.toFixed(0) })}</span>}
           </div>
         </div>
       ))}
@@ -154,7 +155,7 @@ export function NotesPage() {
         <div className="np-slide" style={{ width: slideW, height: pres.size.h * scale }}>
           <SlideView slide={slide} index={index} {...presProps(pres)} mode="thumb" style={{ transform: `scale(${scale})`, transformOrigin: '0 0' }} />
         </div>
-        <textarea className="np-notes" aria-label="Notes" placeholder="Click to add text" value={slide.notes} onFocus={() => beginTransaction({ editingId: null })} onChange={(e) => A.setNotes(e.target.value)} onBlur={endTransaction} />
+        <textarea className="np-notes" aria-label={t('Notes')} placeholder={t('Click to add text')} value={slide.notes} onFocus={() => beginTransaction({ editingId: null })} onChange={(e) => A.setNotes(e.target.value)} onBlur={endTransaction} />
         <span className="np-number">{index + 1}</span>
       </div>
     </div>

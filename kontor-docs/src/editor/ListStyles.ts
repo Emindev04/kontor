@@ -1,26 +1,28 @@
 import { Extension } from '@tiptap/core'
+import { bulletCss, ensureListCss, isMultilevel } from './customLists'
+import { tx } from '../i18n'
 
 // Bullet and numbering library styles, stored on the list node.
 
 export const BULLET_STYLES: { id: string; label: string; symbol: string }[] = [
-  { id: 'disc', label: 'Filled round bullet', symbol: '•' },
-  { id: 'circle', label: 'Hollow round bullet', symbol: '○' },
-  { id: 'square', label: 'Filled square bullet', symbol: '■' },
-  { id: 'diamond', label: 'Diamond bullet', symbol: '◆' },
-  { id: 'arrow', label: 'Arrow bullet', symbol: '➢' },
-  { id: 'check', label: 'Check mark bullet', symbol: '✓' },
-  { id: 'dash', label: 'Dash bullet', symbol: '–' },
-  { id: 'star', label: 'Star bullet', symbol: '★' },
+  { id: 'disc', label: tx('Filled round bullet'), symbol: '•' },
+  { id: 'circle', label: tx('Hollow round bullet'), symbol: '○' },
+  { id: 'square', label: tx('Filled square bullet'), symbol: '■' },
+  { id: 'diamond', label: tx('Diamond bullet'), symbol: '◆' },
+  { id: 'arrow', label: tx('Arrow bullet'), symbol: '➢' },
+  { id: 'check', label: tx('Check mark bullet'), symbol: '✓' },
+  { id: 'dash', label: tx('Dash bullet'), symbol: '–' },
+  { id: 'star', label: tx('Star bullet'), symbol: '★' },
 ]
 
 export const NUMBER_STYLES: { id: string; label: string; sample: string }[] = [
   { id: 'decimal', label: '1. 2. 3.', sample: '1.' },
   { id: 'decimal-paren', label: '1) 2) 3)', sample: '1)' },
-  { id: 'upper-roman', label: 'I. II. III.', sample: 'I.' },
+  { id: 'upper-roman', label: tx('I. II. III.'), sample: 'I.' },
   { id: 'upper-alpha', label: 'A. B. C.', sample: 'A.' },
   { id: 'lower-alpha-paren', label: 'a) b) c)', sample: 'a)' },
   { id: 'lower-alpha', label: 'a. b. c.', sample: 'a.' },
-  { id: 'lower-roman', label: 'i. ii. iii.', sample: 'i.' },
+  { id: 'lower-roman', label: tx('i. ii. iii.'), sample: 'i.' },
 ]
 
 export const MULTILEVEL_STYLES: { id: string; label: string; sample: string[] }[] = [
@@ -35,6 +37,8 @@ declare module '@tiptap/core' {
       setBulletStyle: (id: string) => ReturnType
       setNumberStyle: (id: string) => ReturnType
       setNumberingStart: (start: number) => ReturnType
+      /** Applies a multilevel list definition to the whole (outermost) list. */
+      setMultilevelList: (style: string) => ReturnType
     }
   }
 }
@@ -50,7 +54,12 @@ export const ListStyles = Extension.create({
           listStyle: {
             default: null,
             parseHTML: (el) => el.getAttribute('data-list-style'),
-            renderHTML: (a) => (a.listStyle ? { 'data-list-style': a.listStyle } : {}),
+            renderHTML: (a) => {
+              if (!a.listStyle) return {}
+              if (isMultilevel(a.listStyle)) ensureListCss(a.listStyle)
+              const style = bulletCss(a.listStyle)
+              return style ? { 'data-list-style': a.listStyle, style } : { 'data-list-style': a.listStyle }
+            },
           },
         },
       },
@@ -72,6 +81,27 @@ export const ListStyles = Extension.create({
           const c = chain()
           if (!editor.isActive('orderedList')) c.toggleOrderedList()
           return c.updateAttributes('orderedList', { listStyle: id === 'decimal' ? null : id }).run()
+        },
+      setMultilevelList:
+        (style) =>
+        ({ editor, state, tr, dispatch }) => {
+          if (!editor.isActive('orderedList')) {
+            if (!editor.chain().toggleOrderedList().run()) return false
+            return editor.commands.setMultilevelList(style)
+          }
+          const { $from } = state.selection
+          let outer = -1
+          for (let d = $from.depth; d > 0; d--) if ($from.node(d).type.name === 'orderedList' || $from.node(d).type.name === 'bulletList') outer = d
+          if (outer < 0) return false
+          const pos = $from.before(outer)
+          const list = $from.node(outer)
+          if (!dispatch) return true
+          // The outer list becomes an ordered list with the definition; nested lists follow its levels.
+          tr.setNodeMarkup(pos, state.schema.nodes.orderedList, { ...list.attrs, listStyle: style })
+          list.descendants((child, rel) => {
+            if (child.type.name === 'orderedList' || child.type.name === 'bulletList') tr.setNodeMarkup(pos + 1 + rel, state.schema.nodes.orderedList, { ...child.attrs, listStyle: null, start: 1 })
+          })
+          return true
         },
       setNumberingStart:
         (start) =>

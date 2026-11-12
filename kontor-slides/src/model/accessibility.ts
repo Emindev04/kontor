@@ -4,6 +4,7 @@ import { luminance, resolveColor } from './color'
 import { isDocEmpty } from './richtext'
 import { isTitleStyle } from './layouts'
 import { makeRenderCtx, slideBackground, textCtxFor } from '../render/context'
+import { tx } from '../i18n'
 
 export type IssueLevel = 'error' | 'warning' | 'tip'
 export type IssueFix = 'alt' | 'order' | 'header'
@@ -61,18 +62,18 @@ export function checkAccessibility(pres: Presentation): Issue[] {
   pres.slides.forEach((slide, slideIndex) => {
     const at = (level: IssueLevel, kind: string, el?: SlideElement, fix?: IssueFix) => issues.push({ level, kind, slideId: slide.id, slideIndex, elId: el?.id, name: el?.name, fix })
     const title = slideTitleText(slide)
-    if (!title) at('error', 'Missing slide title')
-    else if ((titles.get(title.toLowerCase()) ?? 0) > 1) at('warning', 'Duplicate slide title')
+    if (!title) at('error', tx('Missing slide title'))
+    else if ((titles.get(title.toLowerCase()) ?? 0) > 1) at('warning', tx('Duplicate slide title'))
     const rc = makeRenderCtx(pres, slideIndex + 1, slide.layout)
     const bg = slideBackground(slide.background, rc)
     const walk = (els: SlideElement[], inGroup: boolean) => {
       for (const el of els) {
         if (el.hidden) continue
-        if (!inGroup && needsAlt(el)) at('error', 'Missing alternative text', el, 'alt')
+        if (!inGroup && needsAlt(el)) at('error', tx('Missing alternative text'), el, 'alt')
         if (el.type === 'group') walk(el.children, true)
         if (el.type === 'table') {
-          if (!el.opts.headerRow) at('warning', 'No header row specified', el, 'header')
-          if (el.rows.some((r) => r.cells.some((c) => c.merged))) at('warning', 'Merged cells', el)
+          if (!el.opts.headerRow) at('warning', tx('No header row specified'), el, 'header')
+          if (el.rows.some((r) => r.cells.some((c) => c.merged))) at('warning', tx('Merged cells'), el)
         }
         if (el.type === 'shape' && el.text && !isDocEmpty(el.text.doc)) {
           const ctx = textCtxFor(el, rc)
@@ -85,17 +86,17 @@ export function checkAccessibility(pres: Presentation): Issue[] {
                 if (ts?.attrs.color) colors.add(resolveColor(ts.attrs.color, rc.colors))
               }
             const large = (ctx.sizes[0] ?? 18) * (el.text.fontScale ?? 1) >= 24 || (ctx.bold && ctx.sizes[0] >= 18.5)
-            if ([...colors].some((c) => contrastRatio(c, fill) < (large ? 3 : 4.5))) at('warning', 'Hard-to-read text contrast', el)
+            if ([...colors].some((c) => contrastRatio(c, fill) < (large ? 3 : 4.5))) at('warning', tx('Hard-to-read text contrast'), el)
           }
           for (const l of linkMarks(el.text.doc)) {
             const text = l.text.trim().toLowerCase()
-            if (text === l.href.trim().toLowerCase() || /^(click here|here|link|more|read more)$/.test(text)) at('warning', 'Unclear hyperlink text', el)
+            if (text === l.href.trim().toLowerCase() || /^(click here|here|link|more|read more)$/.test(text)) at('warning', tx('Unclear hyperlink text'), el)
           }
         }
       }
     }
     walk(slide.elements, false)
-    if (readingOrderMismatch(slide)) at('tip', 'Check reading order', undefined, 'order')
+    if (readingOrderMismatch(slide)) at('tip', tx('Check reading order'), undefined, 'order')
   })
   return issues
 }

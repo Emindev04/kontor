@@ -11,6 +11,7 @@ import * as A from '../../store/actions'
 import { MenuButton, PopoverButton, RibbonButton, RibbonGroup, SplitMenuButton, cls, keepFocus } from '../ui'
 import { ArrangeButtons, ArrangeExtraButtons } from './common'
 import type { TabProps } from './types'
+import { t } from '../../i18n'
 
 function useDiagram() {
   return useStore((s) => {
@@ -74,42 +75,42 @@ export function DiagramDesignTab({ ui }: TabProps) {
   const upd = (fn: (x: DiagramElement) => Partial<DiagramElement>) => A.updateDiagram((x) => ({ ...x, ...fn(x) }))
   return (
     <>
-      <RibbonGroup label="Create Graphic">
+      <RibbonGroup label={t('Create Graphic')}>
         <SplitMenuButton
           icon={Plus}
-          label="Add Shape"
+          label={t('Add Shape')}
           large
           disabled={!d}
           onClick={() => addDiagramShape('after')}
           items={[
-            { label: 'Add Shape After', onClick: () => addDiagramShape('after') },
-            { label: 'Add Shape Before', onClick: () => addDiagramShape('before') },
-            { label: 'Add Shape Above', onClick: () => addDiagramShape('above') },
-            { label: 'Add Shape Below', onClick: () => addDiagramShape('below') },
+            { label: t('Add Shape After'), onClick: () => addDiagramShape('after') },
+            { label: t('Add Shape Before'), onClick: () => addDiagramShape('before') },
+            { label: t('Add Shape Above'), onClick: () => addDiagramShape('above') },
+            { label: t('Add Shape Below'), onClick: () => addDiagramShape('below') },
           ]}
         />
         <div className="col">
-          <RibbonButton icon={ChevronLeft} label="Promote" showLabel disabled={!node} onClick={() => node && upd((x) => ({ nodes: changeNodeLevel(x.nodes, node, -1) }))} />
-          <RibbonButton icon={ChevronRight} label="Demote" showLabel disabled={!node} onClick={() => node && upd((x) => ({ nodes: changeNodeLevel(x.nodes, node, 1) }))} />
-          <RibbonButton icon={ListTree} label="Text Pane" showLabel active={pane} disabled={!d} onClick={() => store.set({ diagramPane: !pane })} />
+          <RibbonButton icon={ChevronLeft} label={t('Promote')} showLabel disabled={!node} onClick={() => node && upd((x) => ({ nodes: changeNodeLevel(x.nodes, node, -1) }))} />
+          <RibbonButton icon={ChevronRight} label={t('Demote')} showLabel disabled={!node} onClick={() => node && upd((x) => ({ nodes: changeNodeLevel(x.nodes, node, 1) }))} />
+          <RibbonButton icon={ListTree} label={t('Text Pane')} showLabel active={pane} disabled={!d} onClick={() => store.set({ diagramPane: !pane })} />
         </div>
         <div className="col">
-          <RibbonButton icon={ArrowUp} label="Move Up" showLabel disabled={!node} onClick={() => node && upd((x) => ({ nodes: moveNode(x.nodes, node, -1) }))} />
-          <RibbonButton icon={ArrowDown} label="Move Down" showLabel disabled={!node} onClick={() => node && upd((x) => ({ nodes: moveNode(x.nodes, node, 1) }))} />
+          <RibbonButton icon={ArrowUp} label={t('Move Up')} showLabel disabled={!node} onClick={() => node && upd((x) => ({ nodes: moveNode(x.nodes, node, -1) }))} />
+          <RibbonButton icon={ArrowDown} label={t('Move Down')} showLabel disabled={!node} onClick={() => node && upd((x) => ({ nodes: moveNode(x.nodes, node, 1) }))} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Layouts" icon={Network}>
+      <RibbonGroup label={t('Layouts')} icon={Network}>
         <div className="inline-gallery">
           {DIAGRAM_LAYOUTS.slice(0, 4).map((l) => (
-            <button key={l.id} type="button" title={l.label} className={cls('chart-style-item', d?.layout === l.id && 'is-active')} disabled={!d} onMouseDown={keepFocus} onClick={() => upd(() => ({ layout: l.id }))}>
+            <button key={l.id} type="button" title={t(l.label)} className={cls('chart-style-item', d?.layout === l.id && 'is-active')} disabled={!d} onMouseDown={keepFocus} onClick={() => upd(() => ({ layout: l.id }))}>
               <DiagramThumb layout={l.id} nodes={d?.nodes} width={60} height={44} />
             </button>
           ))}
-          <PopoverButton icon={Network} label="More Layouts" disabled={!d} panelClass="menu-wide">
+          <PopoverButton icon={Network} label={t('More Layouts')} disabled={!d} panelClass="menu-wide">
             {(close) => (
               <div className="diagram-layout-grid">
                 {DIAGRAM_LAYOUTS.map((l) => (
-                  <button key={l.id} type="button" title={l.label} className={cls('chart-style-item', d?.layout === l.id && 'is-active')} onMouseDown={keepFocus} onClick={() => (close(), upd(() => ({ layout: l.id })))}>
+                  <button key={l.id} type="button" title={t(l.label)} className={cls('chart-style-item', d?.layout === l.id && 'is-active')} onMouseDown={keepFocus} onClick={() => (close(), upd(() => ({ layout: l.id })))}>
                     <DiagramThumb layout={l.id} nodes={d?.nodes} />
                   </button>
                 ))}
@@ -118,12 +119,12 @@ export function DiagramDesignTab({ ui }: TabProps) {
           </PopoverButton>
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Diagram Styles" icon={Paintbrush}>
-        <PopoverButton icon={Palette} label="Change Colors" large disabled={!d} panelClass="menu-wide">
+      <RibbonGroup label={t('Diagram Styles')} icon={Paintbrush}>
+        <PopoverButton icon={Palette} label={t('Change Colors')} large disabled={!d} panelClass="menu-wide">
           {(close) => (
             <div className="diagram-colors">
               {DIAGRAM_COLORS.map((c) => (
-                <button key={c.id} type="button" title={c.label} className={cls('chart-style-item', d?.colors === c.id && 'is-active')} onMouseDown={keepFocus} onClick={() => (close(), upd(() => ({ colors: c.id })))}>
+                <button key={c.id} type="button" title={c.n ? t(c.label, { n: c.n }) : t(c.label)} className={cls('chart-style-item', d?.colors === c.id && 'is-active')} onMouseDown={keepFocus} onClick={() => (close(), upd(() => ({ colors: c.id })))}>
                   <DiagramThumb layout={d?.layout ?? 'basicList'} colors={c.id} style={d?.style} nodes={d?.nodes} width={60} height={40} />
                 </button>
               ))}
@@ -132,26 +133,26 @@ export function DiagramDesignTab({ ui }: TabProps) {
         </PopoverButton>
         <div className="inline-gallery">
           {DIAGRAM_STYLES.map((st) => (
-            <button key={st.id} type="button" title={st.label} className={cls('chart-style-item', d?.style === st.id && 'is-active')} disabled={!d} onMouseDown={keepFocus} onClick={() => upd(() => ({ style: st.id }))}>
+            <button key={st.id} type="button" title={t(st.label)} className={cls('chart-style-item', d?.style === st.id && 'is-active')} disabled={!d} onMouseDown={keepFocus} onClick={() => upd(() => ({ style: st.id }))}>
               <DiagramThumb layout={d?.layout ?? 'basicList'} colors={d?.colors} style={st.id} nodes={d?.nodes} width={48} height={40} />
             </button>
           ))}
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Reset">
-        <RibbonButton icon={RotateCcw} label="Reset Graphic" large disabled={!d} onClick={() => upd(() => ({ colors: 'primary', style: 'flat' }))} />
+      <RibbonGroup label={t('Reset')}>
+        <RibbonButton icon={RotateCcw} label={t('Reset Graphic')} large disabled={!d} onClick={() => upd(() => ({ colors: 'primary', style: 'flat' }))} />
         <MenuButton
           icon={Shapes}
-          label="Convert"
+          label={t('Convert')}
           large
           disabled={!d}
           items={[
-            { label: 'Convert to Text', icon: Type, onClick: convertToText },
-            { label: 'Convert to Shapes', icon: Shapes, onClick: convertToShapes },
+            { label: t('Convert to Text'), icon: Type, onClick: convertToText },
+            { label: t('Convert to Shapes'), icon: Shapes, onClick: convertToShapes },
           ]}
         />
       </RibbonGroup>
-      <RibbonGroup label="Arrange">
+      <RibbonGroup label={t('Arrange')}>
         <ArrangeButtons ui={ui} />
         <ArrangeExtraButtons />
       </RibbonGroup>
@@ -170,8 +171,8 @@ export function DiagramTextPane({ d, style }: { d: DiagramElement; style: React.
   return (
     <div className="diagram-pane" style={style} onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
       <div className="diagram-pane-head">
-        <span>Type your text here</span>
-        <button type="button" aria-label="Close text pane" onClick={() => store.set({ diagramPane: false })}>
+        <span>{t('Type your text here')}</span>
+        <button type="button" aria-label={t('Close text pane')} onClick={() => store.set({ diagramPane: false })}>
           ×
         </button>
       </div>
@@ -185,8 +186,8 @@ export function DiagramTextPane({ d, style }: { d: DiagramElement; style: React.
                 else refs.current.delete(n.id)
               }}
               value={n.text}
-              placeholder="[Text]"
-              aria-label={`Diagram text ${i + 1}`}
+              placeholder={t('[Text]')}
+              aria-label={t('Diagram text {n}', { n: i + 1 })}
               onFocus={() => store.get().diagramNode !== n.id && store.set({ diagramNode: n.id })}
               onChange={(e) => set(d.nodes.map((x) => (x.id === n.id ? { ...x, text: e.target.value } : x)))}
               onKeyDown={(e) => {

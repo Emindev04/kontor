@@ -50,6 +50,7 @@ import { resolveColor } from '../../model/color'
 import { commit, currentSlide, store, updateSlide, useStore } from '../../store/store'
 import * as A from '../../store/actions'
 import * as T from '../../editor/textCommands'
+import { t } from '../../i18n'
 import { useEditorVersion } from '../../editor/activeEditor'
 import { pickFormat } from '../../editor/formatPainter'
 import { styleKey } from '../../render/context'
@@ -109,18 +110,18 @@ export function FontGroup({ ui }: TabProps) {
   const themeFont = def ? (def.font === 'major' ? fonts.major : fonts.minor) : fonts.minor
   const family = T.textStyleValue('fontFamily') ?? themeFont
   const size = has ? T.currentFontSize() : 18
-  const HEAD = `${fonts.major} (Headings)`
-  const BODY = `${fonts.minor} (Body)`
+  const HEAD = t('{font} (Headings)', { font: fonts.major })
+  const BODY = t('{font} (Body)', { font: fonts.minor })
   return (
-    <RibbonGroup label="Font" onLauncher={() => ui.openDialog('font')} launcherTitle="Font (Ctrl+T)">
+    <RibbonGroup label={t('Font')} onLauncher={() => ui.openDialog('font')} launcherTitle={t('Font (Ctrl+T)')}>
       <div className="col">
         <div className="row">
           <ComboBox
             value={has ? family : ''}
             width={150}
-            title="Font"
+            title={t('Font')}
             disabled={!has}
-            options={[{ heading: 'Theme Fonts' }, HEAD, BODY, { heading: 'All Fonts' }, ...FONT_LIST]}
+            options={[{ heading: t('Theme Fonts') }, HEAD, BODY, { heading: t('All Fonts') }, ...FONT_LIST]}
             renderOption={(o) => <span style={{ fontFamily: fontStack(o.replace(/ \((Headings|Body)\)$/, '')) }}>{o}</span>}
             onCommit={(v) => {
               const name = v === HEAD ? fonts.major : v === BODY ? fonts.minor : v
@@ -130,7 +131,7 @@ export function FontGroup({ ui }: TabProps) {
           <ComboBox
             value={has ? String(size) : ''}
             width={58}
-            title="Font Size"
+            title={t('Font Size')}
             disabled={!has}
             options={T.FONT_SIZES.map(String)}
             onCommit={(v) => {
@@ -138,56 +139,56 @@ export function FontGroup({ ui }: TabProps) {
               if (n > 0 && n <= 4000) T.setTextStyle({ fontSize: Math.round(n * 2) / 2 })
             }}
           />
-          <RibbonButton icon={AArrowUp} label="Increase Font Size" title="Increase Font Size (Ctrl+Shift+>)" disabled={!has} onClick={() => T.stepFontSize(1)} />
-          <RibbonButton icon={AArrowDown} label="Decrease Font Size" title="Decrease Font Size (Ctrl+Shift+<)" disabled={!has} onClick={() => T.stepFontSize(-1)} />
+          <RibbonButton icon={AArrowUp} label={t('Increase Font Size')} title={t('Increase Font Size (Ctrl+Shift+>)')} disabled={!has} onClick={() => T.stepFontSize(1)} />
+          <RibbonButton icon={AArrowDown} label={t('Decrease Font Size')} title={t('Decrease Font Size (Ctrl+Shift+<)')} disabled={!has} onClick={() => T.stepFontSize(-1)} />
           <span className="row-sep" />
-          <RibbonButton icon={Eraser} label="Clear All Formatting" disabled={!has} onClick={T.clearFormatting} />
+          <RibbonButton icon={Eraser} label={t('Clear All Formatting')} disabled={!has} onClick={T.clearFormatting} />
         </div>
         <div className="row">
-          <RibbonButton icon={Bold} label="Bold" title="Bold (Ctrl+B)" active={has && T.isMarkActive('bold')} disabled={!has} onClick={() => T.toggleMark('bold')} />
-          <RibbonButton icon={Italic} label="Italic" title="Italic (Ctrl+I)" active={has && T.isMarkActive('italic')} disabled={!has} onClick={() => T.toggleMark('italic')} />
-          <RibbonButton icon={Underline} label="Underline" title="Underline (Ctrl+U)" active={has && T.isMarkActive('underline')} disabled={!has} onClick={() => T.toggleMark('underline')} />
+          <RibbonButton icon={Bold} label={t('Bold')} title={t('Bold (Ctrl+B)')} active={has && T.isMarkActive('bold')} disabled={!has} onClick={() => T.toggleMark('bold')} />
+          <RibbonButton icon={Italic} label={t('Italic')} title={t('Italic (Ctrl+I)')} active={has && T.isMarkActive('italic')} disabled={!has} onClick={() => T.toggleMark('italic')} />
+          <RibbonButton icon={Underline} label={t('Underline')} title={t('Underline (Ctrl+U)')} active={has && T.isMarkActive('underline')} disabled={!has} onClick={() => T.toggleMark('underline')} />
           <RibbonButton
             iconNode={<span className="icon-text icon-shadow">S</span>}
-            label="Text Shadow"
+            label={t('Text Shadow')}
             active={has && !!T.textStyleValue('shadow')}
             disabled={!has}
             onClick={() => T.setTextStyle({ shadow: T.textStyleValue('shadow') ? null : true })}
           />
-          <RibbonButton icon={Strikethrough} label="Strikethrough" active={has && T.isMarkActive('strike')} disabled={!has} onClick={() => T.toggleMark('strike')} />
+          <RibbonButton icon={Strikethrough} label={t('Strikethrough')} active={has && T.isMarkActive('strike')} disabled={!has} onClick={() => T.toggleMark('strike')} />
           <MenuButton
             icon={Space}
-            label="Character Spacing"
+            label={t('Character Spacing')}
             disabled={!has}
             items={[
               ...(
                 [
-                  ['Very Tight', -3],
-                  ['Tight', -1.5],
-                  ['Normal', 0],
-                  ['Loose', 3],
-                  ['Very Loose', 6],
+                  [t('Very Tight'), -3],
+                  [t('Tight'), -1.5],
+                  [t('Normal'), 0],
+                  [t('Loose'), 3],
+                  [t('Very Loose'), 6],
                 ] as const
               ).map(([label, v]) => ({ label, active: (T.textStyleValue('letterSpacing') ?? 0) === v, onClick: () => T.setTextStyle({ letterSpacing: v || null }) })),
               'separator',
-              { label: 'More Spacing…', onClick: () => ui.openDialog('font') },
+              { label: t('More Spacing…'), onClick: () => ui.openDialog('font') },
             ]}
           />
           <MenuButton
             icon={CaseSensitive}
-            label="Change Case"
+            label={t('Change Case')}
             disabled={!has}
             items={(
               [
-                ['sentence', 'Sentence case.'],
-                ['lower', 'lowercase'],
-                ['upper', 'UPPERCASE'],
-                ['title', 'Capitalize Each Word'],
-                ['toggle', 'tOGGLE cASE'],
+                ['sentence', t('Sentence case.')],
+                ['lower', t('lowercase')],
+                ['upper', t('UPPERCASE')],
+                ['title', t('Capitalize Each Word')],
+                ['toggle', t('tOGGLE cASE')],
               ] as [CaseMode, string][]
             ).map(([mode, label]) => ({ label, onClick: () => T.changeCase(mode) }))}
           />
-          <ColorSplitButton icon={Highlighter} label="Text Highlight Color" color={hl} disabled={!has} onApply={() => T.setHighlight(hl)}>
+          <ColorSplitButton icon={Highlighter} label={t('Text Highlight Color')} color={hl} disabled={!has} onApply={() => T.setHighlight(hl)}>
             {(close) => (
               <HighlightPalette
                 onPick={(c) => {
@@ -202,11 +203,11 @@ export function FontGroup({ ui }: TabProps) {
               />
             )}
           </ColorSplitButton>
-          <ColorSplitButton icon={Baseline} label="Font Color" color={resolveColor(fontColor, colors)} disabled={!has} onApply={() => T.setTextStyle({ color: fontColor })}>
+          <ColorSplitButton icon={Baseline} label={t('Font Color')} color={resolveColor(fontColor, colors)} disabled={!has} onApply={() => T.setTextStyle({ color: fontColor })}>
             {(close) => (
               <ColorPalette
                 colors={colors}
-                auto={{ label: 'Automatic', color: '#000', onClick: () => (close(), T.setTextStyle({ color: null })) }}
+                auto={{ label: t('Automatic'), color: '#000', onClick: () => (close(), T.setTextStyle({ color: null })) }}
                 onPick={(c) => {
                   close()
                   setFontColor(c)
@@ -243,12 +244,12 @@ export function ParagraphGroup({ ui }: TabProps) {
   const lh = T.paraValue('lineHeight') ?? (el ? STYLE_DEFS[styleKey(el)].lineHeight : 1)
   const setText = (patch: Partial<NonNullable<ShapeElement['text']>>) => A.updateSelected((e) => (e.type === 'shape' && e.text ? { ...e, text: { ...e.text, ...patch } } : e))
   return (
-    <RibbonGroup label="Paragraph" onLauncher={() => ui.openDialog('paragraph')} launcherTitle="Paragraph">
+    <RibbonGroup label={t('Paragraph')} onLauncher={() => ui.openDialog('paragraph')} launcherTitle={t('Paragraph')}>
       <div className="col">
         <div className="row">
           <SplitMenuButton
             icon={List}
-            label="Bullets"
+            label={t('Bullets')}
             active={!!bullet && !bullet.startsWith('num:')}
             disabled={!has}
             onClick={() => T.setPara({ bullet: bullet && !bullet.startsWith('num:') ? 'none' : '•' })}
@@ -256,24 +257,24 @@ export function ParagraphGroup({ ui }: TabProps) {
             items={(close: () => void) => (
               <div className="bullet-gallery">
                 <button type="button" className="bullet-item" onMouseDown={keepFocus} onClick={() => (close(), T.setPara({ bullet: 'none' }))}>
-                  None
+                  {t('None')}
                 </button>
                 {BULLET_CHARS.map((b) => (
-                  <button key={b.char} type="button" className={cls('bullet-item', bullet === b.char && 'is-active')} title={b.label} onMouseDown={keepFocus} onClick={() => (close(), T.setPara({ bullet: b.char }))}>
+                  <button key={b.char} type="button" className={cls('bullet-item', bullet === b.char && 'is-active')} title={t(b.label)} onMouseDown={keepFocus} onClick={() => (close(), T.setPara({ bullet: b.char }))}>
                     <span>{b.char}</span>
                     <span>{b.char}</span>
                     <span>{b.char}</span>
                   </button>
                 ))}
                 <button type="button" className="bullet-more" onMouseDown={keepFocus} onClick={() => (close(), ui.openDialog('bullets'))}>
-                  Bullets and Numbering…
+                  {t('Bullets and Numbering…')}
                 </button>
               </div>
             )}
           />
           <SplitMenuButton
             icon={ListOrdered}
-            label="Numbering"
+            label={t('Numbering')}
             active={!!bullet?.startsWith('num:')}
             disabled={!has}
             onClick={() => T.setPara({ bullet: bullet?.startsWith('num:') ? 'none' : 'num:arabicPeriod' })}
@@ -281,69 +282,69 @@ export function ParagraphGroup({ ui }: TabProps) {
             items={(close: () => void) => (
               <div className="bullet-gallery">
                 <button type="button" className="bullet-item" onMouseDown={keepFocus} onClick={() => (close(), T.setPara({ bullet: 'none' }))}>
-                  None
+                  {t('None')}
                 </button>
                 {NUMBER_SCHEMES.map((n) => (
-                  <button key={n.id} type="button" className={cls('bullet-item', bullet === `num:${n.id}` && 'is-active')} title={n.label} onMouseDown={keepFocus} onClick={() => (close(), T.setPara({ bullet: `num:${n.id}` }))}>
+                  <button key={n.id} type="button" className={cls('bullet-item', bullet === `num:${n.id}` && 'is-active')} title={t(n.label)} onMouseDown={keepFocus} onClick={() => (close(), T.setPara({ bullet: `num:${n.id}` }))}>
                     <span>{n.sample(1)}</span>
                     <span>{n.sample(2)}</span>
                     <span>{n.sample(3)}</span>
                   </button>
                 ))}
                 <button type="button" className="bullet-more" onMouseDown={keepFocus} onClick={() => (close(), ui.openDialog('bullets'))}>
-                  Bullets and Numbering…
+                  {t('Bullets and Numbering…')}
                 </button>
               </div>
             )}
           />
-          <RibbonButton icon={IndentDecrease} label="Decrease List Level" title="Decrease List Level (Shift+Tab)" disabled={!has} onClick={() => T.changeLevel(-1)} />
-          <RibbonButton icon={IndentIncrease} label="Increase List Level" title="Increase List Level (Tab)" disabled={!has} onClick={() => T.changeLevel(1)} />
+          <RibbonButton icon={IndentDecrease} label={t('Decrease List Level')} title={t('Decrease List Level (Shift+Tab)')} disabled={!has} onClick={() => T.changeLevel(-1)} />
+          <RibbonButton icon={IndentIncrease} label={t('Increase List Level')} title={t('Increase List Level (Tab)')} disabled={!has} onClick={() => T.changeLevel(1)} />
           <MenuButton
             icon={ArrowDownUp}
-            label="Line Spacing"
+            label={t('Line Spacing')}
             disabled={!has}
             items={[
               ...[1, 1.5, 2, 2.5, 3].map((v) => ({ label: v.toFixed(1), active: Math.abs(lh - v) < 0.01, onClick: () => T.setPara({ lineHeight: v }) })),
               'separator' as const,
-              { label: 'Line Spacing Options…', onClick: () => ui.openDialog('paragraph') },
+              { label: t('Line Spacing Options…'), onClick: () => ui.openDialog('paragraph') },
             ]}
           />
         </div>
         <div className="row">
-          <RibbonButton icon={AlignLeft} label="Align Left" title="Align Left (Ctrl+L)" active={has && effAlign === 'left'} disabled={!has} onClick={() => T.setPara({ align: 'left' })} />
-          <RibbonButton icon={AlignCenter} label="Center" title="Center (Ctrl+E)" active={has && effAlign === 'center'} disabled={!has} onClick={() => T.setPara({ align: 'center' })} />
-          <RibbonButton icon={AlignRight} label="Align Right" title="Align Right (Ctrl+R)" active={has && effAlign === 'right'} disabled={!has} onClick={() => T.setPara({ align: 'right' })} />
-          <RibbonButton icon={AlignJustify} label="Justify" title="Justify (Ctrl+J)" active={has && effAlign === 'justify'} disabled={!has} onClick={() => T.setPara({ align: 'justify' })} />
-          <RibbonButton icon={AlignHorizontalSpaceAround} label="Distributed" title="Distributed (Ctrl+Shift+J): spread the text evenly across the line" active={has && effAlign === 'distributed'} disabled={!has} onClick={() => T.setPara({ align: 'distributed' })} />
+          <RibbonButton icon={AlignLeft} label={t('Align Left')} title={t('Align Left (Ctrl+L)')} active={has && effAlign === 'left'} disabled={!has} onClick={() => T.setPara({ align: 'left' })} />
+          <RibbonButton icon={AlignCenter} label={t('Center')} title={t('Center (Ctrl+E)')} active={has && effAlign === 'center'} disabled={!has} onClick={() => T.setPara({ align: 'center' })} />
+          <RibbonButton icon={AlignRight} label={t('Align Right')} title={t('Align Right (Ctrl+R)')} active={has && effAlign === 'right'} disabled={!has} onClick={() => T.setPara({ align: 'right' })} />
+          <RibbonButton icon={AlignJustify} label={t('Justify')} title={t('Justify (Ctrl+J)')} active={has && effAlign === 'justify'} disabled={!has} onClick={() => T.setPara({ align: 'justify' })} />
+          <RibbonButton icon={AlignHorizontalSpaceAround} label={t('Distributed')} title={t('Distributed (Ctrl+Shift+J): spread the text evenly across the line')} active={has && effAlign === 'distributed'} disabled={!has} onClick={() => T.setPara({ align: 'distributed' })} />
           <span className="row-sep" />
           <MenuButton
             icon={Columns2}
-            label="Add or Remove Columns"
+            label={t('Add or Remove Columns')}
             disabled={!has}
             items={[
-              ...[1, 2, 3].map((n) => ({ label: ['One Column', 'Two Columns', 'Three Columns'][n - 1], active: (el?.text?.columns ?? 1) === n, onClick: () => setText({ columns: n }) })),
+              ...[1, 2, 3].map((n) => ({ label: [t('One Column'), t('Two Columns'), t('Three Columns')][n - 1], active: (el?.text?.columns ?? 1) === n, onClick: () => setText({ columns: n }) })),
               'separator' as const,
-              { label: 'More Columns…', onClick: () => ui.openDialog('columns') },
+              { label: t('More Columns…'), onClick: () => ui.openDialog('columns') },
             ]}
           />
           <MenuButton
             icon={Type}
-            label="Text Direction"
+            label={t('Text Direction')}
             disabled={!has}
             items={[
-              { label: 'Horizontal', active: !el?.text?.vert || el.text.vert === 'horz', onClick: () => setText({ vert: 'horz' }) },
-              { label: 'Rotate all text 90°', active: el?.text?.vert === 'vert', onClick: () => setText({ vert: 'vert' }) },
-              { label: 'Rotate all text 270°', active: el?.text?.vert === 'vert270', onClick: () => setText({ vert: 'vert270' }) },
-              { label: 'Stacked', active: el?.text?.vert === 'stacked', onClick: () => setText({ vert: 'stacked' }) },
+              { label: t('Horizontal'), active: !el?.text?.vert || el.text.vert === 'horz', onClick: () => setText({ vert: 'horz' }) },
+              { label: t('Rotate all text 90°'), active: el?.text?.vert === 'vert', onClick: () => setText({ vert: 'vert' }) },
+              { label: t('Rotate all text 270°'), active: el?.text?.vert === 'vert270', onClick: () => setText({ vert: 'vert270' }) },
+              { label: t('Stacked'), active: el?.text?.vert === 'stacked', onClick: () => setText({ vert: 'stacked' }) },
             ]}
           />
           <MenuButton
             icon={TextCursorInput}
-            label="Align Text"
+            label={t('Align Text')}
             disabled={!has}
             items={(['top', 'middle', 'bottom'] as const).map((a) => ({ label: a[0].toUpperCase() + a.slice(1), active: el?.text?.anchor === a, onClick: () => setText({ anchor: a }) }))}
           />
-          <MenuButton icon={Network} label="Convert to Diagram" disabled={!has} items={DIAGRAM_LAYOUTS.map((l) => ({ label: l.label, onClick: () => convertToDiagram(l.id) }))} />
+          <MenuButton icon={Network} label={t('Convert to Diagram')} disabled={!has} items={DIAGRAM_LAYOUTS.map((l) => ({ label: t(l.label), onClick: () => convertToDiagram(l.id) }))} />
         </div>
       </div>
     </RibbonGroup>
@@ -353,12 +354,12 @@ export function ParagraphGroup({ ui }: TabProps) {
 export function DrawingGroup({ ui }: TabProps) {
   const n = useStore((s) => s.selection.length)
   return (
-    <RibbonGroup label="Drawing" onLauncher={() => ui.openPane('formatShape')} launcherTitle="Format Shape">
-      <PopoverButton icon={Shapes} label="Shapes" large panelClass="shape-panel">
+    <RibbonGroup label={t('Drawing')} onLauncher={() => ui.openPane('formatShape')} launcherTitle={t('Format Shape')}>
+      <PopoverButton icon={Shapes} label={t('Shapes')} large panelClass="shape-panel">
         {(close) => <ShapeGallery onPick={(p) => (close(), startShapeTool(p))} />}
       </PopoverButton>
-      <MenuButton icon={Layers} label="Arrange" large items={() => arrangeItems(ui)} />
-      <PopoverButton icon={Paintbrush} label="Quick Styles" large disabled={!n} panelClass="menu-wide">
+      <MenuButton icon={Layers} label={t('Arrange')} large items={() => arrangeItems(ui)} />
+      <PopoverButton icon={Paintbrush} label={t('Quick Styles')} large disabled={!n} panelClass="menu-wide">
         {(close) => <QuickStylesGallery close={close} />}
       </PopoverButton>
       <div className="col">
@@ -373,31 +374,33 @@ export function HomeTab({ ui }: TabProps) {
   const hasSel = useStore((s) => s.selection.length > 0 || !!s.editingId)
   const slide = useStore((s) => currentSlide(s))
   const sectionItems: MenuItem[] = [
-    { label: 'Add Section', icon: FolderPlus, onClick: () => ui.openDialog('section') },
-    { label: 'Rename Section', disabled: !slide.section, onClick: () => ui.openDialog('section') },
-    { label: 'Remove Section', disabled: !slide.section, onClick: () => A.setSection(null) },
+    { label: t('Add Section'), icon: FolderPlus, onClick: () => ui.openDialog('section') },
+    { label: t('Rename Section'), disabled: !slide.section, onClick: () => ui.openDialog('section') },
+    { label: t('Remove Section'), disabled: !slide.section, onClick: () => A.setSection(null) },
   ]
   return (
     <>
-      <RibbonGroup label="Clipboard">
+      <RibbonGroup label={t('Clipboard')}>
         <SplitMenuButton
           icon={ClipboardPaste}
-          label="Paste"
+          label={t('Paste')}
           large
           keep
           onClick={pasteFromSystem}
           items={[
-            { label: 'Use Destination Theme', onClick: pasteFromSystem },
-            { label: 'Keep Text Only', onClick: () => navigator.clipboard?.readText().then((t) => t && T.insertText(t)).catch(() => undefined) },
+            { label: t('Use Destination Theme'), onClick: pasteFromSystem },
+            { label: t('Keep Source Formatting'), disabled: !A.getClipboard(), onClick: () => void A.pasteClipboard(A.getClipboard(), 'keepSource') },
+            { label: t('Picture'), disabled: !A.getClipboard(), onClick: () => void A.pasteClipboard(A.getClipboard(), 'picture') },
+            { label: t('Keep Text Only'), onClick: () => navigator.clipboard?.readText().then((text) => text && T.insertText(text)).catch(() => undefined) },
           ]}
         />
         <div className="col">
-          <RibbonButton icon={Scissors} label="Cut" title="Cut (Ctrl+X)" showLabel disabled={!hasSel} onClick={() => (store.get().editingId ? document.execCommand('cut') : A.cutSelection())} />
-          <RibbonButton icon={Copy} label="Copy" title="Copy (Ctrl+C)" showLabel disabled={!hasSel} onClick={() => (store.get().editingId ? document.execCommand('copy') : A.copySelection())} />
+          <RibbonButton icon={Scissors} label={t('Cut')} title={t('Cut (Ctrl+X)')} showLabel disabled={!hasSel} onClick={() => (store.get().editingId ? document.execCommand('cut') : A.cutSelection())} />
+          <RibbonButton icon={Copy} label={t('Copy')} title={t('Copy (Ctrl+C)')} showLabel disabled={!hasSel} onClick={() => (store.get().editingId ? document.execCommand('copy') : A.copySelection())} />
           <RibbonButton
             icon={Paintbrush}
-            label="Format Painter"
-            title="Format Painter (double-click to keep it on)"
+            label={t('Format Painter')}
+            title={t('Format Painter (double-click to keep it on)')}
             showLabel
             active={!!painter}
             disabled={!hasSel && !painter}
@@ -406,39 +409,39 @@ export function HomeTab({ ui }: TabProps) {
           />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Slides">
+      <RibbonGroup label={t('Slides')}>
         <NewSlideButton />
         <div className="col">
           <LayoutButton />
-          <RibbonButton icon={RotateCcw} label="Reset" title="Reset the position, size and formatting of the slide placeholders" showLabel onClick={() => A.resetSlides()} />
-          <MenuButton icon={FolderPlus} label="Section" showLabel items={sectionItems} />
+          <RibbonButton icon={RotateCcw} label={t('Reset')} title={t('Reset the position, size and formatting of the slide placeholders')} showLabel onClick={() => A.resetSlides()} />
+          <MenuButton icon={FolderPlus} label={t('Section')} showLabel items={sectionItems} />
         </div>
       </RibbonGroup>
       <FontGroup ui={ui} />
       <ParagraphGroup ui={ui} />
       <DrawingGroup ui={ui} />
-      <RibbonGroup label="Editing">
+      <RibbonGroup label={t('Editing')}>
         <div className="col">
-          <RibbonButton icon={Search} label="Find" title="Find (Ctrl+F)" showLabel onClick={() => ui.openDialog('find')} />
+          <RibbonButton icon={Search} label={t('Find')} title={t('Find (Ctrl+F)')} showLabel onClick={() => ui.openDialog('find')} />
           <SplitMenuButton
             icon={Replace}
-            label="Replace"
-            title="Replace (Ctrl+H)"
+            label={t('Replace')}
+            title={t('Replace (Ctrl+H)')}
             showLabel
             onClick={() => ui.openDialog('replace')}
             items={[
-              { label: 'Replace…', icon: Replace, onClick: () => ui.openDialog('replace') },
-              { label: 'Replace Fonts…', icon: Heading, onClick: () => ui.openDialog('replaceFonts') },
+              { label: t('Replace…'), icon: Replace, onClick: () => ui.openDialog('replace') },
+              { label: t('Replace Fonts…'), icon: Heading, onClick: () => ui.openDialog('replaceFonts') },
             ]}
           />
           <MenuButton
             icon={MousePointer2}
-            label="Select"
+            label={t('Select')}
             showLabel
             items={[
-              { label: 'Select All', shortcut: 'Ctrl+A', onClick: A.selectAll },
-              { label: 'Select Objects', onClick: () => store.set({ tool: { kind: 'select' } }) },
-              { label: 'Selection Pane…', icon: Layers, onClick: () => ui.openPane('selection') },
+              { label: t('Select All'), shortcut: 'Ctrl+A', onClick: A.selectAll },
+              { label: t('Select Objects'), onClick: () => store.set({ tool: { kind: 'select' } }) },
+              { label: t('Selection Pane…'), icon: Layers, onClick: () => ui.openPane('selection') },
             ]}
           />
         </div>

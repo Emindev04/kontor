@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('kontorDesktop', {
   platform: process.platform,
   openFile: (filters) => ipcRenderer.invoke('kontor:open-dialog', filters),
   saveFile: (options) => ipcRenderer.invoke('kontor:save', options),
+  printToPdf: (options) => ipcRenderer.invoke('kontor:print-pdf', options),
   onOpenFile: (callback) => {
     ipcRenderer.on('kontor:open-file', (_event, file) => callback(file))
     ipcRenderer.send('kontor:ready')

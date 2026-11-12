@@ -7,6 +7,7 @@ import { pickFile } from '../../editor/commands'
 import { Modal, OkCancel, cls } from '../ui'
 import { MARKUP_VIEWS } from '../tabs/ReviewTab'
 import type { AppApi, Restriction } from '../tabs/types'
+import { t, tx } from '../../i18n'
 
 /** The word at the cursor (or the selected text) and its document range. */
 function wordAtSelection(editor: Editor) {
@@ -34,17 +35,17 @@ export function ThesaurusDialog({ editor, onClose }: { editor: Editor; onClose: 
   }
   return (
     <Modal
-      title="Thesaurus"
+      title={t('Thesaurus')}
       onClose={onClose}
       width={380}
-      footer={<OkCancel okLabel="Insert" onOk={() => picked && replace(picked)} onCancel={onClose} extra={<span className="dlg-hint">English (United States)</span>} />}
+      footer={<OkCancel okLabel={t('Insert')} onOk={() => picked && replace(picked)} onCancel={onClose} extra={<span className="dlg-hint">{t('English (United States)')}</span>} />}
     >
       <div className="dlg-stack">
         <label className="dlg-inline">
-          Search for: <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} />
+          {t('Search for:')}{' '}<input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
         {list.length ? (
-          <div className="thesaurus-list" role="listbox" aria-label="Synonyms">
+          <div className="thesaurus-list" role="listbox" aria-label={t('Synonyms')}>
             {list.map((w) => (
               <button key={w} type="button" role="option" aria-selected={picked === w} className={cls('menu-item', picked === w && 'is-active')} onClick={() => setPicked(w)} onDoubleClick={() => replace(w)}>
                 {w}
@@ -52,7 +53,7 @@ export function ThesaurusDialog({ editor, onClose }: { editor: Editor; onClose: 
             ))}
           </div>
         ) : (
-          <p className="dlg-hint">{query ? `No results found for “${query}”. Check the spelling or try another word.` : 'Type a word to look up.'}</p>
+          <p className="dlg-hint">{query ? t('No results found for “{query}”. Check the spelling or try another word.', { query }) : t('Type a word to look up.')}</p>
         )}
       </div>
     </Modal>
@@ -66,38 +67,37 @@ export function TrackOptionsDialog({ app, onClose }: { app: AppApi; onClose: () 
   const [view, setView] = useState(app.markupView)
   const [pane, setPane] = useState(app.showReviewingPane)
   const apply = () => {
-    app.setSettings({ ...app.settings, userName: name.trim() || 'Author', userInitials: initials.trim() || 'A' })
+    app.setSettings({ ...app.settings, userName: name.trim() || t('Author'), userInitials: initials.trim() || 'A' })
     app.setShowMarkup(show)
     app.setMarkupView(view)
     app.setShowReviewingPane(pane)
     onClose()
   }
   return (
-    <Modal title="Track Changes Options" onClose={onClose} width={420} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Track Changes Options')} onClose={onClose} width={420} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="dlg-stack">
         <fieldset className="dlg-fieldset">
-          <legend>Show</legend>
-          <label><input type="checkbox" checked={show.comments} onChange={(e) => setShow({ ...show, comments: e.target.checked })} /> Comments</label>
-          <label><input type="checkbox" checked={show.insDel} onChange={(e) => setShow({ ...show, insDel: e.target.checked })} /> Insertions and Deletions</label>
-          <label><input type="checkbox" checked={pane} onChange={(e) => setPane(e.target.checked)} /> Reviewing Pane</label>
+          <legend>{t('Show')}</legend>
+          <label><input type="checkbox" checked={show.comments} onChange={(e) => setShow({ ...show, comments: e.target.checked })} /> {t('Comments')}</label>
+          <label><input type="checkbox" checked={show.insDel} onChange={(e) => setShow({ ...show, insDel: e.target.checked })} /> {t('Insertions and Deletions')}</label>
+          <label><input type="checkbox" checked={pane} onChange={(e) => setPane(e.target.checked)} /> {t('Reviewing Pane')}</label>
           <label className="dlg-inline">
-            Display for review:
-            <select value={view} onChange={(e) => setView(e.target.value as typeof view)}>
+            {t('Display for review:')}<select value={view} onChange={(e) => setView(e.target.value as typeof view)}>
               {MARKUP_VIEWS.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.label}
+                  {t(m.label)}
                 </option>
               ))}
             </select>
           </label>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Personalize your copy</legend>
+          <legend>{t('Personalize your copy')}</legend>
           <label className="dlg-inline">
-            User name: <input value={name} onChange={(e) => setName(e.target.value)} />
+            {t('User name:')}{' '}<input value={name} onChange={(e) => setName(e.target.value)} />
           </label>
           <label className="dlg-inline">
-            Initials: <input value={initials} maxLength={4} onChange={(e) => setInitials(e.target.value)} />
+            {t('Initials:')}{' '}<input value={initials} maxLength={4} onChange={(e) => setInitials(e.target.value)} />
           </label>
         </fieldset>
       </div>
@@ -146,36 +146,36 @@ export function CompareDialog({ app, onClose, combine }: { app: AppApi; onClose:
       // Compare: the file is the original and this document the revision. Combine: the other way round,
       // with the changes credited to the author of the file.
       const { doc, changes } = combine
-        ? compareDocuments(editor.getJSON(), other, authorName.trim() || 'Reviewer')
+        ? compareDocuments(editor.getJSON(), other, authorName.trim() || t('Reviewer'))
         : compareDocuments(other, editor.getJSON(), app.user.name)
       editor.chain().setTrackChanges(false).setContent(doc, { emitUpdate: true }).run()
       editor.commands.setTextSelection(TextSelection.atStart(editor.state.doc).from)
       app.setMarkupView('all')
       app.setShowReviewingPane(true)
       onClose()
-      if (!changes) alert('The documents are identical.')
+      if (!changes) alert(t('The documents are identical.'))
     } catch (e) {
       console.error(e)
-      setError('This file could not be read.')
+      setError(t('This file could not be read.'))
     } finally {
       setBusy(false)
     }
   }
   return (
-    <Modal title={combine ? 'Combine Documents' : 'Compare Documents'} onClose={onClose} width={480} footer={<OkCancel okLabel={busy ? (combine ? 'Combining…' : 'Comparing…') : combine ? 'Combine' : 'Compare'} onOk={run} onCancel={onClose} />}>
+    <Modal title={combine ? t('Combine Documents') : t('Compare Documents')} onClose={onClose} width={480} footer={<OkCancel okLabel={busy ? (combine ? t('Combining…') : t('Comparing…')) : combine ? t('Combine') : t('Compare')} onOk={run} onCancel={onClose} />}>
       <div className="dlg-stack">
         <p className="dlg-hint">
           {combine
-            ? "Combines a copy that someone else revised with this document. Their edits appear as tracked changes in their name, next to the tracked changes the copy already had."
-            : 'Compares an earlier version with the current document. The differences appear as tracked changes that you can accept or reject.'}
+            ? t('Combines a copy that someone else revised with this document. Their edits appear as tracked changes in their name, next to the tracked changes the copy already had.')
+            : t('Compares an earlier version with the current document. The differences appear as tracked changes that you can accept or reject.')}
         </p>
         {combine && (
           <div className="dlg-inline">
-            Original document: <strong>{app.title}</strong> <span className="dlg-hint">(this document)</span>
+            {t('Original document:')}{' '}<strong>{app.title}</strong> <span className="dlg-hint">{t('(this document)')}</span>
           </div>
         )}
         <div className="dlg-inline">
-          {combine ? 'Revised document:' : 'Original document:'}
+          {combine ? t('Revised document:') : t('Original document:')}
           <button
             type="button"
             className="btn"
@@ -186,18 +186,16 @@ export function CompareDialog({ app, onClose, combine }: { app: AppApi; onClose:
               if (combine) setAuthorName((await fileAuthor(f)) ?? '')
             }}
           >
-            Browse…
-          </button>
-          <span className="dlg-hint">{file ? file.name : 'No file chosen'}</span>
+            {t('Browse…')}</button>
+          <span className="dlg-hint">{file ? file.name : t('No file chosen')}</span>
         </div>
         {combine ? (
           <label className="dlg-inline">
-            Label unmarked changes with:
-            <input value={authorName} placeholder="Reviewer" onChange={(e) => setAuthorName(e.target.value)} />
+            {t('Label unmarked changes with:')}<input value={authorName} placeholder={t('Reviewer')} onChange={(e) => setAuthorName(e.target.value)} />
           </label>
         ) : (
           <div className="dlg-inline">
-            Revised document: <strong>{app.title}</strong> <span className="dlg-hint">(this document)</span>
+            {t('Revised document:')}{' '}<strong>{app.title}</strong> <span className="dlg-hint">{t('(this document)')}</span>
           </div>
         )}
         {error && <p className="dlg-error">{error}</p>}
@@ -213,9 +211,9 @@ export async function hashPassword(password: string) {
 }
 
 const RESTRICTIONS: { id: Restriction; label: string; detail: string }[] = [
-  { id: 'readOnly', label: 'No changes (Read only)', detail: 'Nobody can change the document' },
-  { id: 'comments', label: 'Comments', detail: 'Only comments can be added' },
-  { id: 'tracked', label: 'Tracked changes', detail: 'All changes are tracked and cannot be turned off' },
+  { id: 'readOnly', label: tx('No changes (Read only)'), detail: tx('Nobody can change the document') },
+  { id: 'comments', label: tx('Comments'), detail: tx('Only comments can be added') },
+  { id: 'tracked', label: tx('Tracked changes'), detail: tx('All changes are tracked and cannot be turned off') },
 ]
 
 export function RestrictDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
@@ -225,55 +223,91 @@ export function RestrictDialog({ app, onClose }: { app: AppApi; onClose: () => v
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const start = async () => {
-    if (password !== confirm) return setError('The passwords do not match.')
+    if (password !== confirm) return setError(t('The passwords do not match.'))
     app.setRestriction(kind, password ? await hashPassword(password) : null)
     onClose()
   }
   const stop = async () => {
-    if (app.restrictionHash && (await hashPassword(password)) !== app.restrictionHash) return setError('The password is incorrect.')
+    if (app.restrictionHash && (await hashPassword(password)) !== app.restrictionHash) return setError(t('The password is incorrect.'))
     app.setRestriction('none', null)
     onClose()
   }
   return (
     <Modal
-      title="Restrict Editing"
+      title={t('Restrict Editing')}
       onClose={onClose}
       width={420}
-      footer={<OkCancel okLabel={active ? 'Stop Protection' : 'Yes, Start Enforcing Protection'} onOk={active ? stop : start} onCancel={onClose} />}
+      footer={<OkCancel okLabel={active ? t('Stop Protection') : t('Yes, Start Enforcing Protection')} onOk={active ? stop : start} onCancel={onClose} />}
     >
       <div className="dlg-stack">
         {active ? (
           <>
-            <p>This document is protected: <strong>{RESTRICTIONS.find((r) => r.id === app.restriction)?.label}</strong>.</p>
+            <p>{t('This document is protected:')}{' '}<strong>{t(RESTRICTIONS.find((r) => r.id === app.restriction)?.label ?? '')}</strong>.</p>
             {app.restrictionHash && (
               <label className="dlg-inline">
-                Password: <input type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
+                {t('Password:')}{' '}<input type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
               </label>
             )}
           </>
         ) : (
           <>
             <fieldset className="dlg-fieldset">
-              <legend>Editing restrictions</legend>
+              <legend>{t('Editing restrictions')}</legend>
               {RESTRICTIONS.map((r) => (
                 <label key={r.id}>
-                  <input type="radio" checked={kind === r.id} onChange={() => setKind(r.id)} /> {r.label} <small className="dlg-hint">– {r.detail}</small>
+                  <input type="radio" checked={kind === r.id} onChange={() => setKind(r.id)} /> {t(r.label)} <small className="dlg-hint">– {t(r.detail)}</small>
                 </label>
               ))}
             </fieldset>
             <fieldset className="dlg-fieldset">
-              <legend>Password (optional)</legend>
+              <legend>{t('Password (optional)')}</legend>
               <label className="dlg-inline">
-                Enter new password: <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                {t('Enter new password:')}{' '}<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </label>
               <label className="dlg-inline">
-                Reenter password to confirm: <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+                {t('Reenter password to confirm:')}{' '}<input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
               </label>
             </fieldset>
           </>
         )}
         {error && <p className="dlg-error">{error}</p>}
       </div>
+    </Modal>
+  )
+}
+
+/** Review › Track Changes › Lock Tracking: keeps Track Changes on until it is unlocked (optionally with a password). */
+export function LockTrackingDialog({ app, onClose }: { app: AppApi; onClose: () => void }) {
+  const locked = app.trackLock != null
+  const [password, setPassword] = useState('')
+  const [again, setAgain] = useState('')
+  const [error, setError] = useState('')
+  const apply = async () => {
+    if (locked) {
+      if (app.trackLock && (await hashPassword(password)) !== app.trackLock) return setError(t('The password is incorrect.'))
+      app.setTrackLock(null)
+    } else {
+      if (password !== again) return setError(t('The passwords do not match.'))
+      app.setTrackLock(password ? await hashPassword(password) : '')
+      app.mainEditor.commands.setTrackChanges(true)
+    }
+    onClose()
+  }
+  return (
+    <Modal title={locked ? t('Unlock Tracking') : t('Lock Tracking')} onClose={onClose} width={400} footer={<OkCancel onOk={() => void apply()} onCancel={onClose} extra={error && <span className="dlg-error">{error}</span>} />}>
+      <p className="dlg-hint">{locked ? t('Enter the password to turn off the lock.') : t('Prevent other authors from turning off Track Changes.')}</p>
+      {(!locked || app.trackLock) && (
+        <label className="dlg-inline">
+          {t('Enter password (optional):')}
+          <input type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
+        </label>
+      )}
+      {!locked && (
+        <label className="dlg-inline">
+          {t('Reenter to confirm:')}
+          <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} />
+        </label>
+      )}
     </Modal>
   )
 }

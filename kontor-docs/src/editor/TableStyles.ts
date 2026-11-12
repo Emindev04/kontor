@@ -2,6 +2,7 @@ import { Extension } from '@tiptap/core'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import { TableView } from '@tiptap/extension-table'
 import { CellSelection } from '@tiptap/pm/tables'
+import { tx } from '../i18n'
 
 // Table style gallery, style options (header row, banded rows, first column …), cell shading and
 // cell alignment. Styles are CSS classes on the <table>; shading is a cell attribute.
@@ -9,15 +10,15 @@ import { CellSelection } from '@tiptap/pm/tables'
 export type TableStyleId = 'grid' | 'plain' | 'outside' | 'light' | 'lightList' | 'accent1' | 'accent2' | 'accent3' | 'accent4' | 'dark'
 
 export const TABLE_STYLES: { id: TableStyleId; label: string }[] = [
-  { id: 'grid', label: 'Table Grid' },
-  { id: 'plain', label: 'Plain' },
-  { id: 'light', label: 'Light Grid' },
-  { id: 'lightList', label: 'Light List' },
-  { id: 'accent1', label: 'Grid – Blue' },
-  { id: 'accent2', label: 'Grid – Orange' },
-  { id: 'accent3', label: 'Grid – Green' },
-  { id: 'accent4', label: 'Grid – Purple' },
-  { id: 'dark', label: 'Dark Header' },
+  { id: 'grid', label: tx('Table Grid') },
+  { id: 'plain', label: tx('Plain') },
+  { id: 'light', label: tx('Light Grid') },
+  { id: 'lightList', label: tx('Light List') },
+  { id: 'accent1', label: tx('Grid – Blue') },
+  { id: 'accent2', label: tx('Grid – Orange') },
+  { id: 'accent3', label: tx('Grid – Green') },
+  { id: 'accent4', label: tx('Grid – Purple') },
+  { id: 'dark', label: tx('Dark Header') },
 ]
 
 export type TableOption = 'headerRow' | 'bandedRows' | 'firstColumn' | 'lastColumn' | 'totalRow' | 'bandedColumns'

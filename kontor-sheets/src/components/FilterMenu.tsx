@@ -6,18 +6,19 @@ import { distinctValues, filterArea, setColumnFilter, sortTarget } from '../comm
 import type { DatePeriod, FilterOp, FilterSpec } from '../model/extras'
 import { useApp } from './appContext'
 import { keepFocus } from './ui'
+import { t, tx } from '../i18n'
 
 export type FilterMenuState = { x: number; y: number; target: FilterTarget; col: number }
 
 export const TEXT_OPS: [FilterOp, string][] = [
-  ['eq', 'Equals'], ['ne', 'Does Not Equal'], ['begins', 'Begins With'], ['ends', 'Ends With'], ['contains', 'Contains'], ['notContains', 'Does Not Contain'],
+  ['eq', tx('Equals')], ['ne', tx('Does Not Equal')], ['begins', tx('Begins With')], ['ends', tx('Ends With')], ['contains', tx('Contains')], ['notContains', tx('Does Not Contain')],
 ]
 export const NUMBER_OPS: [FilterOp, string][] = [
-  ['eq', 'Equals'], ['ne', 'Does Not Equal'], ['gt', 'Greater Than'], ['ge', 'Greater Than Or Equal To'], ['lt', 'Less Than'], ['le', 'Less Than Or Equal To'],
+  ['eq', tx('Equals')], ['ne', tx('Does Not Equal')], ['gt', tx('Greater Than')], ['ge', tx('Greater Than Or Equal To')], ['lt', tx('Less Than')], ['le', tx('Less Than Or Equal To')],
 ]
 const DATE_PERIODS: [DatePeriod, string][] = [
-  ['tomorrow', 'Tomorrow'], ['today', 'Today'], ['yesterday', 'Yesterday'], ['nextWeek', 'Next Week'], ['thisWeek', 'This Week'], ['lastWeek', 'Last Week'],
-  ['nextMonth', 'Next Month'], ['thisMonth', 'This Month'], ['lastMonth', 'Last Month'], ['nextYear', 'Next Year'], ['thisYear', 'This Year'], ['lastYear', 'Last Year'],
+  ['tomorrow', tx('Tomorrow')], ['today', tx('Today')], ['yesterday', tx('Yesterday')], ['nextWeek', tx('Next Week')], ['thisWeek', tx('This Week')], ['lastWeek', tx('Last Week')],
+  ['nextMonth', tx('Next Month')], ['thisMonth', tx('This Month')], ['lastMonth', tx('Last Month')], ['nextYear', tx('Next Year')], ['thisYear', tx('This Year')], ['lastYear', tx('Last Year')],
 ]
 
 export function FilterMenu({ state, onClose }: { state: FilterMenuState; onClose: () => void }) {
@@ -84,74 +85,74 @@ export function FilterMenu({ state, onClose }: { state: FilterMenuState; onClose
     }
     return [...set]
   }, [doc, area.r1, area.r2, area.c1, col])
-  const colName = String(doc.value(area.header, area.c1 + col) ?? `Column ${col + 1}`)
+  const colName = String(doc.value(area.header, area.c1 + col) ?? t('Column {n}', { n: col + 1 }))
   const left = Math.max(8, Math.min(state.x, window.innerWidth - 270))
   const top = Math.max(8, Math.min(state.y, window.innerHeight - 470))
 
   return (
-    <div className="filter-menu menu" ref={ref} style={{ left, top }} role="dialog" aria-label={`Filter ${colName}`}>
+    <div className="filter-menu menu" ref={ref} style={{ left, top }} role="dialog" aria-label={t('Filter {name}', { name: colName })}>
       <button type="button" className="menu-item" onMouseDown={keepFocus} onClick={() => { sortTarget(doc, target, col, false); onClose() }}>
-        <ArrowDownAZ size={15} /> <span className="menu-item-text">{numeric ? 'Sort Smallest to Largest' : 'Sort A to Z'}</span>
+        <ArrowDownAZ size={15} /> <span className="menu-item-text">{numeric ? t('Sort Smallest to Largest') : t('Sort A to Z')}</span>
       </button>
       <button type="button" className="menu-item" onMouseDown={keepFocus} onClick={() => { sortTarget(doc, target, col, true); onClose() }}>
-        <ArrowUpZA size={15} /> <span className="menu-item-text">{numeric ? 'Sort Largest to Smallest' : 'Sort Z to A'}</span>
+        <ArrowUpZA size={15} /> <span className="menu-item-text">{numeric ? t('Sort Largest to Smallest') : t('Sort Z to A')}</span>
       </button>
       {fills.length > 0 && (
         <button type="button" className="menu-item" onMouseDown={keepFocus} onClick={() => setSub(sub === 'color' ? null : 'color')}>
-          <span className="menu-check" /> <span className="menu-item-text">Sort / Filter by Color ›</span>
+          <span className="menu-check" /> <span className="menu-item-text">{t('Sort / Filter by Color ›')}</span>
         </button>
       )}
       {sub === 'color' && (
         <div className="filter-sub">
-          <div className="menu-heading">Filter by Cell Color</div>
+          <div className="menu-heading">{t('Filter by Cell Color')}</div>
           <div className="filter-colors">
             {fills.map((f) => (
               <button key={f} type="button" className="swatch" style={{ background: f }} title={f} onMouseDown={keepFocus} onClick={() => apply({ kind: 'color', fill: f })} />
             ))}
-            <button type="button" className="btn btn-small" onClick={() => apply({ kind: 'color', fill: '' })}>No Fill</button>
+            <button type="button" className="btn btn-small" onClick={() => apply({ kind: 'color', fill: '' })}>{t('No Fill')}</button>
           </div>
-          <div className="menu-heading">Sort by Cell Color</div>
-          <button type="button" className="menu-item" onClick={() => { sortTarget(doc, target, col, false, 'fill'); onClose() }}>Colored cells on top</button>
+          <div className="menu-heading">{t('Sort by Cell Color')}</div>
+          <button type="button" className="menu-item" onClick={() => { sortTarget(doc, target, col, false, 'fill'); onClose() }}>{t('Colored cells on top')}</button>
         </div>
       )}
       <div className="menu-sep" />
       <button type="button" className="menu-item" disabled={!current} onMouseDown={keepFocus} onClick={() => apply(null)}>
-        <Eraser size={15} /> <span className="menu-item-text">Clear Filter From "{colName}"</span>
+        <Eraser size={15} /> <span className="menu-item-text">{t('Clear Filter From "{name}"', { name: colName })}</span>
       </button>
       <button type="button" className="menu-item" onMouseDown={keepFocus} onClick={() => setSub(sub === (dates ? 'date' : numeric ? 'number' : 'text') ? null : dates ? 'date' : numeric ? 'number' : 'text')}>
-        <Filter size={15} /> <span className="menu-item-text">{dates ? 'Date Filters ›' : numeric ? 'Number Filters ›' : 'Text Filters ›'}</span>
+        <Filter size={15} /> <span className="menu-item-text">{dates ? t('Date Filters ›') : numeric ? t('Number Filters ›') : t('Text Filters ›')}</span>
       </button>
       {sub === 'number' && (
         <div className="filter-sub">
           {NUMBER_OPS.map(([op, label]) => (
-            <button key={op} type="button" className="menu-item" onClick={() => custom(op)}>{label}…</button>
+            <button key={op} type="button" className="menu-item" onClick={() => custom(op)}>{t(label)}…</button>
           ))}
-          <button type="button" className="menu-item" onClick={() => custom('ge')}>Between…</button>
-          <button type="button" className="menu-item" onClick={() => { onClose(); app.dialog({ kind: 'top10', data: { target, col } }) }}>Top 10…</button>
-          <button type="button" className="menu-item" onClick={() => apply({ kind: 'average', above: true })}>Above Average</button>
-          <button type="button" className="menu-item" onClick={() => apply({ kind: 'average', above: false })}>Below Average</button>
-          <button type="button" className="menu-item" onClick={() => custom('eq')}>Custom Filter…</button>
+          <button type="button" className="menu-item" onClick={() => custom('ge')}>{t('Between…')}</button>
+          <button type="button" className="menu-item" onClick={() => { onClose(); app.dialog({ kind: 'top10', data: { target, col } }) }}>{t('Top 10…')}</button>
+          <button type="button" className="menu-item" onClick={() => apply({ kind: 'average', above: true })}>{t('Above Average')}</button>
+          <button type="button" className="menu-item" onClick={() => apply({ kind: 'average', above: false })}>{t('Below Average')}</button>
+          <button type="button" className="menu-item" onClick={() => custom('eq')}>{t('Custom Filter…')}</button>
         </div>
       )}
       {sub === 'text' && (
         <div className="filter-sub">
           {TEXT_OPS.map(([op, label]) => (
-            <button key={op} type="button" className="menu-item" onClick={() => custom(op)}>{label}…</button>
+            <button key={op} type="button" className="menu-item" onClick={() => custom(op)}>{t(label)}…</button>
           ))}
-          <button type="button" className="menu-item" onClick={() => custom('eq')}>Custom Filter…</button>
+          <button type="button" className="menu-item" onClick={() => custom('eq')}>{t('Custom Filter…')}</button>
         </div>
       )}
       {sub === 'date' && (
         <div className="filter-sub filter-sub-cols">
           {DATE_PERIODS.map(([p, label]) => (
-            <button key={p} type="button" className="menu-item" onClick={() => apply({ kind: 'dynamic', period: p })}>{label}</button>
+            <button key={p} type="button" className="menu-item" onClick={() => apply({ kind: 'dynamic', period: p })}>{t(label)}</button>
           ))}
-          <button type="button" className="menu-item" onClick={() => custom('lt')}>Before…</button>
-          <button type="button" className="menu-item" onClick={() => custom('gt')}>After…</button>
-          <button type="button" className="menu-item" onClick={() => custom('eq')}>Custom Filter…</button>
+          <button type="button" className="menu-item" onClick={() => custom('lt')}>{t('Before…')}</button>
+          <button type="button" className="menu-item" onClick={() => custom('gt')}>{t('After…')}</button>
+          <button type="button" className="menu-item" onClick={() => custom('eq')}>{t('Custom Filter…')}</button>
         </div>
       )}
-      <input className="filter-search" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
+      <input className="filter-search" placeholder={t('Search')} value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
       <div className="filter-list">
         <label className="filter-item">
           <input
@@ -164,7 +165,7 @@ export function FilterMenu({ state, onClose }: { state: FilterMenuState; onClose
               if (!search) setBlankOn(e.target.checked)
             }}
           />
-          {search ? '(Select All Search Results)' : '(Select All)'}
+          {search ? t('(Select All Search Results)') : t('(Select All)')}
         </label>
         {shown.slice(0, 1000).map((v) => (
           <label key={v.text} className="filter-item">
@@ -184,13 +185,13 @@ export function FilterMenu({ state, onClose }: { state: FilterMenuState; onClose
         {blanks && !search && (
           <label className="filter-item">
             <input type="checkbox" checked={blankOn} onChange={(e) => setBlankOn(e.target.checked)} />
-            (Blanks)
+            {t('(Blanks)')}
           </label>
         )}
       </div>
       <div className="filter-actions">
-        <button type="button" className="btn btn-primary" disabled={!checked.size && !blankOn} onClick={ok}>OK</button>
-        <button type="button" className="btn" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn btn-primary" disabled={!checked.size && !blankOn} onClick={ok}>{t('OK')}</button>
+        <button type="button" className="btn" onClick={onClose}>{t('Cancel')}</button>
       </div>
     </div>
   )

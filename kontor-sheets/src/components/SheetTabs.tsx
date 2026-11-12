@@ -5,6 +5,7 @@ import { FontColorPalette } from './palettes'
 import { ContextMenu } from './ContextMenu'
 import { cls } from './ui'
 import { useApp, useDocVersion } from './appContext'
+import { t } from '../i18n'
 
 export function SheetTabs() {
   const app = useApp()
@@ -51,7 +52,7 @@ export function SheetTabs() {
       const err = deleteSheet(doc, i)
       if (err) app.alert(err)
     }
-    if (s.cells.size) app.confirm(`"${s.name}" will be permanently deleted. Do you want to continue?`, run, 'Delete Sheet')
+    if (s.cells.size) app.confirm(t('"{name}" will be permanently deleted. Do you want to continue?', { name: s.name }), run, t('Delete Sheet'))
     else run()
   }
 
@@ -60,14 +61,14 @@ export function SheetTabs() {
   return (
     <div className="sheet-tabs">
       <div className="st-nav">
-        <button type="button" className="st-btn" aria-label="Scroll to the previous sheet" onClick={() => strip.current?.scrollBy({ left: -120, behavior: 'smooth' })}>
+        <button type="button" className="st-btn" aria-label={t('Scroll to the previous sheet')} onClick={() => strip.current?.scrollBy({ left: -120, behavior: 'smooth' })}>
           <ChevronLeft size={14} />
         </button>
-        <button type="button" className="st-btn" aria-label="Scroll to the next sheet" onClick={() => strip.current?.scrollBy({ left: 120, behavior: 'smooth' })}>
+        <button type="button" className="st-btn" aria-label={t('Scroll to the next sheet')} onClick={() => strip.current?.scrollBy({ left: 120, behavior: 'smooth' })}>
           <ChevronRight size={14} />
         </button>
       </div>
-      <div className="st-strip" ref={strip} role="tablist" aria-label="Sheets">
+      <div className="st-strip" ref={strip} role="tablist" aria-label={t('Sheets')}>
         {doc.wb.sheets.map((s, i) =>
           s.hidden ? null : (
             <div
@@ -131,7 +132,7 @@ export function SheetTabs() {
                   autoFocus
                   onFocus={(e) => e.currentTarget.select()}
                   value={draft}
-                  aria-label="Sheet name"
+                  aria-label={t('Sheet name')}
                   onChange={(e) => setDraft(e.target.value)}
                   onBlur={finishRename}
                   onKeyDown={(e) => {
@@ -150,7 +151,7 @@ export function SheetTabs() {
           ),
         )}
       </div>
-      <button type="button" className="st-btn st-add" title="New sheet (Shift+F11)" aria-label="New sheet" onClick={() => addSheet(doc, doc.wb.sheets.length)}>
+      <button type="button" className="st-btn st-add" title={t('New sheet (Shift+F11)')} aria-label={t('New sheet')} onClick={() => addSheet(doc, doc.wb.sheets.length)}>
         <Plus size={15} />
       </button>
       {menu && !menu.colors && (
@@ -159,23 +160,23 @@ export function SheetTabs() {
           y={menu.y}
           onClose={() => setMenu(null)}
           items={[
-            { label: 'Insert', onClick: () => addSheet(doc, menu.index) },
+            { label: t('Insert'), onClick: () => addSheet(doc, menu.index) },
             doc.group.size > 1
-              ? { label: 'Ungroup Sheets', onClick: () => { doc.group = new Set(); doc.emit() } }
-              : { label: 'Select All Sheets', onClick: () => { doc.group = new Set(doc.wb.sheets.filter((s) => !s.hidden).map((s) => s.id)); doc.emit() } },
-            { label: 'Delete', onClick: () => confirmDelete(menu.index) },
-            { label: 'Rename', onClick: () => startRename(menu.index) },
-            { label: 'Move or Copy…', onClick: () => app.dialog({ kind: 'moveCopy' }) },
-            { label: 'Tab Color', detail: 'Choose a color for the tab', onClick: () => setTimeout(() => setMenu({ ...menu, colors: true })) },
+              ? { label: t('Ungroup Sheets'), onClick: () => { doc.group = new Set(); doc.emit() } }
+              : { label: t('Select All Sheets'), onClick: () => { doc.group = new Set(doc.wb.sheets.filter((s) => !s.hidden).map((s) => s.id)); doc.emit() } },
+            { label: t('Delete'), onClick: () => confirmDelete(menu.index) },
+            { label: t('Rename'), onClick: () => startRename(menu.index) },
+            { label: t('Move or Copy…'), onClick: () => app.dialog({ kind: 'moveCopy' }) },
+            { label: t('Tab Color'), detail: t('Choose a color for the tab'), onClick: () => setTimeout(() => setMenu({ ...menu, colors: true })) },
             'separator',
             {
-              label: 'Hide',
+              label: t('Hide'),
               onClick: () => {
                 const err = hideSheet(doc, menu.index)
                 if (err) app.alert(err)
               },
             },
-            { label: 'Unhide…', disabled: !hiddenCount, onClick: () => app.dialog({ kind: 'unhideSheet' }) },
+            { label: t('Unhide…'), disabled: !hiddenCount, onClick: () => app.dialog({ kind: 'unhideSheet' }) },
           ]}
         />
       )}
@@ -183,7 +184,7 @@ export function SheetTabs() {
         <ContextMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)}>
           <div className="palette-menu">
             <FontColorPalette
-              autoLabel="No Color"
+              autoLabel={t('No Color')}
               onAuto={() => {
                 setTabColor(doc, menu.index, undefined)
                 setMenu(null)

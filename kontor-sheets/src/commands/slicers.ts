@@ -4,6 +4,7 @@ import type { Doc } from './doc'
 import { addObject, defaultAnchor } from './objects'
 import { distinctValues, setColumnFilter, type FilterTarget } from './filter'
 import { fieldItems, readSource, updatePivot } from './pivot'
+import { tx } from '../i18n'
 
 export type SlicerTarget = { type: 'table'; table: string } | { type: 'pivot'; pivot: number }
 
@@ -84,7 +85,7 @@ function applySlicer(doc: Doc, s: SlicerObj) {
     if (s.selected === null) delete f[field]
     else f[field] = s.selected
     p.slicerFilters = Object.keys(f).length ? f : undefined
-  }, 'Slicer')
+  }, tx('Slicer'))
 }
 
 /** Click on an item: select only it, or toggle it with Ctrl / multi-select on. */
@@ -109,7 +110,7 @@ export function clearSlicer(doc: Doc, id: number) {
 
 function setSlicer(doc: Doc, s: SlicerObj, selected: string[] | null) {
   const sheet = doc.sheet
-  doc.transact('Slicer', () => {
+  doc.transact(tx('Slicer'), () => {
     doc.noteProps(sheet)
     const o = sheet.x.objects.find((x) => x.id === s.id) as SlicerObj
     o.selected = selected
@@ -120,7 +121,7 @@ function setSlicer(doc: Doc, s: SlicerObj, selected: string[] | null) {
 /** Inserts one slicer per field, cascaded like the original. */
 export function insertSlicers(doc: Doc, target: SlicerTarget, fields: string[]) {
   if (!fields.length) return
-  doc.transact('Insert Slicer', () => {
+  doc.transact(tx('Insert Slicer'), () => {
     fields.forEach((field, i) => {
       const a = defaultAnchor(doc, 190, 240)
       const s: SlicerObj = {
@@ -134,7 +135,7 @@ export function insertSlicers(doc: Doc, target: SlicerTarget, fields: string[]) 
         columns: 1,
         color: SLICER_COLORS[0],
       }
-      addObject(doc, s, 'Insert Slicer')
+      addObject(doc, s, tx('Insert Slicer'))
     })
   })
 }
@@ -186,7 +187,7 @@ export function insertTimeline(doc: Doc, pivot: number, field: string) {
     color: SLICER_COLORS[1],
     timeline: { level: 'months', start: null, end: null },
   }
-  addObject(doc, s, 'Insert Timeline')
+  addObject(doc, s, tx('Insert Timeline'))
 }
 
 /** Sets the timeline's date range ([start, end) serials, null = all periods) and filters its PivotTable. */
@@ -195,7 +196,7 @@ export function setTimelineRange(doc: Doc, id: number, start: number | null, end
   const s = sheet?.x.objects.find((o) => o.id === id)
   if (!sheet || !s || s.kind !== 'slicer' || !s.timeline || s.source.type !== 'pivot') return
   const src = s.source
-  doc.transact('Timeline', () => {
+  doc.transact(tx('Timeline'), () => {
     doc.noteProps(sheet)
     sheet.x.objects = sheet.x.objects.map((o) => (o.id === id && o.kind === 'slicer' ? { ...o, timeline: { ...o.timeline!, start, end } } : o))
     updatePivot(doc, src.pivot, (p) => {
@@ -203,14 +204,14 @@ export function setTimelineRange(doc: Doc, id: number, start: number | null, end
       if (start === null || end === null) delete d[src.field]
       else d[src.field] = { start, end }
       p.dateFilters = Object.keys(d).length ? d : undefined
-    }, 'Timeline')
+    }, tx('Timeline'))
   })
 }
 
 export function setTimelineLevel(doc: Doc, id: number, level: NonNullable<SlicerObj['timeline']>['level']) {
   const sheet = doc.wb.sheets.find((x) => x.x.objects.some((o) => o.id === id))
   if (!sheet) return
-  doc.transact('Timeline Level', () => {
+  doc.transact(tx('Timeline Level'), () => {
     doc.noteProps(sheet)
     sheet.x.objects = sheet.x.objects.map((o) => (o.id === id && o.kind === 'slicer' && o.timeline ? { ...o, timeline: { ...o.timeline, level } } : o))
   })

@@ -10,7 +10,9 @@ import { renderChartSVG } from '../charts/renderChart'
 import { shapeSVG } from '../charts/shapes'
 import type { SlicerObj } from '../model/extras'
 import { slicerItems } from '../commands/slicers'
-import { computePageBreaks } from '../grid/pages'
+import { computePageBreaks, printScale } from '../grid/pages'
+import { fillCss } from '../model/fill'
+import { t } from '../i18n'
 
 /** "$A:$B" → [0, 1] (columns to repeat at left). */
 function parseColumns(text: string): [number, number] | null {
@@ -96,7 +98,9 @@ function css(st: Style, grid: boolean): string {
   if (st.italic) out.push('font-style:italic')
   if (st.underline || st.strike) out.push(`text-decoration:${st.underline ? 'underline' : ''} ${st.strike ? 'line-through' : ''}`)
   if (st.color) out.push(`color:${st.color}`)
-  if (st.fill) out.push(`background:${st.fill}`)
+  const fx = fillCss(st)
+  if (fx) out.push(`background:${fx}`)
+  else if (st.fill) out.push(`background:${st.fill}`)
   out.push(`vertical-align:${st.v === 'top' ? 'top' : st.v === 'middle' ? 'middle' : 'bottom'}`)
   out.push(st.wrap ? 'white-space:pre-wrap' : 'white-space:pre')
   const g = grid ? '1px solid #c8c8c8' : ''
@@ -129,7 +133,7 @@ export function sheetHtml(doc: Doc, sheet: Sheet, selection?: Range, index = 0):
   const visibleCols: number[] = []
   for (let c = rg.c1; c <= rg.c2; c++) if (sheet.cols.size(c) > 0) visibleCols.push(c)
   let chunks: number[][] = [visibleCols]
-  if ((titleCols || sheet.x.colBreaks.length) && !p.fitToPage) {
+  if ((titleCols || sheet.x.colBreaks.length) && !(p.fitToPage && (p.fitWide ?? 1) === 1)) {
     const breaks = computePageBreaks(sheet, rg.r2, rg.c2).cols.filter((b) => b > rg.c1 && b <= rg.c2)
     chunks = []
     let start = rg.c1
@@ -177,7 +181,7 @@ export function sheetHtml(doc: Doc, sheet: Sheet, selection?: Range, index = 0):
     if (titleRows) for (let r = titleRows.r1; r <= titleRows.r2; r++) if (r < rg.r1) thead.push(rowHtml(r, list))
     return `<table${ci > 0 ? ' style="break-before:page"' : ''}>${cols.join('')}<thead>${thead.join('')}</thead><tbody>${rows.join('')}</tbody></table>`
   })
-  const scale = p.fitToPage ? 'zoom:var(--fit)' : `zoom:${p.scale / 100}`
+  const scale = `zoom:${printScale(sheet)}`
   // charts, pictures and shapes positioned like on screen
   const ox = sheet.cols.offset(rg.c1) - (head ? 32 : 0)
   const oy = sheet.rows.offset(rg.r1) - (head ? 20 : 0)
@@ -218,8 +222,28 @@ thead { display: table-header-group; }
 tr { break-inside: avoid; }
 .hf { text-align: center; font: 9pt Arial, sans-serif; color: #444; margin: 4px 0; }
 ${preview ? `@media screen { html { background: #e6e6e6; } body { padding: 16px; } .sheet { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); margin: 0 auto 16px; padding: ${m.top}in ${m.right}in ${m.bottom}in ${m.left}in; width: ${w}in; min-height: ${h}in; box-sizing: border-box; overflow: hidden; } }` : ''}
-</style></head><body>${body || '<p style="font:12pt Arial">There is nothing to print.</p>'}</body></html>`
+</style></head><body>${body || '<p style="font:12pt Arial">' + esc(t('There is nothing to print.')) + '</p>'}</body></html>`
   return html
+}
+
+type PdfBridge = { printToPdf?: (options: { html: string; landscape: boolean; paper: string; margins: { top: number; bottom: number; left: number; right: number } }) => Promise<Uint8Array> }
+
+/** True when the desktop app can write PDF files directly (no print dialog). */
+export const canExportPdf = () => typeof (globalThis as { kontorDesktop?: PdfBridge }).kontorDesktop?.printToPdf === 'function'
+
+/**
+ * Creates a PDF of the active sheet(s). The desktop app renders it directly; in a browser the print
+ * dialog opens instead (choose "Save as PDF" there) and null is returned.
+ */
+export async function exportPdf(doc: Doc, what: PrintWhat = 'active'): Promise<Blob | null> {
+  const bridge = (globalThis as { kontorDesktop?: PdfBridge }).kontorDesktop
+  if (!bridge?.printToPdf) {
+    printDoc(doc, what)
+    return null
+  }
+  const p = doc.sheet.page
+  const data = await bridge.printToPdf({ html: printHtml(doc, what), landscape: p.orientation === 'landscape', paper: p.paper, margins: p.margins })
+  return new Blob([data as BlobPart], { type: 'application/pdf' })
 }
 
 export function printDoc(doc: Doc, what: PrintWhat = 'active') {
@@ -236,14 +260,6 @@ export function printDoc(doc: Doc, what: PrintWhat = 'active') {
   fdoc.write(html)
   fdoc.close()
   const go = () => {
-    if (p.fitToPage) {
-      const sec = fdoc.querySelector('.sheet') as HTMLElement | null
-      if (sec) {
-        const avail = (w - m.left - m.right) * 96
-        const ratio = Math.min(1, avail / Math.max(1, sec.scrollWidth))
-        fdoc.documentElement.style.setProperty('--fit', String(ratio))
-      }
-    }
     frame.contentWindow?.focus()
     frame.contentWindow?.print()
     setTimeout(() => frame.remove(), 1000)

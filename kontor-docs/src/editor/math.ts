@@ -1,3 +1,4 @@
+import { tx } from '../i18n'
 // A small LaTeX-style math language for equations: parsed into a tree that renders as MathML on
 // screen and converts into native equation objects for .docx files.
 
@@ -263,27 +264,27 @@ export function mathMarkup(latex: string, display: boolean) {
 
 /** Equation gallery (Insert > Equation). */
 export const EQUATION_GALLERY: { label: string; latex: string }[] = [
-  { label: 'Area of Circle', latex: 'A=\\pi r^2' },
-  { label: 'Binomial Theorem', latex: '(x+a)^n=\\sum_{k=0}^{n}\\left(\\begin{matrix}n\\\\k\\end{matrix}\\right)x^k a^{n-k}' },
-  { label: 'Expansion of a Sum', latex: '(1+x)^n=1+\\frac{nx}{1!}+\\frac{n(n-1)x^2}{2!}+\\ldots' },
-  { label: 'Fourier Series', latex: 'f(x)=a_0+\\sum_{n=1}^{\\infty}\\left(a_n\\cos\\frac{n\\pi x}{L}+b_n\\sin\\frac{n\\pi x}{L}\\right)' },
-  { label: 'Pythagorean Theorem', latex: 'a^2+b^2=c^2' },
-  { label: 'Quadratic Formula', latex: 'x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}' },
-  { label: 'Taylor Expansion', latex: 'e^x=1+\\frac{x}{1!}+\\frac{x^2}{2!}+\\frac{x^3}{3!}+\\ldots' },
-  { label: 'Trig Identity 1', latex: '\\sin\\alpha\\pm\\sin\\beta=2\\sin\\frac{1}{2}(\\alpha\\pm\\beta)\\cos\\frac{1}{2}(\\alpha\\mp\\beta)' },
+  { label: tx('Area of Circle'), latex: 'A=\\pi r^2' },
+  { label: tx('Binomial Theorem'), latex: '(x+a)^n=\\sum_{k=0}^{n}\\left(\\begin{matrix}n\\\\k\\end{matrix}\\right)x^k a^{n-k}' },
+  { label: tx('Expansion of a Sum'), latex: '(1+x)^n=1+\\frac{nx}{1!}+\\frac{n(n-1)x^2}{2!}+\\ldots' },
+  { label: tx('Fourier Series'), latex: 'f(x)=a_0+\\sum_{n=1}^{\\infty}\\left(a_n\\cos\\frac{n\\pi x}{L}+b_n\\sin\\frac{n\\pi x}{L}\\right)' },
+  { label: tx('Pythagorean Theorem'), latex: 'a^2+b^2=c^2' },
+  { label: tx('Quadratic Formula'), latex: 'x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}' },
+  { label: tx('Taylor Expansion'), latex: 'e^x=1+\\frac{x}{1!}+\\frac{x^2}{2!}+\\frac{x^3}{3!}+\\ldots' },
+  { label: tx('Trig Identity 1'), latex: '\\sin\\alpha\\pm\\sin\\beta=2\\sin\\frac{1}{2}(\\alpha\\pm\\beta)\\cos\\frac{1}{2}(\\alpha\\mp\\beta)' },
 ]
 
 /** Structures for the Equation tab (the inserted text has a placeholder box). */
 export const EQUATION_STRUCTURES: { group: string; items: { label: string; latex: string }[] }[] = [
-  { group: 'Fraction', items: [{ label: 'Stacked Fraction', latex: '\\frac{a}{b}' }, { label: 'Linear Fraction', latex: 'a/b' }] },
-  { group: 'Script', items: [{ label: 'Superscript', latex: 'x^{2}' }, { label: 'Subscript', latex: 'x_{i}' }, { label: 'Subscript-Superscript', latex: 'x_{i}^{2}' }] },
-  { group: 'Radical', items: [{ label: 'Square Root', latex: '\\sqrt{x}' }, { label: 'Radical with Degree', latex: '\\sqrt[n]{x}' }] },
-  { group: 'Integral', items: [{ label: 'Integral', latex: '\\int_{a}^{b} f(x)\\,dx' }, { label: 'Double Integral', latex: '\\iint f\\,dA' }, { label: 'Contour Integral', latex: '\\oint F\\,ds' }] },
-  { group: 'Large Operator', items: [{ label: 'Summation', latex: '\\sum_{i=1}^{n} a_i' }, { label: 'Product', latex: '\\prod_{i=1}^{n} a_i' }, { label: 'Union', latex: '\\bigcup_{i} A_i' }] },
-  { group: 'Bracket', items: [{ label: 'Parentheses', latex: '\\left(x\\right)' }, { label: 'Brackets', latex: '\\left[x\\right]' }, { label: 'Braces', latex: '\\left\\{x\\right\\}' }, { label: 'Absolute Value', latex: '\\left|x\\right|' }, { label: 'Cases', latex: '\\begin{cases}x & x\\geq 0\\\\-x & x<0\\end{cases}' }] },
-  { group: 'Function', items: [{ label: 'Sine', latex: '\\sin\\theta' }, { label: 'Logarithm', latex: '\\log_{b} x' }, { label: 'Limit', latex: '\\lim_{n\\to\\infty}\\left(1+\\frac{1}{n}\\right)^n' }] },
-  { group: 'Accent', items: [{ label: 'Hat', latex: '\\hat{a}' }, { label: 'Bar', latex: '\\bar{a}' }, { label: 'Vector', latex: '\\vec{a}' }, { label: 'Dot', latex: '\\dot{a}' }] },
-  { group: 'Matrix', items: [{ label: '2×2 Matrix', latex: '\\begin{pmatrix}a & b\\\\c & d\\end{pmatrix}' }, { label: '3×3 Identity', latex: '\\begin{bmatrix}1 & 0 & 0\\\\0 & 1 & 0\\\\0 & 0 & 1\\end{bmatrix}' }] },
+  { group: tx('Fraction'), items: [{ label: tx('Stacked Fraction'), latex: '\\frac{a}{b}' }, { label: tx('Linear Fraction'), latex: 'a/b' }] },
+  { group: tx('Script'), items: [{ label: tx('Superscript'), latex: 'x^{2}' }, { label: tx('Subscript'), latex: 'x_{i}' }, { label: tx('Subscript-Superscript'), latex: 'x_{i}^{2}' }] },
+  { group: tx('Radical'), items: [{ label: tx('Square Root'), latex: '\\sqrt{x}' }, { label: tx('Radical with Degree'), latex: '\\sqrt[n]{x}' }] },
+  { group: tx('Integral'), items: [{ label: tx('Integral'), latex: '\\int_{a}^{b} f(x)\\,dx' }, { label: tx('Double Integral'), latex: '\\iint f\\,dA' }, { label: tx('Contour Integral'), latex: '\\oint F\\,ds' }] },
+  { group: tx('Large Operator'), items: [{ label: tx('Summation'), latex: '\\sum_{i=1}^{n} a_i' }, { label: tx('Product'), latex: '\\prod_{i=1}^{n} a_i' }, { label: tx('Union'), latex: '\\bigcup_{i} A_i' }] },
+  { group: tx('Bracket'), items: [{ label: tx('Parentheses'), latex: '\\left(x\\right)' }, { label: tx('Brackets'), latex: '\\left[x\\right]' }, { label: tx('Braces'), latex: '\\left\\{x\\right\\}' }, { label: tx('Absolute Value'), latex: '\\left|x\\right|' }, { label: tx('Cases'), latex: '\\begin{cases}x & x\\geq 0\\\\-x & x<0\\end{cases}' }] },
+  { group: tx('Function'), items: [{ label: tx('Sine'), latex: '\\sin\\theta' }, { label: tx('Logarithm'), latex: '\\log_{b} x' }, { label: tx('Limit'), latex: '\\lim_{n\\to\\infty}\\left(1+\\frac{1}{n}\\right)^n' }] },
+  { group: tx('Accent'), items: [{ label: tx('Hat'), latex: '\\hat{a}' }, { label: tx('Bar'), latex: '\\bar{a}' }, { label: tx('Vector'), latex: '\\vec{a}' }, { label: tx('Dot'), latex: '\\dot{a}' }] },
+  { group: tx('Matrix'), items: [{ label: tx('2×2 Matrix'), latex: '\\begin{pmatrix}a & b\\\\c & d\\end{pmatrix}' }, { label: tx('3×3 Identity'), latex: '\\begin{bmatrix}1 & 0 & 0\\\\0 & 1 & 0\\\\0 & 0 & 1\\end{bmatrix}' }] },
 ]
 
 export const SYMBOL_PALETTE = ['±', '∞', '=', '≠', '~', '×', '÷', '!', '∝', '<', '≪', '>', '≫', '≤', '≥', '∓', '≅', '≈', '≡', '∀', '∁', '∂', '√', '∛', '∜', '∪', '∩', '∅', '%', '°', '℉', '℃', '∆', '∇', '∃', '∄', '∈', '∋', '←', '↑', '→', '↓', '↔', '∴', '∵', '+', '−', '¬', 'α', 'β', 'γ', 'δ', 'ε', 'θ', 'λ', 'μ', 'π', 'ρ', 'σ', 'τ', 'φ', 'ω', 'Δ', 'Σ', 'Ω']

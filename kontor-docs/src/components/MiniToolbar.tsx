@@ -5,6 +5,7 @@ import { FONT_SIZES, currentFont, currentFontSize, formatSize, parseSize, setFon
 import { ComboBox, RibbonButton } from './ui'
 import { FONTS } from './tabs/HomeTab'
 import type { AppApi } from './tabs/types'
+import { t } from '../i18n'
 
 /** Floating formatting bar that appears above a text selection made with the mouse. */
 export function MiniToolbar({ editor, app }: { editor: Editor; app: AppApi }) {
@@ -39,21 +40,21 @@ export function MiniToolbar({ editor, app }: { editor: Editor; app: AppApi }) {
   const top = Math.max(8, pos.y - 78)
   const left = Math.max(8, Math.min(pos.x - 20, window.innerWidth - 330))
   return (
-    <div className="mini-toolbar" style={{ top, left }} role="toolbar" aria-label="Formatting">
+    <div className="mini-toolbar" style={{ top, left }} role="toolbar" aria-label={t('Formatting')}>
       <div className="row">
-        <ComboBox title="Font" width={120} value={currentFont(editor)} options={FONTS} onCommit={(f) => chain().setFontFamily(f).run()} />
-        <ComboBox title="Font Size" width={48} value={formatSize(currentFontSize(editor))} options={FONT_SIZES} onCommit={(v) => setFontSize(editor, parseSize(v))} />
-        <RibbonButton icon={AArrowUp} label="Increase Font Size" onClick={() => stepFontSize(editor, 1)} />
-        <RibbonButton icon={AArrowDown} label="Decrease Font Size" onClick={() => stepFontSize(editor, -1)} />
+        <ComboBox title={t('Font')} width={120} value={currentFont(editor)} options={FONTS} onCommit={(f) => chain().setFontFamily(f).run()} />
+        <ComboBox title={t('Font Size')} width={48} value={formatSize(currentFontSize(editor))} options={FONT_SIZES} onCommit={(v) => setFontSize(editor, parseSize(v))} />
+        <RibbonButton icon={AArrowUp} label={t('Increase Font Size')} onClick={() => stepFontSize(editor, 1)} />
+        <RibbonButton icon={AArrowDown} label={t('Decrease Font Size')} onClick={() => stepFontSize(editor, -1)} />
       </div>
       <div className="row">
-        <RibbonButton icon={Bold} label="Bold" active={editor.isActive('bold')} onClick={() => chain().toggleBold().run()} />
-        <RibbonButton icon={Italic} label="Italic" active={editor.isActive('italic')} onClick={() => chain().toggleItalic().run()} />
-        <RibbonButton icon={Underline} label="Underline" active={editor.isActive('underline')} onClick={() => chain().toggleUnderline().run()} />
-        <RibbonButton icon={Highlighter} label="Text Highlight Color" onClick={() => chain().setHighlight({ color: app.highlightColor }).run()} />
-        <RibbonButton icon={Baseline} label="Font Color" onClick={() => chain().setColor(app.fontColor).run()} />
-        <RibbonButton icon={List} label="Bullets" active={editor.isActive('bulletList')} onClick={() => chain().toggleBulletList().run()} />
-        <RibbonButton icon={ListOrdered} label="Numbering" active={editor.isActive('orderedList')} onClick={() => chain().toggleOrderedList().run()} />
+        <RibbonButton icon={Bold} label={t('Bold')} active={editor.isActive('bold')} onClick={() => chain().toggleBold().run()} />
+        <RibbonButton icon={Italic} label={t('Italic')} active={editor.isActive('italic')} onClick={() => chain().toggleItalic().run()} />
+        <RibbonButton icon={Underline} label={t('Underline')} active={editor.isActive('underline')} onClick={() => chain().toggleUnderline().run()} />
+        <RibbonButton icon={Highlighter} label={t('Text Highlight Color')} onClick={() => chain().setHighlight({ color: app.highlightColor }).run()} />
+        <RibbonButton icon={Baseline} label={t('Font Color')} onClick={() => chain().setColor(app.fontColor).run()} />
+        <RibbonButton icon={List} label={t('Bullets')} active={editor.isActive('bulletList')} onClick={() => chain().toggleBulletList().run()} />
+        <RibbonButton icon={ListOrdered} label={t('Numbering')} active={editor.isActive('orderedList')} onClick={() => chain().toggleOrderedList().run()} />
       </div>
     </div>
   )

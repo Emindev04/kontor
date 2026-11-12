@@ -3,6 +3,7 @@ import type { Range } from '../model/address'
 import { cellView } from './display'
 import type { Doc } from './doc'
 import { newPicture, addObject } from './objects'
+import { t, tx } from '../i18n'
 
 const DEFAULT_FONT = 'Calibri, Carlito, Arial, sans-serif'
 
@@ -98,7 +99,7 @@ export function pasteAsPicture(doc: Doc): string | null {
     const sheet = doc.wb.sheetById(doc.clip.sheetId)
     if (sheet === doc.sheet) url = renderRangeCanvas(doc, doc.clip.range).toDataURL('image/png')
   }
-  if (!url) return 'Copy cells first.'
+  if (!url) return t('Copy cells first.')
   const img = url
   const probe = new Image()
   probe.src = img
@@ -106,6 +107,6 @@ export function pasteAsPicture(doc: Doc): string | null {
   const rg = doc.clip?.range
   const w = rg ? Array.from({ length: rg.c2 - rg.c1 + 1 }, (_, i) => doc.sheet.cols.size(rg.c1 + i)).reduce((a, b) => a + b, 0) : 240
   const h = rg ? Array.from({ length: rg.r2 - rg.r1 + 1 }, (_, i) => doc.sheet.rows.size(rg.r1 + i)).reduce((a, b) => a + b, 0) : 120
-  addObject(doc, newPicture(doc, id, Math.min(w, 1600), Math.min(h, 1200)), 'Paste Picture')
+  addObject(doc, newPicture(doc, id, Math.min(w, 1600), Math.min(h, 1200)), tx('Paste Picture'))
   return null
 }

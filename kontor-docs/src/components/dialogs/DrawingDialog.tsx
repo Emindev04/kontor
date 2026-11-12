@@ -2,17 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { Eraser, Highlighter, Pen, Trash2, Undo2 } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import { Modal, OkCancel, cls } from '../ui'
+import { t, tx } from '../../i18n'
 
 type Tool = { id: string; label: string; kind: 'pen' | 'highlighter' | 'eraser'; color: string; width: number }
 type Stroke = { tool: Tool; points: [number, number][] }
 
 const TOOLS: Tool[] = [
-  { id: 'black', label: 'Pen: Black', kind: 'pen', color: '#000000', width: 2.5 },
-  { id: 'red', label: 'Pen: Red', kind: 'pen', color: '#E02020', width: 2.5 },
-  { id: 'blue', label: 'Pen: Blue', kind: 'pen', color: '#1F5AA6', width: 2.5 },
-  { id: 'green', label: 'Pen: Green', kind: 'pen', color: '#2E8B3C', width: 2.5 },
-  { id: 'highlighter', label: 'Highlighter: Yellow', kind: 'highlighter', color: 'rgba(255, 230, 0, 0.45)', width: 14 },
-  { id: 'eraser', label: 'Eraser', kind: 'eraser', color: '#fff', width: 18 },
+  { id: 'black', label: tx('Pen: Black'), kind: 'pen', color: '#000000', width: 2.5 },
+  { id: 'red', label: tx('Pen: Red'), kind: 'pen', color: '#E02020', width: 2.5 },
+  { id: 'blue', label: tx('Pen: Blue'), kind: 'pen', color: '#1F5AA6', width: 2.5 },
+  { id: 'green', label: tx('Pen: Green'), kind: 'pen', color: '#2E8B3C', width: 2.5 },
+  { id: 'highlighter', label: tx('Highlighter: Yellow'), kind: 'highlighter', color: 'rgba(255, 230, 0, 0.45)', width: 14 },
+  { id: 'eraser', label: tx('Eraser'), kind: 'eraser', color: '#fff', width: 18 },
 ]
 
 const W = 760
@@ -77,36 +78,36 @@ export function DrawingDialog({ editor, onClose }: { editor: Editor; onClose: ()
     out.width = x1 - x0
     out.height = y1 - y0
     out.getContext('2d')!.drawImage(canvas, x0, y0, out.width, out.height, 0, 0, out.width, out.height)
-    editor.chain().focus().setImage({ src: out.toDataURL('image/png'), alt: 'Drawing' }).run()
+    editor.chain().focus().setImage({ src: out.toDataURL('image/png'), alt: 'Ink' }).run()
     onClose()
   }
 
   return (
-    <Modal title="Drawing Canvas" onClose={onClose} width={820} footer={<OkCancel okLabel="Insert" onOk={insert} onCancel={onClose} />}>
+    <Modal title={t('Drawing Canvas')} onClose={onClose} width={820} footer={<OkCancel okLabel={t('Insert')} onOk={insert} onCancel={onClose} />}>
       <div className="draw-tools">
-        {TOOLS.map((t) => (
+        {TOOLS.map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             type="button"
-            className={cls('rb', tool.id === t.id && 'is-active')}
-            title={t.label}
-            aria-label={t.label}
+            className={cls('rb', tool.id === item.id && 'is-active')}
+            title={t(item.label)}
+            aria-label={t(item.label)}
             onClick={() => {
-              setTool(t)
-              setWidth(t.width)
+              setTool(item)
+              setWidth(item.width)
             }}
           >
-            {t.kind === 'eraser' ? <Eraser size={18} /> : t.kind === 'highlighter' ? <Highlighter size={18} color="#d4b800" /> : <Pen size={18} color={t.color} />}
+            {item.kind === 'eraser' ? <Eraser size={18} /> : item.kind === 'highlighter' ? <Highlighter size={18} color="#d4b800" /> : <Pen size={18} color={item.color} />}
           </button>
         ))}
         <label className="draw-width">
-          Thickness <input type="range" min={1} max={30} step={0.5} value={width} onChange={(e) => setWidth(Number(e.target.value))} />
+          {t('Thickness')}{' '}<input type="range" min={1} max={30} step={0.5} value={width} onChange={(e) => setWidth(Number(e.target.value))} />
         </label>
         <span className="spacer" />
-        <button type="button" className="rb" title="Undo stroke" aria-label="Undo stroke" disabled={!strokes.length} onClick={() => setStrokes(strokes.slice(0, -1))}>
+        <button type="button" className="rb" title={t('Undo stroke')} aria-label={t('Undo stroke')} disabled={!strokes.length} onClick={() => setStrokes(strokes.slice(0, -1))}>
           <Undo2 size={18} />
         </button>
-        <button type="button" className="rb" title="Clear canvas" aria-label="Clear canvas" disabled={!strokes.length} onClick={() => setStrokes([])}>
+        <button type="button" className="rb" title={t('Clear canvas')} aria-label={t('Clear canvas')} disabled={!strokes.length} onClick={() => setStrokes([])}>
           <Trash2 size={18} />
         </button>
       </div>

@@ -67,6 +67,22 @@ export type DialogKind =
   | 'emailMerge'
   | 'training'
   | 'feedback'
+  | 'defineBullet'
+  | 'defineMultilevel'
+  | 'sortText'
+  | 'tocCustom'
+  | 'tableOfFigures'
+  | 'markCitation'
+  | 'tableOfAuthorities'
+  | 'indexOptions'
+  | 'styleInspector'
+  | 'manageStyles'
+  | 'macros'
+  | 'recordMacro'
+  | 'lockTracking'
+  | 'textEffects'
+  | 'compressPictures'
+  | 'mergeRule'
 
 export type ViewMode = 'print' | 'web' | 'read' | 'outline' | 'draft'
 export type OutlineOptions = { level: number; firstLineOnly: boolean; showFormatting: boolean }
@@ -167,6 +183,8 @@ export type AppApi = {
   /** Opens Create/Modify Style (null creates a new style). */
   editStyle: (id: string | null) => void
   setAsDefault: (styles?: StyleDefs) => void
+  /** File › Options › Language: keeps the document and restarts the program in the chosen interface language. */
+  setInterfaceLanguage: (language: import('../../i18n').Language) => void
   overview: 'multiple' | 'sideBySide' | null
   setOverview: (o: 'multiple' | 'sideBySide' | null) => void
   darkPage: boolean
@@ -177,6 +195,24 @@ export type AppApi = {
   setTablePen: (pen: BorderPen) => void
   borderPainter: boolean
   setBorderPainter: (on: boolean) => void
+  /** Lock Tracking: password hash ("" without password), null when not locked. */
+  trackLock: string | null
+  setTrackLock: (hash: string | null) => void
+  /** View › Macros: recording state and recorder controls. */
+  macroRecording: 'recording' | 'paused' | null
+  startMacro: (name: string, description: string) => void
+  stopMacro: () => void
+  pauseMacro: () => void
+  /** Options › Customize Ribbon › Add Command: waits for a ribbon command for that custom group. */
+  pickRibbonCommand: (tab: string, group: string) => void
+  /** Draw tab: the pen, highlighter or eraser used on the page (null = select text). */
+  inkTool: import('../InkOverlay').InkTool | null
+  setInkTool: (tool: import('../InkOverlay').InkTool | null) => void
+  hideInk: boolean
+  setHideInk: (hide: boolean) => void
+  /** Table › Draw Table / Eraser mode. */
+  tableTool: import('../../editor/drawTable').TableTool | null
+  setTableTool: (tool: import('../../editor/drawTable').TableTool | null) => void
   hideBodyWhileHf: boolean
   setHideBodyWhileHf: (on: boolean) => void
   /** Draw mode for shapes ("rectangle", "arrowLine" …) and text boxes ("textBox"). */

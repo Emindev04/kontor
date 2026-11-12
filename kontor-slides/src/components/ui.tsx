@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { AlignLeft, Brush, ChevronDown, ClipboardPaste, Clock, Eye, Image as ImageIcon, Layers, LayoutGrid, LayoutTemplate, MessageSquare, Palette, Play, Presentation, Search, Shapes, Sparkles, Table, Type, type LucideIcon } from 'lucide-react'
+import { t } from '../i18n'
 
 export const cls = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ')
 
@@ -112,6 +113,13 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   'Table Styles': Table,
 }
 
+/** Looks up a ribbon group by its English name or by its name in the interface language. */
+function byGroup<T>(table: Record<string, T>, label: string): T | undefined {
+  if (label in table) return table[label]
+  const key = Object.keys(table).find((k) => t(k) === label)
+  return key === undefined ? undefined : table[key]
+}
+
 /** How long a group keeps its full size when space runs out: 1 shrinks first, 4 last (like the original). */
 const GROUP_PRIORITY: Record<string, number> = {
   Editing: 1,
@@ -155,16 +163,16 @@ export function RibbonGroup({ label, children, onLauncher, launcherTitle, icon, 
     if (next !== idx) setIdx(next)
   })
   const level = idx >= 0 ? (levels[idx] ?? 0) : 0
-  const prio = priority ?? GROUP_PRIORITY[label] ?? 2
+  const prio = priority ?? byGroup(GROUP_PRIORITY, label) ?? 2
   const launcher = onLauncher && (
-    <button type="button" className="rg-launcher" title={launcherTitle ?? `${label} settings`} aria-label={launcherTitle ?? `${label} settings`} onMouseDown={keepFocus} onClick={onLauncher}>
+    <button type="button" className="rg-launcher" title={launcherTitle ?? t('{name} settings', { name: label })} aria-label={launcherTitle ?? t('{name} settings', { name: label })} onMouseDown={keepFocus} onClick={onLauncher}>
       <svg viewBox="0 0 8 8" width="8" height="8" aria-hidden="true">
         <path d="M1 1h4M1 1v4M2.5 2.5L7 7M7 4v3H4" fill="none" stroke="currentColor" strokeWidth="1" />
       </svg>
     </button>
   )
   if (level >= 3) {
-    const Icon = icon ?? GROUP_ICONS[label] ?? LayoutGrid
+    const Icon = icon ?? byGroup(GROUP_ICONS, label) ?? LayoutGrid
     return (
       <div
         className="rg is-collapsed"
@@ -394,7 +402,7 @@ export function SplitMenuButton(props: Omit<ButtonProps, 'caret'> & { items: Men
   return (
     <div className={cls('split popover-anchor', button.large && 'split-large', open && 'is-open', button.keep && 'rb-keep')} ref={ref}>
       <RibbonButton {...button} />
-      <button type="button" className={cls('rb split-arrow', button.large && 'split-arrow-large')} aria-label={`${button.label} options`} disabled={button.disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className={cls('rb split-arrow', button.large && 'split-arrow-large')} aria-label={t('{name} options', { name: button.label })} disabled={button.disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         {button.large && <span className="rb-text">{button.label}</span>}
         <ChevronDown size={10} />
       </button>
@@ -473,7 +481,7 @@ export function ComboBox({
           }
         }}
       />
-      <button type="button" className="combo-btn" aria-label={`Choose ${title.toLowerCase()}`} disabled={disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className="combo-btn" aria-label={t('Choose {name}', { name: title })} disabled={disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <ChevronDown size={12} />
       </button>
       {open && (
@@ -531,7 +539,7 @@ export function ColorSplitButton({
           <span className="color-bar" style={{ background: color }} />
         </span>
       </button>
-      <button type="button" className="rb split-arrow" aria-label={`${label}: choose color`} disabled={disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className="rb split-arrow" aria-label={t('{name}: choose color', { name: label })} disabled={disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <ChevronDown size={10} />
       </button>
       {open && (
@@ -559,7 +567,7 @@ export function Modal({ title, onClose, children, footer, width }: { title: stri
       <div className="modal" role="dialog" aria-label={title} style={width ? { width: `min(${width}px, calc(100vw - 32px))` } : undefined} onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-title">
           <span>{title}</span>
-          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="modal-close" aria-label={t('Close')} onClick={onClose}>
             ×
           </button>
         </div>
@@ -636,10 +644,10 @@ export function NumberField({
         }}
       />
       <span className="numfield-spin">
-        <button type="button" tabIndex={-1} aria-label={`Increase ${label}`} disabled={disabled} onMouseDown={keepFocus} onClick={() => onChange(clamp((value ?? 0) + step))}>
+        <button type="button" tabIndex={-1} aria-label={t('Increase {name}', { name: label })} disabled={disabled} onMouseDown={keepFocus} onClick={() => onChange(clamp((value ?? 0) + step))}>
           ▲
         </button>
-        <button type="button" tabIndex={-1} aria-label={`Decrease ${label}`} disabled={disabled} onMouseDown={keepFocus} onClick={() => onChange(clamp((value ?? 0) - step))}>
+        <button type="button" tabIndex={-1} aria-label={t('Decrease {name}', { name: label })} disabled={disabled} onMouseDown={keepFocus} onClick={() => onChange(clamp((value ?? 0) - step))}>
           ▼
         </button>
       </span>

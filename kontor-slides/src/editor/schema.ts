@@ -32,7 +32,7 @@ function Paragraph(ctx: CtxRef) {
     group: 'block',
     content: 'inline*',
     addAttributes() {
-      return { align: attr(null), level: attr(0), bullet: attr(null), bulletSize: attr(null), bulletColor: attr(null), startAt: attr(null), lineHeight: attr(null), spaceBefore: attr(null), spaceAfter: attr(null) }
+      return { align: attr(null), level: attr(0), bullet: attr(null), bulletSize: attr(null), bulletColor: attr(null), startAt: attr(null), lineHeight: attr(null), spaceBefore: attr(null), spaceAfter: attr(null), lineExact: attr(null), indent: attr(null), firstLine: attr(null) }
     },
     parseHTML() {
       return [{ tag: 'p', getAttrs: (el) => ({ align: ((el as HTMLElement).style.textAlign || null) as string | null }) }]
@@ -49,7 +49,7 @@ function TextStyle(ctx: CtxRef) {
     name: 'textStyle',
     priority: 101,
     addAttributes() {
-      return { fontFamily: attr(null), fontSize: attr(null), color: attr(null), letterSpacing: attr(null), shadow: attr(null), caps: attr(null) }
+      return { fontFamily: attr(null), fontSize: attr(null), color: attr(null), letterSpacing: attr(null), shadow: attr(null), caps: attr(null), uStyle: attr(null), uColor: attr(null), strike2: attr(null), baseline: attr(null), equalize: attr(null), glow: attr(null), glowSize: attr(null) }
     },
     parseHTML() {
       return [

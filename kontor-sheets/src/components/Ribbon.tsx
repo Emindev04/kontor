@@ -17,6 +17,8 @@ const SlicerTab = ctxTab('SlicerTab')
 const TableDesignTab = ctxTab('TableDesignTab')
 import { useApp, useDocVersion } from './appContext'
 import { activeContext } from '../commands/objects'
+import { prefs } from '../model/prefs'
+import { t, tx } from '../i18n'
 
 export type TabId =
   | 'home' | 'insert' | 'draw' | 'pageLayout' | 'formulas' | 'data' | 'review' | 'view' | 'help'
@@ -25,23 +27,30 @@ export type TabId =
 type TabDef = { id: TabId; label: string; panel: React.ComponentType; context?: 'table' | 'chart' | 'shape' | 'slicer' | 'pivot' }
 
 const TABS: TabDef[] = [
-  { id: 'home', label: 'Home', panel: HomeTab },
-  { id: 'insert', label: 'Insert', panel: InsertTab },
-  { id: 'draw', label: 'Draw', panel: DrawTab },
-  { id: 'pageLayout', label: 'Page Layout', panel: PageLayoutTab },
-  { id: 'formulas', label: 'Formulas', panel: FormulasTab },
-  { id: 'data', label: 'Data', panel: DataTab },
-  { id: 'review', label: 'Review', panel: ReviewTab },
-  { id: 'view', label: 'View', panel: ViewTab },
-  { id: 'help', label: 'Help', panel: HelpTab },
-  { id: 'tableDesign', label: 'Table Design', panel: TableDesignTab, context: 'table' },
-  { id: 'pivotAnalyze', label: 'PivotTable Analyze', panel: PivotAnalyzeTab, context: 'pivot' },
-  { id: 'pivotDesign', label: 'Design', panel: PivotDesignTab, context: 'pivot' },
-  { id: 'chartDesign', label: 'Chart Design', panel: ChartDesignTab, context: 'chart' },
-  { id: 'chartFormat', label: 'Format', panel: ChartFormatTab, context: 'chart' },
-  { id: 'shapeFormat', label: 'Shape Format', panel: ObjectFormatTab, context: 'shape' },
-  { id: 'slicer', label: 'Slicer', panel: SlicerTab, context: 'slicer' },
+  { id: 'home', label: tx('Home'), panel: HomeTab },
+  // "{tab}" is always empty: it only gives the tab its own key, as some languages name the tab differently from the command.
+  { id: 'insert', label: tx('Insert {tab}'), panel: InsertTab },
+  { id: 'draw', label: tx('Draw'), panel: DrawTab },
+  { id: 'pageLayout', label: tx('Page Layout'), panel: PageLayoutTab },
+  { id: 'formulas', label: tx('Formulas'), panel: FormulasTab },
+  { id: 'data', label: tx('Data'), panel: DataTab },
+  { id: 'review', label: tx('Review'), panel: ReviewTab },
+  { id: 'view', label: tx('View'), panel: ViewTab },
+  { id: 'help', label: tx('Help'), panel: HelpTab },
+  { id: 'tableDesign', label: tx('Table Design'), panel: TableDesignTab, context: 'table' },
+  { id: 'pivotAnalyze', label: tx('PivotTable Analyze'), panel: PivotAnalyzeTab, context: 'pivot' },
+  { id: 'pivotDesign', label: tx('Design'), panel: PivotDesignTab, context: 'pivot' },
+  { id: 'chartDesign', label: tx('Chart Design'), panel: ChartDesignTab, context: 'chart' },
+  { id: 'chartFormat', label: tx('Format'), panel: ChartFormatTab, context: 'chart' },
+  { id: 'shapeFormat', label: tx('Shape Format'), panel: ObjectFormatTab, context: 'shape' },
+  { id: 'slicer', label: tx('Slicer'), panel: SlicerTab, context: 'slicer' },
 ]
+
+/** The shown name of a ribbon tab. */
+export const tabLabel = (label: string) => t(label, { tab: '' }).trim()
+
+/** Main tabs that File > Options > Customize the Ribbon can hide (Home always stays). */
+export const CUSTOMIZABLE_TABS = TABS.filter((t) => !t.context && t.id !== 'home').map((t) => ({ id: t.id, label: t.label }))
 
 type Props = { active: TabId; setActive: (t: TabId) => void; onFile: () => void; collapsed: boolean; setCollapsed: (c: boolean) => void }
 
@@ -84,7 +93,8 @@ export function Ribbon({ active, setActive, onFile, collapsed, setCollapsed }: P
   const app = useApp()
   useDocVersion(app.doc)
   const ctx = activeContext(app.doc)
-  const visible = TABS.filter((t) => !t.context || t.context === ctx)
+  const hiddenTabs = prefs().hiddenTabs
+  const visible = TABS.filter((t) => (!t.context || t.context === ctx) && !hiddenTabs.includes(t.id))
   const tab = visible.find((t) => t.id === active) ?? visible[0]
   const Panel = tab.panel
   const ribbon = useRef<HTMLDivElement>(null)
@@ -161,21 +171,21 @@ export function Ribbon({ active, setActive, onFile, collapsed, setCollapsed }: P
     setFit({ tab: tab.id, k: next })
   })
 
-  const tabButton = (t: TabDef) => (
+  const tabButton = (def: TabDef) => (
     <button
-      key={t.id}
+      key={def.id}
       type="button"
       role="tab"
-      aria-selected={tab.id === t.id}
-      className={cls('tab', t.context && 'tab-context', tab.id === t.id && !collapsed && 'is-active')}
+      aria-selected={tab.id === def.id}
+      className={cls('tab', def.context && 'tab-context', tab.id === def.id && !collapsed && 'is-active')}
       onMouseDown={keepFocus}
       onClick={() => {
-        setActive(t.id)
+        setActive(def.id)
         if (collapsed) setCollapsed(false)
       }}
       onDoubleClick={() => setCollapsed(!collapsed)}
     >
-      {t.label}
+      {tabLabel(def.label)}
     </button>
   )
 
@@ -183,18 +193,18 @@ export function Ribbon({ active, setActive, onFile, collapsed, setCollapsed }: P
     <div className="ribbon-wrap">
       <nav className="tabs" role="tablist">
         <button type="button" className="tab tab-file" onMouseDown={keepFocus} onClick={onFile}>
-          File
+          {t('File')}
         </button>
         {visible.map(tabButton)}
         <span className="spacer" />
         {!collapsed && (
-          <button type="button" className="tab ribbon-toggle" title="Collapse the Ribbon (Ctrl+F1)" aria-label="Collapse the Ribbon" onMouseDown={keepFocus} onClick={() => setCollapsed(true)}>
+          <button type="button" className="tab ribbon-toggle" title={t('Collapse the Ribbon (Ctrl+F1)')} aria-label={t('Collapse the Ribbon')} onMouseDown={keepFocus} onClick={() => setCollapsed(true)}>
             <ChevronUp size={14} />
           </button>
         )}
       </nav>
       {!collapsed && (
-        <div className="ribbon" role="tabpanel" aria-label={tab.label} ref={ribbon}>
+        <div className="ribbon" role="tabpanel" aria-label={tabLabel(tab.label)} ref={ribbon}>
           <RibbonFitContext.Provider value={levels}>
             <Suspense fallback={null}>
               <Panel />

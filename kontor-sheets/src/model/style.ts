@@ -15,7 +15,13 @@ export interface Style {
   strike?: boolean
   color?: string
   script?: 'superscript' | 'subscript'
+  /** Background color (also the background of a pattern fill). */
   fill?: string
+  /** Pattern fill drawn in `patternColor` over `fill`. */
+  pattern?: import('./fill').PatternType
+  patternColor?: string
+  /** Gradient fill (Fill Effects); replaces the solid and pattern fill. */
+  gradient?: import('./fill').Gradient
   h?: HAlign
   v?: VAlign
   wrap?: boolean

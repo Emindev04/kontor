@@ -8,6 +8,7 @@ import { EQUATION_GALLERY, EQUATION_STRUCTURES, SYMBOL_PALETTE, mathMarkup } fro
 import { collectBookmarks, type CrossRefAttrs } from '../../editor/Objects'
 import { collectNotes } from '../../editor/Notes'
 import type { AppApi } from '../tabs/types'
+import { t } from '../../i18n'
 
 const nodeAtPos = (editor: Editor, pos: number | null, type: string) => {
   if (pos == null) return null
@@ -29,7 +30,7 @@ const setAttrs = (editor: Editor, pos: number, attrs: Record<string, unknown>) =
 export function InsertChartDialog({ editor, app, onClose }: { editor: Editor; app: AppApi; onClose: () => void }) {
   const [pick, setPick] = useState(0)
   const type = CHART_TYPES[pick]
-  const data: ChartData = { ...DEFAULT_CHART, chartType: type.id, stacking: type.stacking ?? 'none', ...(type.id === 'pie' || type.id === 'doughnut' ? { series: [{ name: 'Sales', values: [8.2, 3.2, 1.4, 1.2] }], categories: ['1st Qtr', '2nd Qtr', '3rd Qtr', '4th Qtr'], title: 'Sales', legend: 'bottom' as const } : {}) }
+  const data: ChartData = { ...DEFAULT_CHART, chartType: type.id, stacking: type.stacking ?? 'none', ...(type.id === 'pie' || type.id === 'doughnut' ? { series: [{ name: t('Sales'), values: [8.2, 3.2, 1.4, 1.2] }], categories: [t('1st Qtr'), t('2nd Qtr'), t('3rd Qtr'), t('4th Qtr')], title: t('Sales'), legend: 'bottom' as const } : {}) }
   const insert = () => {
     editor.chain().focus().insertChart(data).run()
     const pos = editor.state.selection.from - 1
@@ -41,12 +42,12 @@ export function InsertChartDialog({ editor, app, onClose }: { editor: Editor; ap
     }, 50)
   }
   return (
-    <Modal title="Insert Chart" onClose={onClose} width={720} footer={<OkCancel onOk={insert} onCancel={onClose} />}>
+    <Modal title={t('Insert Chart')} onClose={onClose} width={720} footer={<OkCancel onOk={insert} onCancel={onClose} />}>
       <div className="chart-picker">
-        <div className="chart-types" role="listbox" aria-label="Chart types">
-          {CHART_TYPES.map((t, i) => (
-            <button key={t.label} type="button" role="option" aria-selected={pick === i} className={cls('menu-item', pick === i && 'is-active')} onClick={() => setPick(i)} onDoubleClick={insert}>
-              {t.label}
+        <div className="chart-types" role="listbox" aria-label={t('Chart types')}>
+          {CHART_TYPES.map((item, i) => (
+            <button key={item.label} type="button" role="option" aria-selected={pick === i} className={cls('menu-item', pick === i && 'is-active')} onClick={() => setPick(i)} onDoubleClick={insert}>
+              {t(item.label)}
             </button>
           ))}
         </div>
@@ -72,8 +73,8 @@ export function ChartDataDialog({ editor, app, onClose }: { editor: Editor; app:
     }
     setD(next)
   }
-  const addRow = () => setD({ ...d, categories: [...d.categories, `Category ${d.categories.length + 1}`], series: d.series.map((s) => ({ ...s, values: [...s.values, null] })) })
-  const addCol = () => setD({ ...d, series: [...d.series, { name: `Series ${d.series.length + 1}`, values: d.categories.map(() => null) }] })
+  const addRow = () => setD({ ...d, categories: [...d.categories, t('Category {n}', { n: d.categories.length + 1 })], series: d.series.map((s) => ({ ...s, values: [...s.values, null] })) })
+  const addCol = () => setD({ ...d, series: [...d.series, { name: t('Series {n}', { n: d.series.length + 1 }), values: d.categories.map(() => null) }] })
   const removeRow = () => d.categories.length > 1 && setD({ ...d, categories: d.categories.slice(0, -1), series: d.series.map((s) => ({ ...s, values: s.values.slice(0, d.categories.length - 1) })) })
   const removeCol = () => d.series.length > 1 && setD({ ...d, series: d.series.slice(0, -1) })
   const apply = () => {
@@ -81,11 +82,11 @@ export function ChartDataDialog({ editor, app, onClose }: { editor: Editor; app:
     onClose()
   }
   return (
-    <Modal title="Chart Data" onClose={onClose} width={760} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Chart Data')} onClose={onClose} width={760} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="chart-data">
         <div>
           <label className="dlg-inline">
-            Chart title: <input value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} />
+            {t('Chart title:')}{' '}<input value={d.title} onChange={(e) => setD({ ...d, title: e.target.value })} />
           </label>
           <div className="sheet-grid-wrap">
             <table className="sheet-grid">
@@ -94,7 +95,7 @@ export function ChartDataDialog({ editor, app, onClose }: { editor: Editor; app:
                   <th />
                   {d.series.map((s, c) => (
                     <th key={c}>
-                      <input aria-label={`Series ${c + 1} name`} value={s.name} onChange={(e) => setCell(-1, c, e.target.value)} />
+                      <input aria-label={t('Series {n} name', { n: c + 1 })} value={s.name} onChange={(e) => setCell(-1, c, e.target.value)} />
                     </th>
                   ))}
                 </tr>
@@ -103,7 +104,7 @@ export function ChartDataDialog({ editor, app, onClose }: { editor: Editor; app:
                 {d.categories.map((cat, r) => (
                   <tr key={r}>
                     <th>
-                      <input aria-label={`Category ${r + 1}`} value={cat} onChange={(e) => setCell(r, -1, e.target.value)} />
+                      <input aria-label={t('Category {n}', { n: r + 1 })} value={cat} onChange={(e) => setCell(r, -1, e.target.value)} />
                     </th>
                     {d.series.map((s, c) => (
                       <td key={c}>
@@ -116,10 +117,10 @@ export function ChartDataDialog({ editor, app, onClose }: { editor: Editor; app:
             </table>
           </div>
           <div className="dlg-inline">
-            <button type="button" className="btn" onClick={addRow}>Add Category</button>
-            <button type="button" className="btn" onClick={removeRow}>Remove Category</button>
-            {!pie && <button type="button" className="btn" onClick={addCol}>Add Series</button>}
-            {!pie && <button type="button" className="btn" onClick={removeCol}>Remove Series</button>}
+            <button type="button" className="btn" onClick={addRow}>{t('Add Category')}</button>
+            <button type="button" className="btn" onClick={removeRow}>{t('Remove Category')}</button>
+            {!pie && <button type="button" className="btn" onClick={addCol}>{t('Add Series')}</button>}
+            {!pie && <button type="button" className="btn" onClick={removeCol}>{t('Remove Series')}</button>}
           </div>
         </div>
         <div className="chart-preview" dangerouslySetInnerHTML={{ __html: chartSvg(d, 360, 240) }} />
@@ -153,23 +154,23 @@ export function EquationDialog({ editor, app, onClose }: { editor: Editor; app: 
     onClose()
   }
   return (
-    <Modal title={node ? 'Edit Equation' : 'Insert Equation'} onClose={onClose} width={680} footer={<OkCancel onOk={apply} onCancel={onClose} extra={<label><input type="checkbox" checked={display} onChange={(e) => setDisplay(e.target.checked)} /> Display (own line, centered)</label>} />}>
+    <Modal title={node ? t('Edit Equation') : t('Insert Equation')} onClose={onClose} width={680} footer={<OkCancel onOk={apply} onCancel={onClose} extra={<label><input type="checkbox" checked={display} onChange={(e) => setDisplay(e.target.checked)} /> {t('Display (own line, centered)')}</label>} />}>
       <div className="eq-editor">
         <div className="eq-palettes">
-          <select aria-label="Insert a built-in equation" value="" onChange={(e) => e.target.value && setLatex(e.target.value)}>
-            <option value="">Built-in equations…</option>
+          <select aria-label={t('Insert a built-in equation')} value="" onChange={(e) => e.target.value && setLatex(e.target.value)}>
+            <option value="">{t('Built-in equations…')}</option>
             {EQUATION_GALLERY.map((g) => (
               <option key={g.label} value={g.latex}>
-                {g.label}
+                {t(g.label)}
               </option>
             ))}
           </select>
           {EQUATION_STRUCTURES.map((g) => (
-            <select key={g.group} aria-label={g.group} value="" onChange={(e) => e.target.value && insertAtCursor(e.target.value)}>
-              <option value="">{g.group}</option>
+            <select key={g.group} aria-label={t(g.group)} value="" onChange={(e) => e.target.value && insertAtCursor(e.target.value)}>
+              <option value="">{t(g.group)}</option>
               {g.items.map((it) => (
                 <option key={it.label} value={it.latex}>
-                  {it.label}
+                  {t(it.label)}
                 </option>
               ))}
             </select>
@@ -182,9 +183,9 @@ export function EquationDialog({ editor, app, onClose }: { editor: Editor; app: 
             </button>
           ))}
         </div>
-        <textarea ref={input} autoFocus className="eq-input" rows={3} spellCheck={false} value={latex} onChange={(e) => setLatex(e.target.value)} aria-label="Equation (linear format)" />
+        <textarea ref={input} autoFocus className="eq-input" rows={3} spellCheck={false} value={latex} onChange={(e) => setLatex(e.target.value)} aria-label={t('Equation (linear format)')} />
         <div className="eq-preview" dangerouslySetInnerHTML={{ __html: mathMarkup(latex || '\\text{Type equation here.}', true) }} />
-        <p className="dlg-hint">{'Linear format: x^2, x_i, \\frac{a}{b}, \\sqrt{x}, \\sum_{i=1}^{n}, \\int_a^b, \\alpha, \\left( … \\right). The preview updates as you type.'}</p>
+        <p className="dlg-hint">{t('Linear format: x^2, x_i, \\frac{a}{b}, \\sqrt{x}, \\sum_{i=1}^{n}, \\int_a^b, \\alpha, \\left( … \\right). The preview updates as you type.')}</p>
       </div>
     </Modal>
   )
@@ -198,7 +199,7 @@ export function SignatureDialog({ editor, app, onClose }: { editor: Editor; app:
   const [signer, setSigner] = useState<string>(a.signer ?? '')
   const [title, setTitle] = useState<string>(a.signerTitle ?? '')
   const [email, setEmail] = useState<string>(a.email ?? '')
-  const [instructions, setInstructions] = useState<string>(a.instructions ?? 'Before signing this document, verify that the content you are signing is correct.')
+  const [instructions, setInstructions] = useState<string>(a.instructions ?? t('Before signing this document, verify that the content you are signing is correct.'))
   const [showDate, setShowDate] = useState<boolean>(a.showDate ?? true)
   const apply = () => {
     const attrs = { signer, signerTitle: title, email, instructions, showDate }
@@ -207,13 +208,13 @@ export function SignatureDialog({ editor, app, onClose }: { editor: Editor; app:
     onClose()
   }
   return (
-    <Modal title="Signature Setup" onClose={onClose} width={420} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Signature Setup')} onClose={onClose} width={420} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="dlg-stack">
-        <label className="dlg-stack">Suggested signer (for example, John Doe):<input autoFocus value={signer} onChange={(e) => setSigner(e.target.value)} /></label>
-        <label className="dlg-stack">Suggested signer's title (for example, Manager):<input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-        <label className="dlg-stack">Suggested signer's e-mail address:<input value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-        <label className="dlg-stack">Instructions to the signer:<textarea rows={2} value={instructions} onChange={(e) => setInstructions(e.target.value)} /></label>
-        <label><input type="checkbox" checked={showDate} onChange={(e) => setShowDate(e.target.checked)} /> Show sign date in signature line</label>
+        <label className="dlg-stack">{t('Suggested signer (for example, John Doe):')}<input autoFocus value={signer} onChange={(e) => setSigner(e.target.value)} /></label>
+        <label className="dlg-stack">{t('Suggested signer\'s title (for example, Manager):')}<input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+        <label className="dlg-stack">{t('Suggested signer\'s e-mail address:')}<input value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+        <label className="dlg-stack">{t('Instructions to the signer:')}<textarea rows={2} value={instructions} onChange={(e) => setInstructions(e.target.value)} /></label>
+        <label><input type="checkbox" checked={showDate} onChange={(e) => setShowDate(e.target.checked)} /> {t('Show sign date in signature line')}</label>
       </div>
     </Modal>
   )
@@ -245,33 +246,28 @@ export function BookmarkDialog({ editor, onClose }: { editor: Editor; onClose: (
   }
   return (
     <Modal
-      title="Bookmark"
+      title={t('Bookmark')}
       onClose={onClose}
       width={400}
       footer={
         <>
           <button type="button" className="btn btn-primary" disabled={!valid} onClick={add}>
-            Add
-          </button>
+            {t('Add')}</button>
           <button type="button" className="btn" disabled={!existing} onClick={() => existing && editor.view.dispatch(editor.state.tr.delete(existing.pos, existing.pos + 1))}>
-            Delete
-          </button>
+            {t('Delete')}</button>
           <button type="button" className="btn" disabled={!existing} onClick={go}>
-            Go To
-          </button>
+            {t('Go To')}</button>
           <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>
-            Close
-          </button>
+            {t('Close')}</button>
         </>
       }
     >
       <div className="dlg-stack">
         <label className="dlg-stack">
-          Bookmark name:
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
+          {t('Bookmark name:')}<input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
         </label>
-        <select size={7} value={name} onChange={(e) => setName(e.target.value)} onDoubleClick={go} aria-label="Bookmarks">
+        <select size={7} value={name} onChange={(e) => setName(e.target.value)} onDoubleClick={go} aria-label={t('Bookmarks')}>
           {sorted.map((b) => (
             <option key={`${b.name}-${b.pos}`} value={b.name}>
               {b.name}
@@ -279,12 +275,11 @@ export function BookmarkDialog({ editor, onClose }: { editor: Editor; onClose: (
           ))}
         </select>
         <div className="dlg-inline">
-          Sort by:
-          <label><input type="radio" checked={sort === 'name'} onChange={() => setSort('name')} /> Name</label>
-          <label><input type="radio" checked={sort === 'location'} onChange={() => setSort('location')} /> Location</label>
+          {t('Sort by:')}<label><input type="radio" checked={sort === 'name'} onChange={() => setSort('name')} /> {t('Name')}</label>
+          <label><input type="radio" checked={sort === 'location'} onChange={() => setSort('location')} /> {t('Location')}</label>
         </div>
-        <label><input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} /> Hidden bookmarks</label>
-        {name && !valid && <p className="dlg-error">Bookmark names start with a letter and contain only letters, numbers and underscores.</p>}
+        <label><input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} /> {t('Hidden bookmarks')}</label>
+        {name && !valid && <p className="dlg-error">{t('Bookmark names start with a letter and contain only letters, numbers and underscores.')}</p>}
       </div>
     </Modal>
   )
@@ -313,10 +308,10 @@ export function CrossRefDialog({ editor, app, onClose }: { editor: Editor; app: 
   }, [doc, kind, app.notes, app.noteSettings])
   const showOptions: { id: CrossRefAttrs['show']; label: string }[] =
     kind === 'footnote' || kind === 'endnote'
-      ? [{ id: 'number', label: `${kind === 'footnote' ? 'Footnote' : 'Endnote'} number` }, { id: 'page', label: 'Page number' }, { id: 'aboveBelow', label: 'Above/below' }]
+      ? [{ id: 'number', label: kind === 'footnote' ? t('Footnote number') : t('Endnote number') }, { id: 'page', label: t('Page number') }, { id: 'aboveBelow', label: t('Above/below') }]
       : kind === 'figure' || kind === 'table'
-        ? [{ id: 'text', label: 'Entire caption' }, { id: 'number', label: 'Only label and number' }, { id: 'page', label: 'Page number' }, { id: 'aboveBelow', label: 'Above/below' }]
-        : [{ id: 'text', label: kind === 'heading' ? 'Heading text' : 'Bookmark text' }, { id: 'page', label: 'Page number' }, { id: 'aboveBelow', label: 'Above/below' }]
+        ? [{ id: 'text', label: t('Entire caption') }, { id: 'number', label: t('Only label and number') }, { id: 'page', label: t('Page number') }, { id: 'aboveBelow', label: t('Above/below') }]
+        : [{ id: 'text', label: kind === 'heading' ? t('Heading text') : t('Bookmark text') }, { id: 'page', label: t('Page number') }, { id: 'aboveBelow', label: t('Above/below') }]
   const insert = () => {
     const item = items[index]
     if (!item) return
@@ -335,42 +330,40 @@ export function CrossRefDialog({ editor, app, onClose }: { editor: Editor; app: 
     onClose()
   }
   return (
-    <Modal title="Cross-reference" onClose={onClose} width={480} footer={<OkCancel okLabel="Insert" onOk={insert} onCancel={onClose} />}>
+    <Modal title={t('Cross-reference')} onClose={onClose} width={480} footer={<OkCancel okLabel={t('Insert')} onOk={insert} onCancel={onClose} />}>
       <div className="dlg-stack">
         <div className="dlg-two">
           <label className="dlg-stack">
-            Reference type:
-            <select value={kind} onChange={(e) => (setKind(e.target.value as RefKind), setIndex(0))}>
-              <option value="heading">Heading</option>
-              <option value="bookmark">Bookmark</option>
-              <option value="footnote">Footnote</option>
-              <option value="endnote">Endnote</option>
-              <option value="figure">Figure</option>
-              <option value="table">Table</option>
+            {t('Reference type:')}<select value={kind} onChange={(e) => (setKind(e.target.value as RefKind), setIndex(0))}>
+              <option value="heading">{t('Heading')}</option>
+              <option value="bookmark">{t('Bookmark')}</option>
+              <option value="footnote">{t('Footnote')}</option>
+              <option value="endnote">{t('Endnote')}</option>
+              <option value="figure">{t('Figure')}</option>
+              <option value="table">{t('Table')}</option>
             </select>
           </label>
           <label className="dlg-stack">
-            Insert reference to:
-            <select value={show} onChange={(e) => setShow(e.target.value as CrossRefAttrs['show'])}>
+            {t('Insert reference to:')}<select value={show} onChange={(e) => setShow(e.target.value as CrossRefAttrs['show'])}>
               {showOptions.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.label}
+                  {t(o.label)}
                 </option>
               ))}
             </select>
           </label>
         </div>
         <label className="dlg-stack">
-          For which {kind}:
+          {t('For which')}{' '}{kind}:
           <select size={8} value={index} onChange={(e) => setIndex(Number(e.target.value))} onDoubleClick={insert}>
             {items.map((it, i) => (
               <option key={i} value={i}>
-                {it.label}
+                {t(it.label)}
               </option>
             ))}
           </select>
         </label>
-        {!items.length && <p className="dlg-hint">There are no items of this type in the document.</p>}
+        {!items.length && <p className="dlg-hint">{t('There are no items of this type in the document.')}</p>}
       </div>
     </Modal>
   )

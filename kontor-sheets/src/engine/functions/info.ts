@@ -60,6 +60,58 @@ fn('SHEETS', 0, 1, (args, ctx) => {
   const v = args[0]
   return v instanceof RefV ? new Set(v.areas.map((a) => a.sheet)).size : ERR.value
 })
+/** Format sections of a number format code (split at ";" outside quotes). */
+function splitSections(fmt: string | undefined): string[] {
+  if (!fmt) return ['General']
+  const out: string[] = []
+  let cur = ''
+  let quoted = false
+  for (let i = 0; i < fmt.length; i++) {
+    const ch = fmt[i]
+    if (ch === '"') quoted = !quoted
+    if (ch === '\\') {
+      cur += ch + (fmt[i + 1] ?? '')
+      i++
+      continue
+    }
+    if (ch === ';' && !quoted) {
+      out.push(cur)
+      cur = ''
+    } else cur += ch
+  }
+  out.push(cur)
+  return out
+}
+
+/** The code CELL("format") returns: G, F0, ,2, C2-, P0, S2, D1 … ("-" = negative numbers in color, "()" = parentheses). */
+export function cellFormatCode(fmt: string | undefined): string {
+  const sections = splitSections(fmt)
+  const pos = sections[0].replace(/"[^"]*"/g, '').replace(/\\./g, '').replace(/\[(?!\$)[^\]]*\]/g, '')
+  if (!fmt || /^general$/i.test(pos.trim())) return 'G'
+  const suffix = (/\[(red|blue|green|yellow|magenta|cyan|white|black|color\s*\d+)\]/i.test(sections[1] ?? '') ? '-' : '') + (/\(/.test(pos) ? '()' : '')
+  const lower = pos.toLowerCase()
+  if (/[dmyhs]/.test(lower.replace(/e[+-]/, '')) && !/[#0?]/.test(lower)) {
+    const has = (re: RegExp) => re.test(lower)
+    if (has(/h/) && !has(/[dy]/)) {
+      const ampm = has(/am\/pm|a\/p/)
+      if (has(/s/)) return ampm ? 'D6' : 'D8'
+      return ampm ? 'D7' : 'D9'
+    }
+    if (has(/mmm/) && has(/d/) && has(/y/)) return 'D1'
+    if (has(/mmm/) && has(/d/)) return 'D2'
+    if (has(/mmm/) && has(/y/)) return 'D3'
+    if (has(/m/) && has(/d/) && !has(/y/)) return 'D5'
+    return 'D4'
+  }
+  if (/\?\/|#\s*\?/.test(pos)) return 'G'
+  const decimals = (/\.(0+)/.exec(pos)?.[1].length ?? 0)
+  if (/e[+-]/i.test(pos)) return `S${decimals}` + suffix
+  if (pos.includes('%')) return `P${decimals}` + suffix
+  if (/[$€£¥]|\[\$/.test(sections[0])) return `C${decimals}` + suffix
+  if (pos.includes(',')) return `,${decimals}` + suffix
+  return `F${decimals}` + suffix
+}
+
 fn('CELL', 1, 2, (args, ctx) => {
   const type = toText(toScalar(args[0], ctx))
   if (isErr(type)) return type
@@ -78,10 +130,9 @@ fn('CELL', 1, 2, (args, ctx) => {
     case 'width': return Math.round((a.sheet.cols.size(a.c1) - 5) / 7)
     case 'prefix': return typeof v === 'string' ? "'" : ''
     case 'protect': return 1
-    case 'format': {
-      const k = classifyFormat(undefined)
-      return k === 'general' ? 'G' : 'F2'
-    }
+    case 'format': return cellFormatCode(ctx.host.numFmt?.(a.sheet, a.r1, a.c1))
+    case 'color': return /\[(red|blue|green|yellow|magenta|cyan|white|black|color\s*\d+)\]/i.test(splitSections(ctx.host.numFmt?.(a.sheet, a.r1, a.c1))[1] ?? '') ? 1 : 0
+    case 'parentheses': return /^[^"]*\(/.test((splitSections(ctx.host.numFmt?.(a.sheet, a.r1, a.c1))[0] ?? '').replace(/\\./g, '')) ? 1 : 0
     default: return ERR.value
   }
 }, { volatile: true })

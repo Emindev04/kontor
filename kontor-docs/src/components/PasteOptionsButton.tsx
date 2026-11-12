@@ -3,11 +3,12 @@ import { ClipboardPaste, ClipboardType, Paintbrush, Type } from 'lucide-react'
 import type { Editor } from '@tiptap/react'
 import { endPastePreview, getLastPaste, insertPaste, startPastePreview, type PasteMode, type PastePreview } from '../editor/Paste'
 import { cls, keepFocus } from './ui'
+import { t, tx } from '../i18n'
 
 const OPTIONS: { mode: PasteMode; label: string; key: string; icon: typeof ClipboardPaste }[] = [
-  { mode: 'keep', label: 'Keep Source Formatting', key: 'K', icon: Paintbrush },
-  { mode: 'merge', label: 'Merge Formatting', key: 'M', icon: ClipboardType },
-  { mode: 'text', label: 'Keep Text Only', key: 'T', icon: Type },
+  { mode: 'keep', label: tx('Keep Source Formatting'), key: 'K', icon: Paintbrush },
+  { mode: 'merge', label: tx('Merge Formatting'), key: 'M', icon: ClipboardType },
+  { mode: 'text', label: tx('Keep Text Only'), key: 'T', icon: Type },
 ]
 
 /** The (Ctrl) button after a paste: pick how the pasted content should look. Ctrl alone opens it. */
@@ -97,13 +98,13 @@ export function PasteOptionsButton({ editor, onSetDefault }: { editor: Editor; o
   if (!last || !pos) return null
   return (
     <div className="paste-options" style={{ left: pos.left, top: pos.top }}>
-      <button type="button" className={cls('paste-options-btn', open && 'is-open')} title="Paste Options (Ctrl)" aria-label="Paste Options" onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className={cls('paste-options-btn', open && 'is-open')} title={t('Paste Options (Ctrl)')} aria-label={t('Paste Options')} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <ClipboardPaste size={14} />
-        <span>(Ctrl)</span>
+        <span>{t('(Ctrl)')}</span>
       </button>
       {open && (
         <div className="menu paste-options-menu" role="menu">
-          <div className="menu-heading">Paste Options:</div>
+          <div className="menu-heading">{t('Paste Options:')}</div>
           <div className="paste-options-row">
             {OPTIONS.map((o) => (
               <button
@@ -111,8 +112,8 @@ export function PasteOptionsButton({ editor, onSetDefault }: { editor: Editor; o
                 type="button"
                 role="menuitem"
                 className={cls('paste-option', last.mode === o.mode && 'is-active')}
-                title={`${o.label} (${o.key})`}
-                aria-label={o.label}
+                title={`${t(o.label)} (${o.key})`}
+                aria-label={t(o.label)}
                 onMouseDown={keepFocus}
                 onMouseEnter={() => startPreview(o.mode)}
                 onMouseLeave={stopPreview}
@@ -133,8 +134,7 @@ export function PasteOptionsButton({ editor, onSetDefault }: { editor: Editor; o
               onSetDefault()
             }}
           >
-            Set Default Paste…
-          </button>
+            {t('Set Default Paste…')}</button>
         </div>
       )}
     </div>

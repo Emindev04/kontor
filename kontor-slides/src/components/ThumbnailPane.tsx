@@ -6,6 +6,7 @@ import { setThumbWidth, store, useStore } from '../store/store'
 import * as A from '../store/actions'
 import { cls, ContextMenu, type MenuItem } from './ui'
 import { LAYOUTS } from '../model/layouts'
+import { t } from '../i18n'
 
 const Thumb = memo(function Thumb({ slide, index, pres, scale }: { slide: Slide; index: number; pres: Presentation; scale: number }) {
   return (
@@ -50,15 +51,15 @@ export function ThumbnailPane({ onFormatBackground, onSection }: { onFormatBackg
       x: e.clientX,
       y: e.clientY,
       items: [
-        { label: 'Rename Section', onClick: () => (A.goToSlide(slide.id), onSection()) },
-        { label: 'Remove Section', onClick: () => A.setSection(null, slide.id) },
-        { label: 'Remove Section & Slides', icon: Trash2, onClick: () => A.removeSectionWithSlides(slide.id) },
+        { label: t('Rename Section'), onClick: () => (A.goToSlide(slide.id), onSection()) },
+        { label: t('Remove Section'), onClick: () => A.setSection(null, slide.id) },
+        { label: t('Remove Section & Slides'), icon: Trash2, onClick: () => A.removeSectionWithSlides(slide.id) },
         'separator',
-        { label: 'Move Section Up', disabled: bi <= 0, onClick: () => A.moveSection(slide.id, -1) },
-        { label: 'Move Section Down', disabled: bi < 0 || bi >= blocks.length - 1, onClick: () => A.moveSection(slide.id, 1) },
+        { label: t('Move Section Up'), disabled: bi <= 0, onClick: () => A.moveSection(slide.id, -1) },
+        { label: t('Move Section Down'), disabled: bi < 0 || bi >= blocks.length - 1, onClick: () => A.moveSection(slide.id, 1) },
         'separator',
-        { label: 'Collapse All', onClick: () => setCollapsed(new Set(blocks.filter((b) => b.name).map((b) => pres.slides[b.start].id))) },
-        { label: 'Expand All', onClick: () => setCollapsed(new Set()) },
+        { label: t('Collapse All'), onClick: () => setCollapsed(new Set(blocks.filter((b) => b.name).map((b) => pres.slides[b.start].id))) },
+        { label: t('Expand All'), onClick: () => setCollapsed(new Set()) },
       ],
     })
   }
@@ -74,26 +75,26 @@ export function ThumbnailPane({ onFormatBackground, onSection }: { onFormatBackg
     const clip = A.getClipboard()
     const items: MenuItem[] = slide
       ? [
-          { label: 'Cut', icon: Scissors, onClick: () => { store.set({ focus: 'thumbs', selection: [] }); A.cutSelection() } },
-          { label: 'Copy', icon: Copy, onClick: () => { store.set({ focus: 'thumbs', selection: [] }); A.copySelection() } },
-          { label: 'Paste', icon: ClipboardPaste, disabled: !clip, onClick: () => A.pasteClipboard() },
+          { label: t('Cut'), icon: Scissors, onClick: () => { store.set({ focus: 'thumbs', selection: [] }); A.cutSelection() } },
+          { label: t('Copy'), icon: Copy, onClick: () => { store.set({ focus: 'thumbs', selection: [] }); A.copySelection() } },
+          { label: t('Paste'), icon: ClipboardPaste, disabled: !clip, onClick: () => A.pasteClipboard() },
           'separator',
-          { label: 'New Slide', icon: FilePlus, onClick: () => A.newSlide() },
-          { label: 'Duplicate Slide', icon: CopyPlus, onClick: () => A.duplicateSlides() },
-          { label: 'Delete Slide', icon: Trash2, onClick: () => A.deleteSlides() },
+          { label: t('New Slide'), icon: FilePlus, onClick: () => A.newSlide() },
+          { label: t('Duplicate Slide'), icon: CopyPlus, onClick: () => A.duplicateSlides() },
+          { label: t('Delete Slide'), icon: Trash2, onClick: () => A.deleteSlides() },
           'separator',
-          { label: 'Add Section', icon: FolderPlus, onClick: onSection },
+          { label: t('Add Section'), icon: FolderPlus, onClick: onSection },
           'separator',
-          { heading: 'Layout' },
-          ...LAYOUTS.map((l) => ({ label: l.name, icon: LayoutTemplate, active: slide.layout === l.id, onClick: () => A.setLayout(l.id) })),
-          { label: 'Reset Slide', icon: RotateCcw, onClick: () => A.resetSlides() },
+          { heading: t('Layout') },
+          ...LAYOUTS.map((l) => ({ label: t(l.name), icon: LayoutTemplate, active: slide.layout === l.id, onClick: () => A.setLayout(l.id) })),
+          { label: t('Reset Slide'), icon: RotateCcw, onClick: () => A.resetSlides() },
           'separator',
-          { label: 'Format Background…', icon: Paintbrush, onClick: onFormatBackground },
-          { label: slide.hidden ? 'Unhide Slide' : 'Hide Slide', icon: EyeOff, onClick: () => A.toggleHideSlides() },
+          { label: t('Format Background…'), icon: Paintbrush, onClick: onFormatBackground },
+          { label: slide.hidden ? t('Unhide Slide') : t('Hide Slide'), icon: EyeOff, onClick: () => A.toggleHideSlides() },
         ]
       : [
-          { label: 'New Slide', icon: FilePlus, onClick: () => A.newSlide() },
-          { label: 'Paste', icon: ClipboardPaste, disabled: !clip, onClick: () => A.pasteClipboard() },
+          { label: t('New Slide'), icon: FilePlus, onClick: () => A.newSlide() },
+          { label: t('Paste'), icon: ClipboardPaste, disabled: !clip, onClick: () => A.pasteClipboard() },
         ]
     setMenu({ x: e.clientX, y: e.clientY, items })
   }
@@ -111,7 +112,7 @@ export function ThumbnailPane({ onFormatBackground, onSection }: { onFormatBackg
     <>
       <aside
         className="thumbs"
-        aria-label="Slides"
+        aria-label={t('Slides')}
         ref={listRef}
         style={{ width }}
         tabIndex={0}
@@ -138,7 +139,7 @@ export function ThumbnailPane({ onFormatBackground, onSection }: { onFormatBackg
               <button
                 type="button"
                 className="section-label"
-                title={collapsed.has(slide.id) ? 'Expand section' : 'Collapse section'}
+                title={collapsed.has(slide.id) ? t('Expand section') : t('Collapse section')}
                 aria-expanded={!collapsed.has(slide.id)}
                 onClick={() => toggleSection(slide.id)}
                 onContextMenu={(e) => openSectionMenu(e, slide)}
@@ -168,7 +169,7 @@ export function ThumbnailPane({ onFormatBackground, onSection }: { onFormatBackg
               <span className="thumb-num">{i + 1}</span>
               <div className="thumb-col">
                 <Thumb slide={slide} index={i} pres={pres} scale={scale} />
-                {(slide.transition?.name ?? 'none') !== 'none' && <span className="thumb-star" title="Has transition">★</span>}
+                {(slide.transition?.name ?? 'none') !== 'none' && <span className="thumb-star" title={t('Has transition')}>★</span>}
               </div>
             </div>
           </div>
@@ -180,7 +181,7 @@ export function ThumbnailPane({ onFormatBackground, onSection }: { onFormatBackg
         className="thumbs-splitter"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize slide thumbnails"
+        aria-label={t('Resize slide thumbnails')}
         style={{ left: width - 3 }}
         onPointerDown={(e) => {
           e.preventDefault()

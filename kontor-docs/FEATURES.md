@@ -1,6 +1,6 @@
 # Kontor Docs – feature checklist
 
-Coverage: 345 done, 50 partial, 16 open of 411 (90% weighted, partial = ½)
+Coverage: 375 done, 32 partial, 7 open of 414 (94% weighted, partial = ½). The open items need online services (out of scope) or are not planned.
 
 Checklist of what a user finds in the original desktop word processor, grouped by area.
 `[x]` done · `[~]` partial (what is missing is noted) · `[ ]` open.
@@ -11,13 +11,16 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] New blank document
 - [x] New from templates (business letter, report, resume, meeting notes)
 - [x] Recent documents – every document opened or created here is kept in the browser (File › Home and Open), remove from list
-- [ ] Pinned / shared documents, cloud locations
+- [x] Pinned documents – pin documents to the top of File › Home / Open (kept on this device)
+- [ ] Shared documents, cloud locations – out of scope: needs an online service
 - [x] Open .docx
 - [x] Open .html / .htm and .txt
-- [~] Open .odt and Markdown (.md); no .rtf or .pdf
+- [x] Open .odt, Markdown (.md) and Rich Text Format (.rtf: fonts, sizes, colors, highlight, lists, tables, merged cells, pictures, links)
+- [x] Open legacy binary .doc as formatted text (own reader: text, character formatting, alignment, indents, spacing, headings, lists, tables, links; no pictures, headers or notes)
+- [ ] Open .pdf – not planned: PDF is a page-description format, not an editable document
 - [x] Info: properties (pages, words, characters, paragraphs, paper)
 - [x] Info: inspect document (accessibility check)
-- [~] Info: Restrict Editing (Review tab); no version history
+- [x] Info: Restrict Editing (Review tab) and Version History (a version on every save and every ten minutes of work, newest 20 kept on this device, restore)
 - [x] Save As .docx
 - [x] Save As web page (.html)
 - [x] Save As plain text (.txt)
@@ -25,14 +28,14 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Save (Ctrl+S) downloads .docx
 - [x] AutoSave to browser storage with status in the title bar
 - [x] Print with exactly the on-screen pagination
-- [~] Print settings (copies, page range, printer) – handled by the browser's print dialog
+- [x] Print settings: copies, all/current/custom page range, odd/even pages, collated or not (the printer itself is chosen in the system print dialog)
 - [x] Export to PDF (via the print dialog)
-- [ ] Share, co-authoring, online comments
+- [ ] Share, co-authoring, online comments – out of scope: needs a server
 - [x] Options: measurement units (inches, cm, mm, points, picas)
 - [x] Options: check spelling as you type
 - [x] Options: widow/orphan control
 - [x] Options: user name and initials, AutoCorrect list, smart quotes
-- [~] Options: Customize the Ribbon (show/hide tabs) and Quick Access Toolbar commands; no custom tabs or groups
+- [x] Options: Customize the Ribbon (show/hide tabs, own tabs and groups with any ribbon command – picked by clicking it – or macros) and Quick Access Toolbar commands
 - [~] Several documents: switch between documents kept in the browser (one open at a time)
 
 ## Title bar and Quick Access Toolbar
@@ -72,7 +75,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 
 ### Font
 - [x] Font name box with Theme Fonts and All Fonts
-- [~] Font list – common font names; only installed fonts (plus open Calibri/Cambria stand-ins) render
+- [x] Font list – the fonts installed on this computer (probed, or the complete list where the browser allows Local Font Access) plus the usual document fonts
 - [x] Font size box (list and typed sizes, e.g. 10.5)
 - [x] Increase / Decrease Font Size
 - [x] Change Case (sentence, lower, upper, capitalize each word, toggle)
@@ -81,19 +84,19 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Underline with styles (single, double, thick, dotted, dashed, wave) and color
 - [x] Strikethrough
 - [x] Subscript, Superscript
-- [~] Text Effects – shadow, outline, emboss, engrave, small caps, all caps; no glow, reflection, gradient fills
+- [x] Text Effects – shadow, outline, emboss, engrave, glow, reflection, gradient fill, small caps, all caps; Format Text Effects dialog; glow/reflection/gradient written to and read from .docx (w14)
 - [x] Text Highlight Color (15 colors, no color)
 - [x] Font Color (theme colors with tints, standard colors, more colors, automatic)
 - [x] Font dialog launcher
 
 ### Paragraph
 - [x] Bullets with bullet library (8 bullets)
-- [ ] Define new bullet (symbol/picture)
+- [x] Define new bullet (any character or a picture; recently defined bullets in the library; character bullets round-trip through .docx, picture bullets are written as •)
 - [x] Numbering with numbering library (7 formats)
 - [x] Set numbering value
-- [~] Multilevel list – 3 presets (1.a.i., 1.1.1, I.A.1.); no "define new multilevel list"
+- [x] Multilevel list – 3 presets (1.a.i., 1.1.1, I.A.1.) and Define New Multilevel List (number style and format with %1…%9 for nine levels; written to and read from .docx)
 - [x] Decrease / Increase Indent (lists and paragraphs, 0.5" steps)
-- [~] Sort – sorts paragraphs A–Z / Z–A; no Sort Text dialog with fields and types
+- [x] Sort Text dialog – paragraphs, fields (tabs, commas, other) or table columns, up to three keys, text/number/date, ascending/descending, header row, case sensitive
 - [x] Show/Hide ¶
 - [x] Align Left, Center, Align Right, Justify
 - [x] Left-to-Right / Right-to-Left text direction (stored as paragraph direction in .docx)
@@ -106,30 +109,30 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Styles gallery: Normal, No Spacing, Heading 1–6, Title, Subtitle, Subtle Emphasis, Emphasis, Intense Emphasis, Strong, Quote, Intense Quote, Subtle Reference, Intense Reference, Book Title, List Paragraph, Caption
 - [x] Expanded gallery with Clear Formatting
 - [x] Create a Style, Modify Style dialog, Update Style to Match Selection, delete/reset styles
-- [~] Styles pane (Alt+Ctrl+Shift+S) with preview, new style and per-style menu; no Style Inspector or Manage Styles
+- [x] Styles pane (Alt+Ctrl+Shift+S) with preview, new style, per-style menu, Style Inspector (style plus direct formatting, clear buttons) and Manage Styles (modify, delete/reset, new, import/export styles)
 
 ### Editing
 - [x] Find with result count and highlighting
 - [x] Advanced Find options: match case, whole words only
-- [~] Wildcards (? * [ ] [! ] < > {n,m} @, groups with \1 in the replacement) and special characters (^t ^? ^# ^$ ^w ^s ^^, ^& in the replacement); no search by formatting
+- [x] Wildcards (? * [ ] [! ] < > {n,m} @, groups with \1 in the replacement), special characters (^t ^? ^# ^$ ^w ^s ^^, ^& in the replacement) and Format: find and replace bold, italic, underline, strikethrough, highlight, font, size, color and style
 - [x] Replace and Replace All
 - [x] Go To (page number, relative +/−, heading)
 - [x] Select All, Select Paragraph
 - [x] Selection Pane (Home › Select, Layout/Shape/Picture › Arrange): rename, show/hide, reorder, multiple selection
-- [ ] Select text with similar formatting
-- [ ] Dictate, Editor (grammar and style suggestions), Add-ins
+- [x] Select text with similar formatting (several ranges; character and paragraph formatting and Delete act on all of them; typing replaces the first range and removes the others)
+- [ ] Dictate, Editor (grammar and style suggestions), Add-ins – out of scope: need speech/AI services or an online add-in store
 
 ## Insert tab
 
-- [~] Cover Page – two designs; no "Remove Current Cover Page"
+- [x] Cover Page – two designs, a new one replaces the current one, Remove Current Cover Page
 - [x] Blank Page
 - [x] Page Break
 - [x] Table grid picker (10 × 8)
 - [x] Insert Table dialog
-- [~] Convert Text to Table, Quick Tables (tabular list, calendar); no Draw Table or embedded spreadsheet
+- [~] Convert Text to Table, Quick Tables (tabular list, calendar), Draw Table; no embedded spreadsheet
 - [x] Pictures from this device
 - [x] Pictures from a web address
-- [ ] Online picture search, stock images
+- [ ] Online picture search, stock images – out of scope: online service
 - [x] Shapes: about 90 presets in 8 groups (lines, rectangles, basic shapes, block arrows, equation shapes, flowchart, stars, callouts), drawn by dragging, text inside
 - [~] Icons (searchable icon set, inserted as pictures); no 3D models
 - [x] Diagrams (SmartArt-like): Block List, Vertical Bullet List, Basic Process, Chevron Process, Basic Cycle, Basic Radial, Organization Chart, Basic Venn, Basic Matrix, Basic Pyramid; text pane (Tab/Shift+Tab levels), Add Shape after/before/above/below, Promote/Demote, Move Up/Down, Change Layout, Change Colors, Styles, Reset, Convert to Shapes; saved to .docx as a shape group plus their outline
@@ -151,7 +154,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Drop Cap (dropped, in margin)
 - [x] Signature Line (signer, title, e-mail, instructions, date)
 - [x] Date & Time dialog (11 formats, update automatically in headers/footers)
-- [~] Object › Text from File (.docx, .odt, .md, .html, .txt); no embedded objects
+- [~] Object › Text from File (.docx, .doc, .odt, .rtf, .md, .html, .txt); no embedded objects
 - [x] Equation: built-in equations, Insert New Equation (Alt+=), linear format with live preview, structures and symbols
 - [x] Symbol gallery
 - [x] More Symbols dialog (subsets, character code)
@@ -160,7 +163,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 ## Draw tab
 
 - [~] Drawing canvas: four pens, highlighter, eraser, thickness, undo, clear, insert as picture
-- [ ] Inking directly on the page, lasso select, ink to shape, ink to math, replay, ruler
+- [~] Inking directly on the page (Draw tab: four pens, highlighter, thickness, stroke eraser; strokes become pictures in front of the text); no lasso select, ink to shape, ink to math, replay or drawing ruler
 
 ## Design tab
 
@@ -198,7 +201,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Align – paragraphs and drawing objects (left, center, right)
 - [x] Position, Wrap Text, Bring Forward, Send Backward, Selection Pane, Align, Group/Ungroup (Shift+click several objects), Rotate
 - [x] Page Setup dialog: margins, orientation, paper size, mirror margins, header/footer distance, different first page
-- [~] Page Setup: line numbers, different odd/even, vertical alignment top/center/bottom on screen, in print and .docx (justify shows as top); no gutter or per-section page setup
+- [~] Page Setup: line numbers, different odd/even, vertical alignment top/center/bottom on screen, in print and .docx (justify shows as top), gutter (left/inside or top; screen, print, .docx); no per-section page setup
 
 ## References tab
 
@@ -206,15 +209,15 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Update Table, Remove Table of Contents
 - [x] Add Text (set TOC level)
 - [x] Ctrl+click a TOC entry to jump to the heading
-- [ ] Custom Table of Contents dialog (tab leader, levels, styles)
+- [x] Custom Table of Contents dialog (show/right-align page numbers, tab leader, levels 1–9, outline levels)
 - [x] Footnotes and endnotes (Ctrl+Alt+F / Ctrl+Alt+D): notes at the bottom of their page, endnotes after the text, Next/Previous, Show Notes, number formats and start
 - [x] Citations and bibliography: Insert Citation, Add New Source, Source Manager (new, edit, delete, cite, preview), styles APA / MLA / Chicago, Bibliography / References / Works Cited (updates automatically)
 - [x] Insert Caption (Figure, Table, Equation; numbering; above/below)
-- [~] Insert Table of Figures – lists captions without page numbers
+- [x] Insert Table of Figures – captions by label, with or without label and number, page numbers, tab leader, Update Table
 - [x] Cross-reference (also on the Insert tab)
-- [~] Index: Mark Entry / Mark All with subentries (Alt+Shift+X), Insert Index (two columns, letter headings, page numbers), Update Index; no Index dialog formats or cross-reference entries
-- [ ] Table of Authorities
-- [ ] Researcher, Smart Lookup
+- [~] Index: Mark Entry / Mark All with subentries (Alt+Shift+X), Index dialog (indented or run-in, 1–4 columns, letter headings, right-aligned page numbers with tab leader), Update Index; XE fields read from .docx; no cross-reference entries
+- [x] Table of Authorities – Mark Citation / Mark All (Alt+Shift+I) with long and short citation and category, Insert Table of Authorities (category, passim, tab leader), refreshes itself; TA fields written to and read from .docx
+- [ ] Researcher, Smart Lookup – out of scope: online services
 
 ## Mailings tab
 
@@ -228,7 +231,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Address Block
 - [x] Greeting Line
 - [x] Insert Merge Field
-- [~] Match Fields (used by Address Block and Greeting Line); Rules: only Skip Record If
+- [x] Match Fields (used by Address Block and Greeting Line); Rules: Skip Record If, If…Then…Else, Fill-in, Merge Record #, Merge Sequence #, Next Record, Next Record If (Ask/Set Bookmark not included)
 - [x] Preview Results with first/previous/next/last record
 - [x] Find Recipient, Check for Errors (merge fields without a column)
 - [x] Finish & Merge: Edit Individual Documents
@@ -242,14 +245,14 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Word Count dialog (pages, words, characters with/without spaces, paragraphs, lines)
 - [x] Read Aloud (from the cursor or the selection, stop)
 - [x] Check Accessibility (missing alt text, skipped heading levels, empty headings, tables without header row, low contrast)
-- [ ] Translate
+- [ ] Translate – out of scope: needs a translation service
 - [x] Language (proofing language for spell check, 11 languages)
 - [x] Comments: new (Ctrl+Alt+M), reply, edit, resolve/reopen, delete (one, resolved, shown, all), previous/next, show comments / compact icons
 - [x] Track Changes (Ctrl+Shift+E), Simple/All/No Markup/Original, show insertions and deletions/comments, change bars, author colors, Reviewing Pane
 - [x] Accept / Reject: this change, and move to next, all, all and stop tracking; from the context menu
 - [x] Compare (original file against the current document, word-level differences as tracked changes) and Combine (a reviewer's copy merged in as tracked changes in their name, keeping the copy's own tracked changes; the current document's own tracked changes are not carried over)
 - [x] Restrict Editing: read only, comments only, tracked changes, optional password
-- [ ] Hide Ink
+- [x] Hide Ink (Draw and Review tabs)
 
 ## View tab
 
@@ -259,7 +262,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Outline view: promote/demote, heading 1 / body text, move up/down, show level, first line only, text formatting
 - [x] Draft view
 - [x] Focus mode
-- [~] Immersive Reader: text spacing and line focus in Read Mode; no syllables or picture dictionary
+- [~] Immersive Reader: text spacing, line focus and syllables in Read Mode; no picture dictionary (online service)
 - [x] Vertical page movement
 - [~] Side to Side: pages side by side to browse (click a page to edit it)
 - [x] Ruler
@@ -269,7 +272,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Zoom menu, 100%, One Page, Page Width, Zoom In/Out
 - [~] Multiple Pages: overview of the pages two at a time (click a page to edit it)
 - [~] New Window (read-only Read Mode copy); no Arrange All, Split or View Side by Side
-- [ ] Macros
+- [x] Macros – record (typing, keys, ribbon commands and menu choices), pause, stop, run, rename, delete; kept on this device; can be put on custom ribbon tabs (no VBA – out of scope)
 - [x] Switch Modes (dark page)
 
 ## Shape Format, Chart Design and Equation (contextual)
@@ -304,16 +307,16 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Select cell, column, row, table
 - [x] View Gridlines
 - [x] Table Properties dialog (alignment, row height, allow row to break, repeat header, cell vertical alignment, alt text title)
-- [ ] Draw Table, Eraser
+- [x] Draw Table (drag a table, draw lines to split cells), Eraser (click a line to merge cells)
 - [x] Delete columns, rows, table
-- [~] Delete cells, shifting cells left; no shift up
+- [x] Delete cells, shifting cells left or up
 - [x] Insert Above, Below, Left, Right
 - [x] Merge Cells
 - [x] Split Cells
 - [x] Split Table
 - [~] AutoFit – contents/window reset column widths, fixed keeps equal widths
 - [x] Distribute Columns
-- [~] Distribute Rows, row height box; no column width box
+- [x] Distribute Rows, row height and column width boxes
 - [x] Cell alignment (9 positions)
 - [x] Text Direction (horizontal, 90°, 270°), Cell Margins
 - [x] Sort rows by the cursor's column (header row stays)
@@ -327,7 +330,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Change Picture
 - [x] Reset Picture
 - [x] Picture Styles (8)
-- [~] Corrections (brightness/contrast), Color (saturation, recolor), Artistic Effects (blur), Transparency, Picture Border, Picture Effects (shadow, reflection, glow, soft edges); no Remove Background or Compress Pictures
+- [x] Corrections (brightness/contrast), Color (saturation, recolor), Artistic Effects (blur), Transparency, Picture Border, Picture Effects (shadow, reflection, glow, soft edges), Remove Background (edge color, flood fill) and Compress Pictures (330/220/150/96 ppi, delete cropped areas)
 - [x] Alt Text (including "mark as decorative")
 - [x] Align (via paragraph alignment)
 - [x] Rotate 90° left/right, flip vertical/horizontal
@@ -378,15 +381,15 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 ## Paragraph dialog
 
 - [x] Alignment
-- [~] Outline level – stored on paragraphs; not set in the Paragraph dialog
+- [x] Outline level – in the Paragraph dialog, read from and written to .docx, used by the table of contents
 - [x] Indentation: left, right, special (first line / hanging) by
-- [ ] Mirror indents
+- [~] Mirror indents – Paragraph dialog (Inside/Outside), .docx; shown like mirrored margins (inside = left on every page)
 - [x] Spacing before / after
 - [x] Line spacing: single, 1.5, double, at least, exactly, multiple
-- [~] Don't add space between paragraphs of the same style – attribute and CSS; not in the dialog
+- [x] Don't add space between paragraphs of the same style – Paragraph dialog, screen, .docx
 - [x] Preview
 - [x] Line and Page Breaks: widow/orphan control, keep with next, keep lines together, page break before
-- [~] Suppress line numbers (Layout › Line Numbers); no "don't hyphenate"
+- [x] Suppress line numbers and Don't hyphenate (Paragraph dialog, .docx)
 - [x] Tabs dialog (custom tab stops, alignment, leaders)
 
 ## Font dialog
@@ -399,7 +402,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Advanced: scale, spacing (expanded/condensed), position (raised/lowered)
 - [x] Kerning (points and above, saved to .docx) and OpenType features (ligatures, number spacing, number forms; on screen)
 - [x] Preview
-- [~] Font dialog › Set As Default (font and size of the Normal style for new documents); no Text Effects dialog
+- [x] Font dialog › Set As Default (font and size of the Normal style for new documents) and Text Effects dialog
 
 ## Other dialogs
 
@@ -438,7 +441,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Backspace/Delete over tracked text move past it like the original
 - [x] Markup views: Simple Markup (red change bar), All Markup, No Markup, Original
 - [x] Reviewing Pane with summary and list; click to go to a change or comment
-- [~] Formatting changes of text are tracked ("Formatted: Bold …", accept/reject, .docx w:rPrChange); no moves, paragraph-formatting changes, paragraph marks or Lock Tracking
+- [~] Formatting changes of text are tracked ("Formatted: Bold …", accept/reject, .docx w:rPrChange), Lock Tracking with optional password; no moves, paragraph-formatting changes or paragraph marks
 
 ## Keyboard shortcuts (⌘ on a Mac)
 
@@ -480,7 +483,7 @@ Checklist of what a user finds in the original desktop word processor, grouped b
 - [x] Custom tab stops: left, center, right, decimal, bar with leaders; set by clicking the ruler (tab selector), drag to move, drag off to remove
 - [x] Ruler: indent markers (first line, hanging, left, right) drag with snapping
 - [x] Ruler: drag margins
-- [ ] Vertical ruler
+- [x] Vertical ruler beside the page with the cursor (drag the top and bottom margins)
 - [x] Paste formatted text from other programs
 - [x] AutoFormat as you type – automatic bullets/numbering, horizontal line, smart quotes, dashes
 - [x] AutoCorrect with an editable replacement list

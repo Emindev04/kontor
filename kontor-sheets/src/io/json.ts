@@ -39,6 +39,8 @@ export type JWorkbook = {
   images?: [string, string][]
   protection?: Workbook['protection']
   customViews?: Workbook['customViews']
+  changes?: Workbook['changes']
+  macros?: Workbook['macros']
   customStyles?: Workbook['customStyles']
   tableStyles?: Workbook['tableStyles']
   theme?: Workbook['theme']
@@ -92,6 +94,8 @@ export function toJSON(wb: Workbook, active: number): JWorkbook {
     images: [...wb.images].filter(([k]) => usedImages.has(k)),
     protection: wb.protection,
     customViews: wb.customViews.length ? wb.customViews : undefined,
+    changes: wb.changes.length ? wb.changes : undefined,
+    macros: wb.macros.length ? wb.macros : undefined,
     customStyles: wb.customStyles.length ? wb.customStyles : undefined,
     tableStyles: wb.tableStyles.length ? wb.tableStyles : undefined,
     theme: wb.theme,
@@ -148,6 +152,8 @@ export function fromJSON(j: JWorkbook): Workbook {
   for (const [k, v] of j.images ?? []) wb.images.set(k, v)
   wb.protection = j.protection ?? null
   wb.customViews = j.customViews ?? []
+  wb.changes = j.changes ?? []
+  wb.macros = j.macros ?? []
   wb.customStyles = j.customStyles ?? []
   wb.tableStyles = j.tableStyles ?? []
   wb.theme = j.theme

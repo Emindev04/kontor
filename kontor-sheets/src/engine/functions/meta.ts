@@ -505,6 +505,13 @@ YEAR|D|serial_number|Returns the year.
 YEARFRAC|D|start_date, end_date, [basis]|Returns the fraction of the year between two dates.
 Z.TEST|S|array, x, [sigma]|Returns the one-tailed P-value of a z-test.
 ZTEST|C|array, x, [sigma]|Returns the one-tailed P-value of a z-test.
+GROUPBY|R|row_fields, values, function, [field_headers], [total_depth], [sort_order], [filter_array]|Groups rows by the values of one or more fields and aggregates the values of each group.
+PIVOTBY|R|row_fields, col_fields, values, function, [field_headers], [row_total_depth], [row_sort_order], [col_total_depth], [col_sort_order], [filter_array]|Summarizes values grouped by row fields and column fields.
+TRIMRANGE|R|range, [trim_rows], [trim_cols]|Removes empty rows and columns from the outer edges of a range.
+GETPIVOTDATA|R|data_field, pivot_table, [field1, item1], …|Returns data stored in a PivotTable report.
+FILTERXML|W|xml, xpath|Returns specific data from XML content by using the given XPath.
+BAHTTEXT|T|number|Converts a number to Thai text and adds the suffix "Baht".
+PHONETIC|T|reference|Returns the phonetic (furigana) characters of a text; text without phonetic guides is returned as it is.
 `
 
 export type FnMeta = { name: string; category: FnCategory; args: string[]; description: string }

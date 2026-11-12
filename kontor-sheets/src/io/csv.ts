@@ -1,3 +1,4 @@
+import { fillCss } from '../model/fill'
 import { cellKey, keyCol, keyRow } from '../model/address'
 import { Workbook } from '../model/workbook'
 import { parseDelimited } from '../commands/clipboard'
@@ -69,7 +70,7 @@ export function exportHtml(doc: Doc): Blob {
       if (sheet.cols.hidden.has(c) || covered.has(cellKey(r, c))) continue
       const st = doc.style(r, c)
       const view = cellView(doc, sheet, r, c, st)
-      const css = [st.bold && 'font-weight:bold', st.italic && 'font-style:italic', st.color && `color:${st.color}`, st.fill && `background:${st.fill}`, st.size && `font-size:${st.size}pt`, `text-align:${st.h ?? (typeof doc.value(r, c) === 'number' ? 'right' : 'left')}`].filter(Boolean).join(';')
+      const css = [st.bold && 'font-weight:bold', st.italic && 'font-style:italic', st.color && `color:${st.color}`, (fillCss(st) || st.fill) && `background:${fillCss(st) ?? st.fill}`, st.size && `font-size:${st.size}pt`, `text-align:${st.h ?? (typeof doc.value(r, c) === 'number' ? 'right' : 'left')}`].filter(Boolean).join(';')
       const m = sheet.mergeAt(r, c)
       const span = m && m.r1 === r && m.c1 === c ? `${m.r2 > m.r1 ? ` rowspan="${m.r2 - m.r1 + 1}"` : ''}${m.c2 > m.c1 ? ` colspan="${m.c2 - m.c1 + 1}"` : ''}` : ''
       const link = sheet.get(r, c)?.link

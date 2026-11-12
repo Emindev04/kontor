@@ -6,6 +6,7 @@ import { DIAGRAM_COLORS, DIAGRAM_LAYOUTS, DIAGRAM_STYLES, diagramCursor, diagram
 import { selectedDiagram, updateDiagram } from '../DiagramTextPane'
 import { ArrangeGroup, SizeGroup } from './DrawingGroups'
 import type { TabProps } from './types'
+import { t } from '../../i18n'
 
 /** Contextual tab of a selected diagram (layouts, colors, styles and outline edits). */
 export function DiagramDesignTab({ editor, app }: TabProps) {
@@ -36,45 +37,45 @@ export function DiagramDesignTab({ editor, app }: TabProps) {
   }
   return (
     <>
-      <RibbonGroup label="Create Graphic" priority={4}>
+      <RibbonGroup label={t('Create Graphic')} priority={4}>
         <MenuButton
           large
           icon={ListPlus}
-          label="Add Shape"
+          label={t('Add Shape')}
           items={[
-            { label: 'Add Shape After', onClick: () => edit('after') },
-            { label: 'Add Shape Before', onClick: () => edit('before') },
-            { label: 'Add Shape Above', onClick: () => edit('above') },
-            { label: 'Add Shape Below', onClick: () => edit('below') },
+            { label: t('Add Shape After'), onClick: () => edit('after') },
+            { label: t('Add Shape Before'), onClick: () => edit('before') },
+            { label: t('Add Shape Above'), onClick: () => edit('above') },
+            { label: t('Add Shape Below'), onClick: () => edit('below') },
           ]}
         />
         <div className="col">
-          <RibbonButton icon={ArrowLeftToLine} label="Promote" showLabel onClick={() => edit('promote')} />
-          <RibbonButton icon={ArrowRightToLine} label="Demote" showLabel onClick={() => edit('demote')} />
-          <RibbonButton icon={Trash2} label="Delete Shape" showLabel onClick={() => edit('delete')} />
+          <RibbonButton icon={ArrowLeftToLine} label={t('Promote')} showLabel onClick={() => edit('promote')} />
+          <RibbonButton icon={ArrowRightToLine} label={t('Demote')} showLabel onClick={() => edit('demote')} />
+          <RibbonButton icon={Trash2} label={t('Delete Shape')} showLabel onClick={() => edit('delete')} />
         </div>
         <div className="col">
-          <RibbonButton icon={ArrowUp} label="Move Up" showLabel onClick={() => edit('up')} />
-          <RibbonButton icon={ArrowDown} label="Move Down" showLabel onClick={() => edit('down')} />
-          <RibbonButton icon={PanelLeft} label="Text Pane" showLabel active={app.showDiagramPane} onClick={() => app.setShowDiagramPane(!app.showDiagramPane)} />
+          <RibbonButton icon={ArrowUp} label={t('Move Up')} showLabel onClick={() => edit('up')} />
+          <RibbonButton icon={ArrowDown} label={t('Move Down')} showLabel onClick={() => edit('down')} />
+          <RibbonButton icon={PanelLeft} label={t('Text Pane')} showLabel active={app.showDiagramPane} onClick={() => app.setShowDiagramPane(!app.showDiagramPane)} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Layouts" priority={3}>
+      <RibbonGroup label={t('Layouts')} priority={3}>
         <MenuButton
           large
           icon={LayoutGrid}
-          label="Change Layout"
+          label={t('Change Layout')}
           wide
-          items={DIAGRAM_LAYOUTS.map((l) => ({ label: l.label, detail: l.category, active: data.layout === l.id, onClick: () => set({ layout: l.id }) }))}
+          items={DIAGRAM_LAYOUTS.map((l) => ({ label: t(l.label), detail: t(l.category), active: data.layout === l.id, onClick: () => set({ layout: l.id }) }))}
         />
       </RibbonGroup>
-      <RibbonGroup label="Diagram Styles" priority={3}>
+      <RibbonGroup label={t('Diagram Styles')} priority={3}>
         <MenuButton
           large
           icon={Palette}
-          label="Change Colors"
+          label={t('Change Colors')}
           items={Object.entries(DIAGRAM_COLORS).map(([id, p]) => ({
-            label: p.label,
+            label: t(p.label),
             active: data.colors === id,
             preview: (
               <span className="palette-strip">
@@ -86,12 +87,12 @@ export function DiagramDesignTab({ editor, app }: TabProps) {
             onClick: () => set({ colors: id }),
           }))}
         />
-        <MenuButton large icon={Sparkles} label="Styles" items={DIAGRAM_STYLES.map((s) => ({ label: s.label, active: data.style === s.id, onClick: () => set({ style: s.id }) }))} />
+        <MenuButton large icon={Sparkles} label={t('Styles')} items={DIAGRAM_STYLES.map((s) => ({ label: t(s.label), active: data.style === s.id, onClick: () => set({ style: s.id }) }))} />
       </RibbonGroup>
-      <RibbonGroup label="Reset" priority={1}>
+      <RibbonGroup label={t('Reset')} priority={1}>
         <div className="col">
-          <RibbonButton icon={RotateCcw} label="Reset Graphic" showLabel onClick={() => set({ colors: newDiagram(data.layout).colors, style: 'flat' })} />
-          <RibbonButton icon={Shapes} label="Convert to Shapes" showLabel onClick={convert} />
+          <RibbonButton icon={RotateCcw} label={t('Reset Graphic')} showLabel onClick={() => set({ colors: newDiagram(data.layout).colors, style: 'flat' })} />
+          <RibbonButton icon={Shapes} label={t('Convert to Shapes')} showLabel onClick={convert} />
         </div>
       </RibbonGroup>
       <ArrangeGroup editor={editor} app={app} />

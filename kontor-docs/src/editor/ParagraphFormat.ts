@@ -33,6 +33,10 @@ export type ParagraphAttrs = {
   outlineLevel: number | null
   /** Don't add space between paragraphs of the same style. */
   contextualSpacing: boolean | null
+  /** Mirror indents: left/right become inside/outside (for facing pages). */
+  mirrorIndents: boolean | null
+  /** Don't hyphenate this paragraph (automatic hyphenation skips it). */
+  noHyphenate: boolean | null
   tabStops: import('./TabStops').TabStop[] | null
   /** Text direction: right-to-left paragraphs (Arabic, Hebrew …). */
   dir: 'rtl' | null
@@ -84,17 +88,22 @@ function pointsFromCss(value: string): number | null {
 
 /** Applies `fn` to every paragraph/heading touched by the selection. */
 function eachParagraph(state: EditorState, tr: Transaction, fn: (attrs: Record<string, unknown>) => Record<string, unknown> | null) {
-  const { from, to } = state.selection
   let changed = false
-  state.doc.nodesBetween(from, to, (node, pos) => {
-    if (!PARAGRAPH_TYPES.includes(node.type.name)) return
-    const next = fn(node.attrs)
-    if (next) {
-      tr.setNodeMarkup(pos, undefined, { ...node.attrs, ...next })
-      changed = true
-    }
-    return false
-  })
+  const seen = new Set<number>()
+  // Every range of the selection (Select Text with Similar Formatting gives several).
+  for (const range of state.selection.ranges) {
+    state.doc.nodesBetween(range.$from.pos, range.$to.pos, (node, pos) => {
+      if (!PARAGRAPH_TYPES.includes(node.type.name)) return
+      if (seen.has(pos)) return false
+      seen.add(pos)
+      const next = fn(node.attrs)
+      if (next) {
+        tr.setNodeMarkup(pos, undefined, { ...node.attrs, ...next })
+        changed = true
+      }
+      return false
+    })
+  }
   return changed
 }
 
@@ -183,6 +192,16 @@ export const ParagraphFormat = Extension.create({
             default: null,
             parseHTML: (el) => (el.hasAttribute('data-contextual') ? true : null),
             renderHTML: (a) => (a.contextualSpacing ? { 'data-contextual': '' } : {}),
+          },
+          mirrorIndents: {
+            default: null,
+            parseHTML: (el) => (el.hasAttribute('data-mirror-indents') ? true : null),
+            renderHTML: (a) => (a.mirrorIndents ? { 'data-mirror-indents': '' } : {}),
+          },
+          noHyphenate: {
+            default: null,
+            parseHTML: (el) => (el.hasAttribute('data-no-hyphenate') ? true : null),
+            renderHTML: (a) => (a.noHyphenate ? { 'data-no-hyphenate': '', style: 'hyphens: manual' } : {}),
           },
           widowControl: {
             default: true,

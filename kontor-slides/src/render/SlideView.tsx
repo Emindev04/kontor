@@ -14,6 +14,7 @@ export type SlideViewProps = {
   fonts?: Presentation['fonts']
   colors?: Presentation['colors']
   master?: Presentation['master']
+  effectScheme?: string | null
   size: SlideSize
   headerFooter: HeaderFooter
   mode: RenderMode
@@ -31,7 +32,7 @@ export type SlideViewProps = {
 
 /** Convenience: SlideView props taken from a presentation. */
 export function presProps(p: Presentation) {
-  return { themeId: p.themeId, variant: p.variant, fonts: p.fonts, colors: p.colors, size: p.size, headerFooter: p.headerFooter, master: p.master }
+  return { themeId: p.themeId, variant: p.variant, fonts: p.fonts, colors: p.colors, size: p.size, headerFooter: p.headerFooter, master: p.master, effectScheme: p.effectScheme }
 }
 
 function Footers({ rc, slide }: { rc: RenderCtx; slide: Slide }) {
@@ -68,8 +69,8 @@ export function masterDeco(slide: Slide, master: Presentation['master']): SlideE
 }
 
 export const SlideView = memo(function SlideView(props: SlideViewProps) {
-  const { slide, index, themeId, variant, fonts, colors, size, headerFooter, mode, master } = props
-  const rc = useMemo(() => makeRenderCtx({ themeId, variant, fonts, colors, size, headerFooter, master }, index + 1, slide.layout), [themeId, variant, fonts, colors, size, headerFooter, index, slide.layout, master])
+  const { slide, index, themeId, variant, fonts, colors, size, headerFooter, mode, master, effectScheme } = props
+  const rc = useMemo(() => makeRenderCtx({ themeId, variant, fonts, colors, size, headerFooter, master, effectScheme }, index + 1, slide.layout), [themeId, variant, fonts, colors, size, headerFooter, index, slide.layout, master, effectScheme])
   const bg = slideBackground(slide.background, rc)
   const deco = useMemo(() => (slide.hideBackgroundGraphics ? [] : rc.theme.deco(decoKind(slide.layout), size.w, size.h)), [rc.theme, slide.layout, slide.hideBackgroundGraphics, size])
   return (

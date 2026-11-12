@@ -3,13 +3,14 @@ import type { Editor } from '@tiptap/react'
 import { Modal, OkCancel, cls } from '../ui'
 import { formatLength, parseLength, type Unit } from '../../units'
 import type { ColumnsAttrs } from '../../editor/Sections'
+import { t, tx } from '../../i18n'
 
 const PRESETS: { id: string; label: string; count: number; preset: ColumnsAttrs['preset'] }[] = [
-  { id: 'one', label: 'One', count: 1, preset: 'equal' },
-  { id: 'two', label: 'Two', count: 2, preset: 'equal' },
-  { id: 'three', label: 'Three', count: 3, preset: 'equal' },
-  { id: 'left', label: 'Left', count: 2, preset: 'left' },
-  { id: 'right', label: 'Right', count: 2, preset: 'right' },
+  { id: 'one', label: tx('One'), count: 1, preset: 'equal' },
+  { id: 'two', label: tx('Two'), count: 2, preset: 'equal' },
+  { id: 'three', label: tx('Three'), count: 3, preset: 'equal' },
+  { id: 'left', label: tx('Left'), count: 2, preset: 'left' },
+  { id: 'right', label: tx('Right'), count: 2, preset: 'right' },
 ]
 
 /** Layout > Columns > More Columns. */
@@ -26,10 +27,10 @@ export function ColumnsDialog({ editor, unit, onClose }: { editor: Editor; unit:
     onClose()
   }
   return (
-    <Modal title="Columns" onClose={onClose} width={420} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Columns')} onClose={onClose} width={420} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="dlg-stack">
         <fieldset className="dlg-fieldset">
-          <legend>Presets</legend>
+          <legend>{t('Presets')}</legend>
           <div className="col-presets">
             {PRESETS.map((p) => (
               <button
@@ -46,29 +47,27 @@ export function ColumnsDialog({ editor, unit, onClose }: { editor: Editor; unit:
                     <span key={i} />
                   ))}
                 </span>
-                {p.label}
+                {t(p.label)}
               </button>
             ))}
           </div>
         </fieldset>
         <label className="dlg-inline">
-          Number of columns: <input type="number" min={1} max={6} value={count} onChange={(e) => setCount(Number(e.target.value) || 1)} />
+          {t('Number of columns:')}{' '}<input type="number" min={1} max={6} value={count} onChange={(e) => setCount(Number(e.target.value) || 1)} />
         </label>
         <label className="dlg-inline">
-          Spacing: <input value={gap} onChange={(e) => setGap(e.target.value)} />
+          {t('Spacing:')}{' '}<input value={gap} onChange={(e) => setGap(e.target.value)} />
         </label>
         <label>
-          <input type="checkbox" checked={line} onChange={(e) => setLine(e.target.checked)} /> Line between
-        </label>
+          <input type="checkbox" checked={line} onChange={(e) => setLine(e.target.checked)} /> {t('Line between')}</label>
         <label className="dlg-inline">
-          Apply to:
-          <select value={scope} onChange={(e) => setScope(e.target.value as typeof scope)}>
-            <option value="section">This section</option>
-            {!editor.state.selection.empty && <option value="selection">Selected text</option>}
-            <option value="document">Whole document</option>
+          {t('Apply to:')}<select value={scope} onChange={(e) => setScope(e.target.value as typeof scope)}>
+            <option value="section">{t('This section')}</option>
+            {!editor.state.selection.empty && <option value="selection">{t('Selected text')}</option>}
+            <option value="document">{t('Whole document')}</option>
           </select>
         </label>
-        <p className="dlg-hint">Columns always have equal widths here; "Left" and "Right" are kept for files from other programs.</p>
+        <p className="dlg-hint">{t('Columns always have equal widths here; "Left" and "Right" are kept for files from other programs.')}</p>
       </div>
     </Modal>
   )

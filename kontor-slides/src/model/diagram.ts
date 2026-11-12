@@ -2,41 +2,42 @@
 // The shapes are generated on the fly from the outline, so editing the text re-lays out the graphic.
 import type { ColorRef, DiagramElement, DiagramLayout, DiagramNode, Effects, Line, Para, ShapeElement } from './types'
 import { DEFAULT_INSET } from './factory'
+import { tx } from '../i18n'
 
 export type DiagramCategory = 'List' | 'Process' | 'Cycle' | 'Hierarchy' | 'Relationship' | 'Matrix' | 'Pyramid'
 
 export const DIAGRAM_LAYOUTS: { id: DiagramLayout; label: string; category: DiagramCategory; description: string }[] = [
-  { id: 'basicList', label: 'Basic Block List', category: 'List', description: 'Shows non-sequential or grouped blocks of information.' },
-  { id: 'verticalList', label: 'Vertical Bullet List', category: 'List', description: 'Shows blocks of text with bullet points below each heading.' },
-  { id: 'process', label: 'Basic Process', category: 'Process', description: 'Shows a progression or sequential steps in a task, process or workflow.' },
-  { id: 'chevron', label: 'Basic Chevron Process', category: 'Process', description: 'Shows a progression, a timeline or sequential steps.' },
-  { id: 'stepUp', label: 'Step Up Process', category: 'Process', description: 'Shows steps that build on each other, from low to high.' },
-  { id: 'cycle', label: 'Basic Cycle', category: 'Cycle', description: 'Shows a continuing sequence of stages in a circular flow.' },
-  { id: 'radial', label: 'Basic Radial', category: 'Cycle', description: 'Shows the relationship to a central idea.' },
-  { id: 'hierarchy', label: 'Organization Chart', category: 'Hierarchy', description: 'Shows hierarchical information or reporting relationships.' },
-  { id: 'venn', label: 'Basic Venn', category: 'Relationship', description: 'Shows overlapping or interconnected relationships.' },
-  { id: 'target', label: 'Basic Target', category: 'Relationship', description: 'Shows containment, gradations or hierarchical relationships.' },
-  { id: 'matrix', label: 'Basic Matrix', category: 'Matrix', description: 'Shows the relationship of components to a whole in quadrants.' },
-  { id: 'pyramid', label: 'Basic Pyramid', category: 'Pyramid', description: 'Shows proportional, interconnected or hierarchical relationships.' },
+  { id: 'basicList', label: tx('Basic Block List'), category: 'List', description: tx('Shows non-sequential or grouped blocks of information.') },
+  { id: 'verticalList', label: tx('Vertical Bullet List'), category: 'List', description: tx('Shows blocks of text with bullet points below each heading.') },
+  { id: 'process', label: tx('Basic Process'), category: 'Process', description: tx('Shows a progression or sequential steps in a task, process or workflow.') },
+  { id: 'chevron', label: tx('Basic Chevron Process'), category: 'Process', description: tx('Shows a progression, a timeline or sequential steps.') },
+  { id: 'stepUp', label: tx('Step Up Process'), category: 'Process', description: tx('Shows steps that build on each other, from low to high.') },
+  { id: 'cycle', label: tx('Basic Cycle'), category: 'Cycle', description: tx('Shows a continuing sequence of stages in a circular flow.') },
+  { id: 'radial', label: tx('Basic Radial'), category: 'Cycle', description: tx('Shows the relationship to a central idea.') },
+  { id: 'hierarchy', label: tx('Organization Chart'), category: 'Hierarchy', description: tx('Shows hierarchical information or reporting relationships.') },
+  { id: 'venn', label: tx('Basic Venn'), category: 'Relationship', description: tx('Shows overlapping or interconnected relationships.') },
+  { id: 'target', label: tx('Basic Target'), category: 'Relationship', description: tx('Shows containment, gradations or hierarchical relationships.') },
+  { id: 'matrix', label: tx('Basic Matrix'), category: 'Matrix', description: tx('Shows the relationship of components to a whole in quadrants.') },
+  { id: 'pyramid', label: tx('Basic Pyramid'), category: 'Pyramid', description: tx('Shows proportional, interconnected or hierarchical relationships.') },
 ]
 
-export const DIAGRAM_COLORS: { id: string; label: string }[] = [
-  { id: 'primary', label: 'Primary Theme Colors' },
-  { id: 'colorful', label: 'Colorful – Accent Colors' },
-  { id: 'colorful2', label: 'Colorful Range – Accent Colors 2 to 3' },
-  ...[1, 2, 3, 4, 5, 6].map((n) => ({ id: `accent${n}`, label: `Colored Fill – Accent ${n}` })),
-  ...[1, 2, 3, 4, 5, 6].map((n) => ({ id: `range${n}`, label: `Gradient Range – Accent ${n}` })),
-  { id: 'outline', label: 'Colored Outline – Accent 1' },
-  { id: 'dark', label: 'Dark Fill' },
+export const DIAGRAM_COLORS: { id: string; label: string; n?: number }[] = [
+  { id: 'primary', label: tx('Primary Theme Colors') },
+  { id: 'colorful', label: tx('Colorful – Accent Colors') },
+  { id: 'colorful2', label: tx('Colorful Range – Accent Colors 2 to 3') },
+  ...[1, 2, 3, 4, 5, 6].map((n) => ({ id: `accent${n}`, label: tx('Colored Fill – Accent {n}'), n })),
+  ...[1, 2, 3, 4, 5, 6].map((n) => ({ id: `range${n}`, label: tx('Gradient Range – Accent {n}'), n })),
+  { id: 'outline', label: tx('Colored Outline – Accent 1') },
+  { id: 'dark', label: tx('Dark Fill') },
 ]
 
 export const DIAGRAM_STYLES: { id: string; label: string }[] = [
-  { id: 'flat', label: 'Simple Fill' },
-  { id: 'white', label: 'White Outline' },
-  { id: 'subtle', label: 'Subtle Effect' },
-  { id: 'moderate', label: 'Moderate Effect' },
-  { id: 'intense', label: 'Intense Effect' },
-  { id: 'polished', label: 'Polished' },
+  { id: 'flat', label: tx('Simple Fill') },
+  { id: 'white', label: tx('White Outline') },
+  { id: 'subtle', label: tx('Subtle Effect') },
+  { id: 'moderate', label: tx('Moderate Effect') },
+  { id: 'intense', label: tx('Intense Effect') },
+  { id: 'polished', label: tx('Polished') },
 ]
 
 let nid = 0

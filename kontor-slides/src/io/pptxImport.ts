@@ -9,6 +9,8 @@ import { hasCurves, type VertexHandles } from '../model/outline'
 import { hashString, KONTOR_PART, MEDIA_REF, mapStrings } from './package'
 import { CHART_NS, parseChartSpace } from './chartXml'
 import { readTiming } from './timingXml'
+import { TRANSITION_SOUNDS } from '../model/sounds'
+import { t } from '../i18n'
 
 const EMU = 9525
 const px = (v: string | null | undefined) => (v ? Number(v) / EMU : 0)
@@ -202,13 +204,30 @@ function lineOf(ln: Element | null, ctx: Ctx, fallbackColor?: string): Line | un
     const t = kid(ln, name)?.getAttribute('type')
     return t && t !== 'none' ? (t as ArrowHead) : undefined
   }
-  return { color: col.color, alpha: col.alpha, width: ln.getAttribute('w') ? Number(ln.getAttribute('w')) / 12700 : 0.75, dash, head: end('headEnd'), tail: end('tailEnd') }
+  const cmpd = ln.getAttribute('cmpd') as NonNullable<Line>['compound'] | null
+  return { color: col.color, alpha: col.alpha, width: ln.getAttribute('w') ? Number(ln.getAttribute('w')) / 12700 : 0.75, dash, head: end('headEnd'), tail: end('tailEnd'), ...(cmpd && cmpd !== 'sng' ? { compound: cmpd } : {}) }
 }
 
 function effectsOf(spPr: Element | null, ctx: Ctx): Effects | undefined {
   const lst = kid(spPr, 'effectLst')
-  if (!lst) return undefined
   const fx: Effects = {}
+  const bevel = path(spPr, 'sp3d', 'bevelT')
+  if (bevel) fx.bevel = bevel.getAttribute('prst') ?? 'circle'
+  const camera = path(spPr, 'scene3d', 'camera')
+  const rot = kid(camera, 'rot')
+  if (rot) {
+    const ang = (v: string | null) => {
+      const d = Number(v ?? 0) / 60000
+      return d > 180 ? d - 360 : d
+    }
+    fx.rot3d = { x: ang(rot.getAttribute('lat')), y: ang(rot.getAttribute('lon')), ...(camera?.getAttribute('prst')?.startsWith('perspective') ? { perspective: true } : {}) }
+  }
+  if (!lst) return Object.keys(fx).length ? fx : undefined
+  const inner = kid(lst, 'innerShdw')
+  if (inner) {
+    const col = colorOf(inner, ctx) ?? { color: '#000000', alpha: 0.5 }
+    fx.innerShadow = { color: col.color, alpha: col.alpha ?? 1, blur: Number(inner.getAttribute('blurRad') ?? 0) / 12700, dist: Number(inner.getAttribute('dist') ?? 0) / 12700, angle: Number(inner.getAttribute('dir') ?? 0) / 60000 }
+  }
   const sh = kid(lst, 'outerShdw')
   if (sh) {
     const col = colorOf(sh, ctx) ?? { color: '#000000', alpha: 0.4 }
@@ -245,7 +264,7 @@ function xfrmOf(el: Element | null) {
 
 // ---------- Text ----------
 
-type LevelStyle = { size?: number; bold?: boolean; italic?: boolean; color?: string; font?: string; align?: ParaAttrs['align']; bullet?: string | null; bulletSize?: number; bulletColor?: string; startAt?: number; lineHeight?: number; spaceBefore?: number; spaceAfter?: number }
+type LevelStyle = { size?: number; bold?: boolean; italic?: boolean; color?: string; font?: string; align?: ParaAttrs['align']; bullet?: string | null; bulletSize?: number; bulletColor?: string; startAt?: number; lineHeight?: number; lineExact?: number; spaceBefore?: number; spaceAfter?: number }
 
 const ALIGN: Record<string, ParaAttrs['align']> = { l: 'left', ctr: 'center', r: 'right', just: 'justify', dist: 'distributed' }
 
@@ -256,6 +275,8 @@ function readLevel(pPr: Element | null, ctx: Ctx, fonts: { major: string; minor:
   if (algn) out.align = ALIGN[algn] ?? 'left'
   const pct = path(pPr, 'lnSpc', 'spcPct')
   if (pct) out.lineHeight = Number(pct.getAttribute('val') ?? 100000) / 100000
+  const pts = path(pPr, 'lnSpc', 'spcPts')
+  if (pts) out.lineExact = Number(pts.getAttribute('val') ?? 1200) / 100
   const bef = path(pPr, 'spcBef', 'spcPts')
   if (bef) out.spaceBefore = Number(bef.getAttribute('val') ?? 0) / 100
   const aft = path(pPr, 'spcAft', 'spcPts')
@@ -318,6 +339,8 @@ function readTextBody(txBody: Element | null, ctx: Ctx, chain: StyleChain, fonts
   const ins = (name: string, def: number) => (bp(name) !== null ? px(bp(name)) : def)
   const anchorAttr = bp('anchor')
   const anchor = anchorAttr === 'ctr' ? 'middle' : anchorAttr === 'b' ? 'bottom' : anchorAttr === 't' ? 'top' : defaults.anchor
+  const warpPrst = kid(bodyPr, 'prstTxWarp')?.getAttribute('prst')
+  const reflected = Array.from(txBody.getElementsByTagNameNS('*', 'rPr')).some((r) => !!kid(kid(r, 'effectLst'), 'reflection'))
   const fitEl = [bodyPr, ...bodyChain].map((b) => b && (kid(b, 'normAutofit') ?? kid(b, 'spAutoFit') ?? kid(b, 'noAutofit'))).find(Boolean)
   const autofit: TextBody['autofit'] = fitEl ? (fitEl.localName === 'normAutofit' ? 'shrink' : fitEl.localName === 'spAutoFit' ? 'resize' : 'none') : defaults.autofit
   const fontScale = fitEl?.localName === 'normAutofit' && fitEl.getAttribute('fontScale') ? Number(fitEl.getAttribute('fontScale')) / 100000 : undefined
@@ -331,6 +354,13 @@ function readTextBody(txBody: Element | null, ctx: Ctx, chain: StyleChain, fonts
     if (style.bulletSize && Math.abs(style.bulletSize - 100) > 0.5) attrs.bulletSize = style.bulletSize
     if (style.bulletColor) attrs.bulletColor = style.bulletColor
     if (style.startAt && style.startAt > 1) attrs.startAt = style.startAt
+    if (style.lineExact) attrs.lineExact = style.lineExact
+    // Indents set on the paragraph itself that differ from the level's usual indent.
+    const marL = pPr?.getAttribute('marL')
+    const ind = pPr?.getAttribute('indent')
+    const hasMarker = !!attrs.bullet && attrs.bullet !== 'none'
+    if (marL !== null && marL !== undefined && Math.abs(px(marL) - ((hasMarker ? 24 : 0) + level * 48)) > 1) attrs.indent = Math.round(px(marL) * 10) / 10
+    if (ind !== null && ind !== undefined && Math.abs(px(ind) - (hasMarker ? -24 : 0)) > 1) attrs.firstLine = Math.round(px(ind) * 10) / 10
     const content: Inline[] = []
     for (const node of Array.from(p.children)) {
       if (node.localName !== 'r' && node.localName !== 'br' && node.localName !== 'fld') continue
@@ -341,12 +371,12 @@ function readTextBody(txBody: Element | null, ctx: Ctx, chain: StyleChain, fonts
       if (run.italic) marks.push({ type: 'italic' })
       if (rPr) {
         const u = rPr.getAttribute('u')
-        if (u && u !== 'none') marks.push({ type: 'underline' })
+        if (u === 'sng' || u === 'words') marks.push({ type: 'underline' })
         const st = rPr.getAttribute('strike')
-        if (st && st !== 'noStrike') marks.push({ type: 'strike' })
+        if (st === 'sngStrike') marks.push({ type: 'strike' })
         const base = Number(rPr.getAttribute('baseline') ?? 0)
-        if (base > 0) marks.push({ type: 'superscript' })
-        if (base < 0) marks.push({ type: 'subscript' })
+        if (base === 30000) marks.push({ type: 'superscript' })
+        if (base === -25000) marks.push({ type: 'subscript' })
         const hl = colorOf(kid(rPr, 'highlight'), ctx)
         if (hl) marks.push({ type: 'highlight', attrs: { color: hl.color } })
         const link = kid(rPr, 'hlinkClick')
@@ -363,6 +393,25 @@ function readTextBody(txBody: Element | null, ctx: Ctx, chain: StyleChain, fonts
       const cap = rPr?.getAttribute('cap')
       if (cap === 'all' || cap === 'small') ts.caps = cap
       if (rPr && kid(kid(rPr, 'effectLst'), 'outerShdw')) ts.shadow = true
+      if (rPr) {
+        const u = rPr.getAttribute('u')
+        if (u && u !== 'none' && u !== 'sng' && u !== 'words') ts.uStyle = u
+        const uFill = colorOf(kid(kid(rPr, 'uFill'), 'solidFill'), ctx)
+        if (uFill) {
+          ts.uColor = uFill.color
+          if (!ts.uStyle && u && u !== 'none') ts.uStyle = u
+        }
+        if (rPr.getAttribute('strike') === 'dblStrike') ts.strike2 = true
+        const base = Number(rPr.getAttribute('baseline') ?? 0)
+        if (base && base !== 30000 && base !== -25000) ts.baseline = base / 1000
+        if (rPr.getAttribute('normalizeH') === '1') ts.equalize = true
+        const glow = kid(kid(rPr, 'effectLst'), 'glow')
+        const glowColor = glow ? colorOf(glow, ctx) : null
+        if (glow && glowColor) {
+          ts.glow = glowColor.color
+          ts.glowSize = Math.round((Number(glow.getAttribute('rad') ?? 63500) / 12700) * 10) / 10
+        }
+      }
       if (Object.keys(ts).length) marks.push({ type: 'textStyle', attrs: ts })
       if (node.localName === 'br') content.push({ type: 'hardBreak', marks })
       else if (node.localName === 'fld' && node.getAttribute('type') === 'slidenum') content.push({ type: 'field', attrs: { kind: 'slidenum' }, marks })
@@ -393,6 +442,8 @@ function readTextBody(txBody: Element | null, ctx: Ctx, chain: StyleChain, fonts
     vert: vert === 'vert' || vert === 'eaVert' ? 'vert' : vert === 'vert270' ? 'vert270' : vert === 'wordArtVert' || vert === 'wordArtVertRtl' ? 'stacked' : undefined,
     columns: bp('numCol') ? Number(bp('numCol')) : undefined,
     colSpacing: bp('spcCol') ? Number(bp('spcCol')) / 9525 : undefined,
+    ...(warpPrst && warpPrst !== 'textNoShape' ? { warp: warpPrst } : {}),
+    ...(reflected ? { textReflection: true } : {}),
   }
 }
 
@@ -464,6 +515,8 @@ type ReadEnv = {
   chartXml: Map<string, string>
   /** Shape ids of the current slide (cNvPr id) mapped to element ids, for animations. */
   spids: Map<string, string>
+  /** Connectors with glue to resolve after the slide is read. */
+  glue: { el: ShapeElement; st: { spid: string; idx: number } | null; en: { spid: string; idx: number } | null }[]
 }
 
 function masterStyles(env: ReadEnv, phType: string | null): LevelStyle[] {
@@ -878,7 +931,7 @@ function readTree(tree: Element, env: ReadEnv, fromMaster = false): SlideElement
             chExt: undefined,
             fill: { type: 'solid', color: '#F2F2F2' },
             line: { color: '#BFBFBF', width: 0.75, dash: 'dash' },
-            text: { doc: { type: 'doc', content: [{ type: 'paragraph', attrs: { align: 'center' }, content: [{ type: 'text', text: 'Chart or diagram (not supported yet)', marks: [{ type: 'textStyle', attrs: { fontSize: 14, color: '#7F7F7F' } }] }] }] }, anchor: 'middle', autofit: 'none', wrap: true, inset: [...DEFAULT_INSET] },
+            text: { doc: { type: 'doc', content: [{ type: 'paragraph', attrs: { align: 'center' }, content: [{ type: 'text', text: t('Chart or diagram (not supported yet)'), marks: [{ type: 'textStyle', attrs: { fontSize: 14, color: '#7F7F7F' } }] }] }] }, anchor: 'middle', autofit: 'none', wrap: true, inset: [...DEFAULT_INSET] },
           } as ShapeElement
       }
     } else if (c.localName === 'AlternateContent') {
@@ -890,6 +943,17 @@ function readTree(tree: Element, env: ReadEnv, fromMaster = false): SlideElement
       else {
         const nv = c.getElementsByTagNameNS('*', 'cNvPr')[0]
         if (nv?.getAttribute('id')) env.spids.set(nv.getAttribute('id')!, el.id)
+        // Connector glue, resolved once every shape of the slide has its id.
+        if (c.localName === 'cxnSp' && el.type === 'shape') {
+          const cx = path(c, 'nvCxnSpPr', 'cNvCxnSpPr')
+          const glue = (name: string) => {
+            const g = kid(cx, name)
+            return g ? { spid: g.getAttribute('id') ?? '', idx: Number(g.getAttribute('idx') ?? 0) } : null
+          }
+          const st = glue('stCxn')
+          const en = glue('endCxn')
+          if (st || en) env.glue.push({ el, st, en })
+        }
       }
       out.push(el)
     }
@@ -932,7 +996,7 @@ function readBackground(parts: (Part | null)[], ctx: Ctx): Fill | null {
 }
 
 const TRANSITION_NAMES: Record<string, TransitionName> = {
-  fade: 'fade', push: 'push', wipe: 'wipe', split: 'split', pull: 'reveal', cover: 'cover', cut: 'cut', zoom: 'zoom', dissolve: 'dissolve', circle: 'shape', diamond: 'shape', plus: 'shape', blinds: 'blinds', checker: 'checker', randomBar: 'randomBars', strips: 'strips', wedge: 'wedge', wheel: 'clock', newsflash: 'newsflash', flash: 'flash', vortex: 'vortex', flip: 'flip', gallery: 'gallery', cube: 'cube', curtains: 'curtains', fallOver: 'fallOver', morph: 'morph',
+  fade: 'fade', push: 'push', wipe: 'wipe', split: 'split', pull: 'reveal', cover: 'cover', cut: 'cut', zoom: 'zoom', dissolve: 'dissolve', circle: 'shape', diamond: 'shape', plus: 'shape', blinds: 'blinds', checker: 'checker', randomBar: 'randomBars', strips: 'strips', wedge: 'wedge', wheel: 'clock', newsflash: 'newsflash', flash: 'flash', vortex: 'vortex', flip: 'flip', gallery: 'gallery', cube: 'cube', prism: 'cube', curtains: 'curtains', fallOver: 'fallOver', morph: 'morph',
 }
 
 function readTransition(sld: Element): Transition | null {
@@ -943,7 +1007,7 @@ function readTransition(sld: Element): Transition | null {
   }
   if (!tr) return null
   const effect = Array.from(tr.children).find((c) => c.localName !== 'sndAc' && c.localName !== 'extLst')
-  const name = effect ? (TRANSITION_NAMES[effect.localName] ?? 'fade') : 'none'
+  const name = effect ? (effect.localName === 'prstTrans' ? (TRANSITION_NAMES[effect.getAttribute('prst') ?? ''] ?? 'fade') : (TRANSITION_NAMES[effect.localName] ?? 'fade')) : 'none'
   const dir = effect?.getAttribute('dir')
   const dirOpt = { l: 'fromRight', r: 'fromLeft', u: 'fromBottom', d: 'fromTop' }[dir ?? ''] as string | undefined
   let option: string | undefined
@@ -958,7 +1022,11 @@ function readTransition(sld: Element): Transition | null {
   const spd = tr.getAttribute('spd')
   const duration = durAttr ? Number(durAttr) / 1000 : spd === 'fast' ? 0.5 : spd === 'med' ? 0.75 : 1
   const advTm = tr.getAttribute('advTm')
-  return { name, option, duration, advanceOnClick: tr.getAttribute('advClick') !== '0', advanceAfter: advTm ? Number(advTm) / 1000 : null }
+  // Sounds made here carry their name; other sounds play as the closest built-in one (a chime).
+  const snd = path(kid(tr, 'sndAc'), 'stSnd', 'snd')
+  const sndName = (snd?.getAttribute('name') ?? '').replace(/\.wav$/i, '').toLowerCase()
+  const sound = snd ? (TRANSITION_SOUNDS.find((x) => x.id === sndName || x.label.toLowerCase() === sndName)?.id ?? 'chime') : undefined
+  return { name, option, duration, advanceOnClick: tr.getAttribute('advClick') !== '0', advanceAfter: advTm ? Number(advTm) / 1000 : null, ...(sound ? { sound } : {}) }
 }
 
 async function loadMedia(zip: JSZipType): Promise<Map<string, string>> {
@@ -1037,7 +1105,7 @@ const MEDIA_MIME: Record<string, string> = { png: 'image/png', jpeg: 'image/jpeg
 export async function importPptx(file: File): Promise<{ pres: Presentation; title: string }> {
   const { default: JSZip } = await import('jszip')
   const zip = await JSZip.loadAsync(await file.arrayBuffer())
-  const baseTitle = file.name.replace(/\.pptx$/i, '')
+  const baseTitle = file.name.replace(/\.(pptx|ppsx|potx|pptm|ppsm|potm)$/i, '')
 
   // Our own files: restore the stored model if the slides are untouched.
   const embedded = zip.file(KONTOR_PART)
@@ -1065,7 +1133,7 @@ export async function importPptx(file: File): Promise<{ pres: Presentation; titl
   }
 
   const presPart = await loadPart(zip, 'ppt/presentation.xml')
-  if (!presPart) throw new Error('This file is not a valid .pptx presentation.')
+  if (!presPart) throw new Error(t('This file is not a valid .pptx presentation.'))
   const sz = presPart.doc.getElementsByTagNameNS('*', 'sldSz')[0]
   const w = Math.round(px(sz?.getAttribute('cx')) || 1280)
   const h = Math.round(px(sz?.getAttribute('cy')) || 720)
@@ -1103,7 +1171,7 @@ export async function importPptx(file: File): Promise<{ pres: Presentation; titl
     pres.fonts = fonts
     const ctx: Ctx = { zip, scheme, clrMap: readClrMap(master), media }
     const layoutType = layout?.doc.documentElement.getAttribute('type') ?? 'obj'
-    const env: ReadEnv = { ctx, part, layout, master, layoutType, fonts, hf: pres.headerFooter, tableStyleNames, chartXml, spids: new Map() }
+    const env: ReadEnv = { ctx, part, layout, master, layoutType, fonts, hf: pres.headerFooter, tableStyleNames, chartXml, spids: new Map(), glue: [] }
 
     const elements: SlideElement[] = []
     const sld = part.doc.documentElement
@@ -1118,6 +1186,14 @@ export async function importPptx(file: File): Promise<{ pres: Presentation; titl
     }
     const tree = part.doc.getElementsByTagNameNS('*', 'spTree')[0]
     if (tree) elements.push(...readTree(tree, env))
+    // Glue only to shapes whose connection sites are the four sides (rectangle-like sites).
+    const SITE_OF_IDX = [0, 3, 2, 1]
+    for (const g of env.glue) {
+      const at = (x: { spid: string; idx: number } | null) => (x && env.spids.get(x.spid) ? { id: env.spids.get(x.spid)!, site: SITE_OF_IDX[x.idx] ?? 0 } : null)
+      const conn = { start: at(g.st), end: at(g.en) }
+      if ((conn.start && !elements.some((e) => e.id === conn.start!.id)) || (conn.end && !elements.some((e) => e.id === conn.end!.id))) continue
+      if (conn.start || conn.end) g.el.conn = conn
+    }
     await fillNaturalSizes(elements)
 
     const bg = readBackground([part, layout, master], ctx)
@@ -1134,7 +1210,7 @@ export async function importPptx(file: File): Promise<{ pres: Presentation; titl
     }
     pres.slides.push(slide)
   }
-  if (!pres.slides.length) throw new Error('The presentation does not contain any slides.')
+  if (!pres.slides.length) throw new Error(t('The presentation does not contain any slides.'))
   const core = zip.file('docProps/core.xml')
   if (core) {
     const doc = new DOMParser().parseFromString(await core.async('string'), 'application/xml')

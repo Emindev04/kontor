@@ -10,6 +10,8 @@ import { cls } from './ui'
 import { downloadBlob, listRecent, removeRecent, safeFilename, type RecentEntry } from '../io/storage'
 import { initialsOf, setOptions, useOptions } from '../io/options'
 import { APP_NAME, SUITE_NAME } from '../brand'
+import { SAVE_KINDS, type SaveKind } from '../io/formats'
+import { t, tx, formatDate, formatNumber } from '../i18n'
 
 type Section = 'home' | 'new' | 'open' | 'info' | 'save' | 'print' | 'export' | 'account'
 
@@ -19,7 +21,7 @@ type Props = {
   onClose: () => void
   onNew: (pres: Presentation) => void
   onOpen: () => void
-  onSave: () => void
+  onSave: (kind?: SaveKind) => void
   onPrint: (settings: PrintSettings) => void
   onExportText: () => void
   onExportFile: (kind: 'pdf' | 'png' | 'jpeg', scope: 'current' | 'all') => Promise<void>
@@ -30,13 +32,13 @@ type Props = {
 
 function greeting() {
   const h = new Date().getHours()
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+  return h < 12 ? t('Good morning') : h < 18 ? t('Good afternoon') : t('Good evening')
 }
 
 function sampleFor(themeId: string): Presentation {
   const p = createPresentation(themeId, 0, SIZE_16_9)
   const s = p.slides[0]
-  s.elements = s.elements.map((e) => (e.type === 'shape' && e.placeholder?.style === 'ctrTitle' ? { ...e, text: { ...e.text!, doc: docFromText(themeId === 'kontor' ? 'Blank Presentation' : THEMES.find((t) => t.id === themeId)!.name) } } : e))
+  s.elements = s.elements.map((e) => (e.type === 'shape' && e.placeholder?.style === 'ctrTitle' ? { ...e, text: { ...e.text!, doc: docFromText(themeId === 'kontor' ? t('Blank Presentation') : THEMES.find((th) => th.id === themeId)!.name) } } : e))
   return p
 }
 
@@ -50,7 +52,7 @@ function Templates({ onNew }: { onNew: (pres: Presentation) => void }) {
           <span className="template-thumb" style={{ width: 200, height: 112.5 }}>
             <SlideView slide={pres.slides[0]} index={0} {...presProps(pres)} mode="thumb" style={{ transform: `scale(${scale})`, transformOrigin: '0 0' }} />
           </span>
-          <span>{theme.id === 'kontor' ? 'Blank Presentation' : theme.name}</span>
+          <span>{theme.id === 'kontor' ? t('Blank Presentation') : theme.name}</span>
         </button>
       ))}
     </div>
@@ -64,12 +66,13 @@ export function Backstage({ onClose, onNew, onOpen, onSave, onPrint, onExportTex
   const [print, setPrint] = useState<PrintSettings>({ range: 'all', layout: 'full', frame: false })
   const [scope, setScope] = useState<'current' | 'all'>('all')
   const [busy, setBusy] = useState<string | null>(null)
+  const [saveKind, setSaveKind] = useState<SaveKind>('pptx')
   const run = async (kind: 'pdf' | 'png' | 'jpeg') => {
     setBusy(kind)
     try {
       await onExportFile(kind, scope)
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'The export failed.')
+      window.alert(err instanceof Error ? err.message : t('The export failed.'))
     } finally {
       setBusy(null)
     }
@@ -81,20 +84,20 @@ export function Backstage({ onClose, onNew, onOpen, onSave, onPrint, onExportTex
   }, [onClose])
 
   const nav: { id: Section; label: string; icon: typeof Home }[] = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'new', label: 'New', icon: FilePlus },
-    { id: 'open', label: 'Open', icon: FolderOpen },
-    { id: 'info', label: 'Info', icon: Info },
-    { id: 'save', label: 'Save As', icon: Save },
-    { id: 'print', label: 'Print', icon: Printer },
-    { id: 'export', label: 'Export', icon: FileDown },
+    { id: 'home', label: t('Home'), icon: Home },
+    { id: 'new', label: t('New'), icon: FilePlus },
+    { id: 'open', label: t('Open'), icon: FolderOpen },
+    { id: 'info', label: t('Info'), icon: Info },
+    { id: 'save', label: t('Save As'), icon: Save },
+    { id: 'print', label: t('Print'), icon: Printer },
+    { id: 'export', label: t('Export'), icon: FileDown },
   ]
   const words = pres.slides.reduce((n, s) => n + s.elements.reduce((m, e) => m + (e.type === 'shape' && e.text ? e.text.doc.content.flatMap((p) => p.content ?? []).map((i) => (i.type === 'text' ? i.text : '')).join(' ').split(/\s+/).filter(Boolean).length : 0), 0), 0)
 
   return (
-    <div className="backstage" role="dialog" aria-label="File">
+    <div className="backstage" role="dialog" aria-label={t('File')}>
       <aside className="bs-nav">
-        <button type="button" className="bs-back" aria-label="Back to presentation" onClick={onClose}>
+        <button type="button" className="bs-back" aria-label={t('Back to presentation')} onClick={onClose}>
           <ArrowLeft size={20} />
         </button>
         {nav.map((n) => (
@@ -105,68 +108,68 @@ export function Backstage({ onClose, onNew, onOpen, onSave, onPrint, onExportTex
         ))}
         <span className="spacer" />
         <button type="button" className="bs-item" onClick={onCloseDoc}>
-          <X size={18} strokeWidth={1.6} /> Close
+          <X size={18} strokeWidth={1.6} /> {t('Close')}
         </button>
         <button type="button" className={cls('bs-item', section === 'account' && 'is-active')} onClick={() => setSection('account')}>
-          <User size={18} strokeWidth={1.6} /> Account
+          <User size={18} strokeWidth={1.6} /> {t('Account')}
         </button>
         <button type="button" className="bs-item" onClick={onOptions}>
-          <Settings size={18} strokeWidth={1.6} /> Options
+          <Settings size={18} strokeWidth={1.6} /> {t('Options')}
         </button>
       </aside>
       <main className="bs-main">
         {section === 'home' && (
           <>
             <h1>{greeting()}</h1>
-            <h2>New</h2>
+            <h2>{t('New')}</h2>
             <Templates onNew={onNew} />
-            <h2>Recent</h2>
+            <h2>{t('Recent')}</h2>
             <RecentList onOpenRecent={onOpenRecent} />
-            <p className="bs-hint">Presentations are saved automatically in this browser. Use Open to load a .pptx file and Save As to download one.</p>
+            <p className="bs-hint">{t('Presentations are saved automatically in this browser. Use Open to load a .pptx file and Save As to download one.')}</p>
           </>
         )}
         {section === 'new' && (
           <>
-            <h1>New</h1>
+            <h1>{t('New')}</h1>
             <Templates onNew={onNew} />
           </>
         )}
         {section === 'open' && (
           <>
-            <h1>Open</h1>
+            <h1>{t('Open')}</h1>
             <button type="button" className="bs-action" onClick={onOpen}>
               <FolderOpen size={28} strokeWidth={1.4} />
               <span>
-                <strong>Browse</strong>
-                <small>Open a .pptx presentation from this device</small>
+                <strong>{t('Browse')}</strong>
+                <small>{t('Open a presentation (.pptx, .ppsx, .potx, .odp) from this device')}</small>
               </span>
             </button>
-            <h2>Recent</h2>
+            <h2>{t('Recent')}</h2>
             <RecentList onOpenRecent={onOpenRecent} />
           </>
         )}
         {section === 'account' && <AccountPage onOptions={onOptions} />}
         {section === 'info' && (
           <>
-            <h1>Info</h1>
+            <h1>{t('Info')}</h1>
             <dl className="bs-props">
-              <dt>Title</dt>
+              <dt>{t('Title')}</dt>
               <dd>
-                <input value={title} aria-label="Title" onChange={(e) => store.set({ title: e.target.value })} />
+                <input value={title} aria-label={t('Title')} onChange={(e) => store.set({ title: e.target.value })} />
               </dd>
-              <dt>Author</dt>
+              <dt>{t('Author')}</dt>
               <dd>
-                <input value={pres.author ?? ''} aria-label="Author" placeholder="Add an author" onChange={(e) => store.set((s) => ({ pres: { ...s.pres, author: e.target.value }, revision: s.revision + 1 }))} />
+                <input value={pres.author ?? ''} aria-label={t('Author')} placeholder={t('Add an author')} onChange={(e) => store.set((s) => ({ pres: { ...s.pres, author: e.target.value }, revision: s.revision + 1 }))} />
               </dd>
-              <dt>Slides</dt>
+              <dt>{t('Slides')}</dt>
               <dd>{pres.slides.length}</dd>
-              <dt>Hidden slides</dt>
+              <dt>{t('Hidden slides')}</dt>
               <dd>{pres.slides.filter((s) => s.hidden).length}</dd>
-              <dt>Words</dt>
-              <dd>{words.toLocaleString('en-US')}</dd>
-              <dt>Slide size</dt>
+              <dt>{t('Words')}</dt>
+              <dd>{formatNumber(words)}</dd>
+              <dt>{t('Slide size')}</dt>
               <dd>
-                {(pres.size.w / 96).toFixed(2)} × {(pres.size.h / 96).toFixed(2)} in ({pres.size.name === 'custom' ? 'Custom' : pres.size.name})
+                {t('{w} × {h} in', { w: formatNumber(pres.size.w / 96, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), h: formatNumber(pres.size.h / 96, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })} ({pres.size.name === 'custom' ? t('Custom') : pres.size.name})
               </dd>
             </dl>
             <InspectPresentation />
@@ -174,101 +177,114 @@ export function Backstage({ onClose, onNew, onOpen, onSave, onPrint, onExportTex
         )}
         {section === 'save' && (
           <>
-            <h1>Save As</h1>
+            <h1>{t('Save As')}</h1>
             <label className="bs-field">
-              File name
+              {t('File name')}
               <input value={title} onChange={(e) => store.set({ title: e.target.value })} />
             </label>
-            <button type="button" className="bs-primary" onClick={onSave}>
-              Save as .pptx presentation
+            <label className="bs-field">
+              {t('Save as type')}
+              <select value={saveKind} onChange={(e) => setSaveKind(e.target.value as SaveKind)}>
+                {SAVE_KINDS.map((k) => (
+                  <option key={k.kind} value={k.kind}>
+                    {t(k.label)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="bs-hint">{t(SAVE_KINDS.find((k) => k.kind === saveKind)!.hint)}</p>
+            <button type="button" className="bs-primary" onClick={() => onSave(saveKind)}>
+              {t('Save')}
             </button>
           </>
         )}
         {section === 'print' && (
           <>
-            <h1>Print</h1>
+            <h1>{t('Print')}</h1>
             <div className="bs-print">
               <label className="bs-field">
-                Slides
+                {t('Slides')}
                 <select value={print.range} onChange={(e) => setPrint({ ...print, range: e.target.value as PrintSettings['range'] })}>
-                  <option value="all">Print All Slides</option>
-                  <option value="selection">Print Selection</option>
-                  <option value="current">Print Current Slide</option>
+                  <option value="all">{t('Print All Slides')}</option>
+                  <option value="selection">{t('Print Selection')}</option>
+                  <option value="current">{t('Print Current Slide')}</option>
                 </select>
               </label>
               <label className="bs-field">
-                Layout
+                {t('Layout')}
                 <select value={print.layout} onChange={(e) => setPrint({ ...print, layout: e.target.value as PrintSettings['layout'] })}>
-                  <option value="full">Full Page Slides</option>
-                  <option value="notes">Notes Pages</option>
-                  <option value="outline">Outline</option>
-                  <option value="handout3">Handouts: 3 Slides</option>
-                  <option value="handout6">Handouts: 6 Slides Horizontal</option>
+                  <option value="full">{t('Full Page Slides')}</option>
+                  <option value="notes">{t('Notes Pages')}</option>
+                  <option value="outline">{t('Outline')}</option>
+                  <option value="handout3">{t('Handouts: 3 Slides')}</option>
+                  <option value="handout6">{t('Handouts: 6 Slides Horizontal')}</option>
                 </select>
               </label>
               <label className="check">
-                <input type="checkbox" checked={print.frame} onChange={(e) => setPrint({ ...print, frame: e.target.checked })} /> Frame Slides
+                <input type="checkbox" checked={print.frame} onChange={(e) => setPrint({ ...print, frame: e.target.checked })} /> {t('Frame Slides')}
               </label>
               <button type="button" className="bs-primary" onClick={() => onPrint(print)}>
-                <Printer size={16} /> Print
+                <Printer size={16} /> {t('Print')}
               </button>
-              <p className="bs-hint">Opens the browser's print dialog. Choose "Save as PDF" there to create a PDF file.</p>
+              <p className="bs-hint">{t('Opens the browser\'s print dialog. Choose "Save as PDF" there to create a PDF file.')}</p>
             </div>
           </>
         )}
         {section === 'export' && (
           <>
-            <h1>Export</h1>
+            <h1>{t('Export')}</h1>
             <button type="button" className="bs-action" onClick={() => onPrint({ range: 'all', layout: 'full', frame: false })}>
               <FileDown size={28} strokeWidth={1.4} />
               <span>
-                <strong>Create PDF Document</strong>
-                <small>Choose "Save as PDF" in the print dialog</small>
+                <strong>{t('Create PDF Document')}</strong>
+                <small>{t('Choose "Save as PDF" in the print dialog')}</small>
               </span>
             </button>
             <button type="button" className="bs-action" disabled={!!busy} onClick={() => run('pdf')}>
               <FileDown size={28} strokeWidth={1.4} />
               <span>
-                <strong>{busy === 'pdf' ? 'Creating PDF…' : 'Download PDF'}</strong>
-                <small>One page per slide (hidden slides left out), created right here</small>
+                <strong>{busy === 'pdf' ? t('Creating PDF…') : t('Download PDF')}</strong>
+                <small>{t('One page per slide (hidden slides left out), created right here')}</small>
               </span>
             </button>
             <VideoExport />
-            <h2>Change File Type</h2>
-            <div className="bs-scope" role="radiogroup" aria-label="Slides to export">
+            <h2>{t('Change File Type')}</h2>
+            <div className="bs-scope" role="radiogroup" aria-label={t('Slides to export')}>
               <label className="check">
-                <input type="radio" name="scope" checked={scope === 'all'} onChange={() => setScope('all')} /> All slides (.zip)
+                <input type="radio" name="scope" checked={scope === 'all'} onChange={() => setScope('all')} /> {t('All slides (.zip)')}
               </label>
               <label className="check">
-                <input type="radio" name="scope" checked={scope === 'current'} onChange={() => setScope('current')} /> Just this slide
+                <input type="radio" name="scope" checked={scope === 'current'} onChange={() => setScope('current')} /> {t('Just this slide')}
               </label>
             </div>
             <button type="button" className="bs-action" disabled={!!busy} onClick={() => run('png')}>
               <FileImage size={28} strokeWidth={1.4} />
               <span>
-                <strong>{busy === 'png' ? 'Creating pictures…' : 'PNG Portable Network Graphics'}</strong>
-                <small>High-quality pictures of the slides (1920 × 1080 for widescreen)</small>
+                <strong>{busy === 'png' ? t('Creating pictures…') : t('PNG Portable Network Graphics')}</strong>
+                <small>{t('High-quality pictures of the slides (1920 × 1080 for widescreen)')}</small>
               </span>
             </button>
             <button type="button" className="bs-action" disabled={!!busy} onClick={() => run('jpeg')}>
               <FileImage size={28} strokeWidth={1.4} />
               <span>
-                <strong>{busy === 'jpeg' ? 'Creating pictures…' : 'JPEG File Interchange Format'}</strong>
-                <small>Smaller pictures for the web and e-mail</small>
+                <strong>{busy === 'jpeg' ? t('Creating pictures…') : t('JPEG File Interchange Format')}</strong>
+                <small>{t('Smaller pictures for the web and e-mail')}</small>
               </span>
             </button>
-            <button type="button" className="bs-action" onClick={onSave}>
-              <Save size={28} strokeWidth={1.4} />
-              <span>
-                <strong>.pptx Presentation</strong>
-                <small>Opens in most presentation programs</small>
-              </span>
-            </button>
+            {SAVE_KINDS.map((k) => (
+              <button key={k.kind} type="button" className="bs-action" onClick={() => onSave(k.kind)}>
+                <Save size={28} strokeWidth={1.4} />
+                <span>
+                  <strong>{t(k.label)}</strong>
+                  <small>{t(k.hint)}</small>
+                </span>
+              </button>
+            ))}
             <button type="button" className="bs-action" onClick={onExportText}>
               <FileText size={28} strokeWidth={1.4} />
               <span>
-                <strong>Outline as Text (.txt)</strong>
-                <small>Slide titles, text and notes as plain text</small>
+                <strong>{t('Outline as Text (.txt)')}</strong>
+                <small>{t('Slide titles, text and notes as plain text')}</small>
               </span>
             </button>
           </>
@@ -279,9 +295,9 @@ export function Backstage({ onClose, onNew, onOpen, onSave, onPrint, onExportTex
 }
 
 const QUALITIES = [
-  { label: 'Full HD (1080p)', width: 1920 },
-  { label: 'HD (720p)', width: 1280 },
-  { label: 'Standard (480p)', width: 852 },
+  { label: tx('Full HD (1080p)'), width: 1920 },
+  { label: tx('HD (720p)'), width: 1280 },
+  { label: tx('Standard (480p)'), width: 852 },
 ]
 
 /** Export > Create a Video / Animated GIF, with quality, seconds per slide and recorded timings. */
@@ -303,37 +319,37 @@ function VideoExport() {
         downloadBlob(blob, `${name}.${ext}`)
       } else downloadBlob(await io.slidesGif(s.pres, { width: Math.min(quality, 960), secondsPerSlide: seconds, onProgress, signal: abort.signal }), `${name}.gif`)
     } catch (err) {
-      if (!(err instanceof DOMException && err.name === 'AbortError')) window.alert(err instanceof Error ? err.message : 'The export failed.')
+      if (!(err instanceof DOMException && err.name === 'AbortError')) window.alert(err instanceof Error ? err.message : t('The export failed.'))
     } finally {
       setJob(null)
     }
   }
   return (
     <>
-      <h2>Create a Video</h2>
+      <h2>{t('Create a Video')}</h2>
       <div className="bs-video">
         <label className="bs-field">
-          Quality
+          {t('Quality')}
           <select value={quality} onChange={(e) => setQuality(Number(e.target.value))} disabled={!!job}>
             {QUALITIES.map((q) => (
               <option key={q.width} value={q.width}>
-                {q.label}
+                {t(q.label)}
               </option>
             ))}
           </select>
         </label>
         <label className="bs-field">
-          Seconds spent on each slide
+          {t('Seconds spent on each slide')}
           <input type="number" min={1} max={600} step={0.5} value={seconds} disabled={!!job} onChange={(e) => setSeconds(Math.max(1, Number(e.target.value) || 5))} />
         </label>
         <label className="check">
-          <input type="checkbox" checked={timings} disabled={!!job} onChange={(e) => setTimings(e.target.checked)} /> Use recorded timings and transitions
+          <input type="checkbox" checked={timings} disabled={!!job} onChange={(e) => setTimings(e.target.checked)} /> {t('Use recorded timings and transitions')}
         </label>
         {job ? (
           <div className="bs-progress">
-            <progress max={1} value={job.progress} /> {job.kind === 'video' ? 'Recording the video' : 'Creating the GIF'}… {Math.round(job.progress * 100)}%
+            <progress max={1} value={job.progress} /> {job.kind === 'video' ? t('Recording the video') : t('Creating the GIF')}… {Math.round(job.progress * 100)}%
             <button type="button" className="bs-secondary" onClick={() => job.abort.abort()}>
-              Cancel
+              {t('Cancel')}
             </button>
           </div>
         ) : (
@@ -341,15 +357,15 @@ function VideoExport() {
             <button type="button" className="bs-action" onClick={() => start('video')}>
               <Film size={28} strokeWidth={1.4} />
               <span>
-                <strong>Create Video</strong>
-                <small>Records the slides with their transitions in real time (animations show their end state)</small>
+                <strong>{t('Create Video')}</strong>
+                <small>{t('Records the slides with their transitions in real time (animations show their end state)')}</small>
               </span>
             </button>
             <button type="button" className="bs-action" onClick={() => start('gif')}>
               <Images size={28} strokeWidth={1.4} />
               <span>
-                <strong>Create an Animated GIF</strong>
-                <small>A looping picture of all slides, for chats and web pages</small>
+                <strong>{t('Create an Animated GIF')}</strong>
+                <small>{t('A looping picture of all slides, for chats and web pages')}</small>
               </span>
             </button>
           </div>
@@ -367,7 +383,7 @@ function RecentList({ onOpenRecent }: { onOpenRecent: (id: string) => void }) {
     window.addEventListener('kontor:recent', refresh)
     return () => window.removeEventListener('kontor:recent', refresh)
   }, [])
-  if (!items.length) return <p className="bs-hint">Presentations you open or save appear here.</p>
+  if (!items.length) return <p className="bs-hint">{t('Presentations you open or save appear here.')}</p>
   return (
     <ul className="bs-recent">
       {items.map((r) => (
@@ -377,11 +393,11 @@ function RecentList({ onOpenRecent }: { onOpenRecent: (id: string) => void }) {
             <span>
               <strong>{r.title}</strong>
               <small>
-                {r.slides} slide{r.slides === 1 ? '' : 's'} · {new Date(r.openedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+                {r.slides === 1 ? t('1 slide') : t('{n} slides', { n: r.slides })} · {formatDate(new Date(r.openedAt), { dateStyle: 'medium', timeStyle: 'short' })}
               </small>
             </span>
           </button>
-          <button type="button" className="bs-recent-remove" title="Remove from list" aria-label={`Remove ${r.title} from the list`} onClick={() => removeRecent(r.id)}>
+          <button type="button" className="bs-recent-remove" title={t('Remove from list')} aria-label={t('Remove {name} from the list', { name: r.title })} onClick={() => removeRecent(r.id)}>
             <Trash2 size={14} />
           </button>
         </li>
@@ -394,36 +410,36 @@ function AccountPage({ onOptions }: { onOptions: () => void }) {
   const opts = useOptions()
   return (
     <>
-      <h1>Account</h1>
+      <h1>{t('Account')}</h1>
       <div className="bs-account">
         <span className="bs-avatar" aria-hidden="true">
           {opts.initials || initialsOf(opts.userName) || '?'}
         </span>
         <div className="bs-video">
           <label className="bs-field">
-            Your name (shown on comments)
+            {t('Your name (shown on comments)')}
             <input value={opts.userName} onChange={(e) => setOptions({ userName: e.target.value })} />
           </label>
           <label className="bs-field">
-            Initials
+            {t('Initials')}
             <input value={opts.initials} maxLength={4} placeholder={initialsOf(opts.userName)} onChange={(e) => setOptions({ initials: e.target.value })} />
           </label>
           <label className="bs-field">
-            App theme
+            {t('App theme')}
             <select value={opts.officeTheme} onChange={(e) => setOptions({ officeTheme: e.target.value as typeof opts.officeTheme })}>
-              <option value="colorful">Colorful</option>
-              <option value="white">White</option>
-              <option value="dark">Dark Gray</option>
+              <option value="colorful">{t('Colorful')}</option>
+              <option value="white">{t('White')}</option>
+              <option value="dark">{t('Dark Gray')}</option>
             </select>
           </label>
         </div>
       </div>
-      <h2>Product Information</h2>
+      <h2>{t('Product Information')}</h2>
       <p className="bs-hint">
-        <strong>{APP_NAME}</strong> — part of the {SUITE_NAME} suite. Free and open source; everything runs in this browser and no account is needed.
+        <strong>{APP_NAME}</strong> — {t('part of the {suite} suite. Free and open source; everything runs in this browser and no account is needed.', { suite: SUITE_NAME })}
       </p>
       <button type="button" className="bs-secondary" onClick={onOptions}>
-        Options…
+        {t('Options…')}
       </button>
     </>
   )
@@ -438,30 +454,30 @@ function InspectPresentation() {
   const off = pres.slides.reduce((n, sl) => n + sl.elements.filter((e) => e.x + e.w < 0 || e.y + e.h < 0 || e.x > pres.size.w || e.y > pres.size.h).length, 0)
   const remove = (fn: (p: Presentation) => Presentation) => commit(fn)
   const rows: { label: string; found: string | null; run: () => void }[] = [
-    { label: 'Comments', found: comments ? `${comments} comment(s)` : null, run: () => remove((p) => ({ ...p, slides: p.slides.map((sl) => ({ ...sl, comments: [] })) })) },
-    { label: 'Presentation notes', found: notes ? `${notes} slide(s) with notes` : null, run: () => remove((p) => ({ ...p, slides: p.slides.map((sl) => ({ ...sl, notes: '' })) })) },
-    { label: 'Hidden slides', found: hidden ? `${hidden} hidden slide(s)` : null, run: () => remove((p) => ({ ...p, slides: p.slides.filter((sl) => !sl.hidden) })) },
+    { label: t('Comments'), found: comments ? t('{n} comment(s)', { n: comments }) : null, run: () => remove((p) => ({ ...p, slides: p.slides.map((sl) => ({ ...sl, comments: [] })) })) },
+    { label: t('Presentation notes'), found: notes ? t('{n} slide(s) with notes', { n: notes }) : null, run: () => remove((p) => ({ ...p, slides: p.slides.map((sl) => ({ ...sl, notes: '' })) })) },
+    { label: t('Hidden slides'), found: hidden ? t('{n} hidden slide(s)', { n: hidden }) : null, run: () => remove((p) => ({ ...p, slides: p.slides.filter((sl) => !sl.hidden) })) },
     {
-      label: 'Off-slide content',
-      found: off ? `${off} object(s) outside the slides` : null,
+      label: t('Off-slide content'),
+      found: off ? t('{n} object(s) outside the slides', { n: off }) : null,
       run: () => remove((p) => ({ ...p, slides: p.slides.map((sl) => ({ ...sl, elements: sl.elements.filter((e) => !(e.x + e.w < 0 || e.y + e.h < 0 || e.x > p.size.w || e.y > p.size.h)) })) })),
     },
-    { label: 'Document properties and personal information', found: pres.author ? `Author: ${pres.author}` : null, run: () => remove((p) => ({ ...p, author: '' })) },
+    { label: t('Document properties and personal information'), found: pres.author ? t('Author: {name}', { name: pres.author }) : null, run: () => remove((p) => ({ ...p, author: '' })) },
   ]
   return (
     <>
-      <h2>Inspect Presentation</h2>
-      <p className="bs-hint">Before sharing, check the presentation for hidden properties or personal information.</p>
+      <h2>{t('Inspect Presentation')}</h2>
+      <p className="bs-hint">{t('Before sharing, check the presentation for hidden properties or personal information.')}</p>
       <ul className="bs-inspect">
         {rows.map((r) => (
           <li key={r.label}>
             <span>
               <strong>{r.label}</strong>
-              <small>{r.found ?? 'None found'}</small>
+              <small>{r.found ?? t('None found')}</small>
             </span>
             {r.found && (
               <button type="button" className="bs-secondary" onClick={r.run}>
-                Remove All
+                {t('Remove All')}
               </button>
             )}
           </li>

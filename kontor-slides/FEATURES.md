@@ -1,6 +1,6 @@
 # Kontor Slides – feature checklist
 
-Coverage: 323 done, 37 partial, 19 open of 379 (85% done, 90.1% weighted with partial = ½)
+Coverage: 340 done, 38 partial, 6 open of 384 (89% done, 93.5% weighted with partial = ½)
 
 Legend: `[x]` done, `[~]` partial (what is missing is noted), `[ ]` not done yet.
 The list follows the ribbon and views of a typical desktop presentation program.
@@ -14,7 +14,8 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Info: title, author, slide count, hidden slides, word count, slide size
 - [~] Info: Inspect Presentation (find and remove comments, notes, hidden slides, off-slide content, author); no password protection or version history
 - [x] Save As .pptx (download)
-- [~] Save as PNG/JPEG pictures (this slide, or all slides as a .zip); no .ppsx / .potx / .odp
+- [x] Save As with file type: .pptx, .ppsx (opens straight into the slide show), .potx (template), .odp; PNG/JPEG pictures (this slide, or all slides as a .zip)
+- [x] Open .pptx, .ppsx, .potx (and macro-free reading of .pptm/.ppsm/.potm) and .odp/.otp; a .ppsx opens in the slide show
 - [x] Print: all slides, current slide, selected slides
 - [x] Print layouts: full page slides, notes pages, outline, handouts (3 and 6 per page)
 - [x] Print option: frame slides
@@ -43,7 +44,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 
 ### Clipboard
 - [x] Paste (internal clipboard, images and text from the system clipboard)
-- [~] Paste options: Use Destination Theme, Keep Text Only (no Keep Source Formatting, Picture)
+- [x] Paste options: Use Destination Theme, Keep Source Formatting (theme colors and slide backgrounds written out), Picture, Keep Text Only
 - [x] Cut
 - [x] Copy
 - [x] Duplicate (Ctrl+D)
@@ -52,7 +53,8 @@ The list follows the ribbon and views of a typical desktop presentation program.
 ### Slides
 - [x] New Slide with layout gallery
 - [x] Duplicate Selected Slides
-- [~] Reuse Slides from another .pptx (pick slides, Insert All; inserted slides take this presentation's design); no Slides from Outline
+- [x] Reuse Slides from another .pptx or .odp (pick slides, Insert All; inserted slides take this presentation's design)
+- [x] Slides from Outline (a .txt outline: unindented lines become slide titles, indented lines bullet points)
 - [x] Layout gallery (9 layouts)
 - [x] Reset slide
 - [x] Section: Add, Rename, Remove
@@ -71,7 +73,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Text Highlight Color
 - [x] Font Color with theme palette, standard colors, recent colors, custom color
 - [x] Font dialog (font, style, size, underline, strikethrough, superscript, subscript, small caps, all caps, character spacing)
-- [ ] Font dialog: double strikethrough, underline styles and color, equalize character height, baseline offset
+- [~] Font dialog: double strikethrough, 13 underline styles and underline color, baseline offset (written to .pptx and .odp); Equalize Character Height is kept in the file but drawn normally
 
 ### Paragraph
 - [x] Bullets with gallery (8 bullet styles, None)
@@ -88,7 +90,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Align Text (top, middle, bottom)
 - [x] Convert to Diagram (bullet text becomes a diagram)
 - [x] Paragraph dialog (alignment, list level, spacing before/after, line spacing)
-- [~] Paragraph dialog: no exact line spacing in points, no custom indents or tab stops
+- [~] Paragraph dialog: exact line spacing in points, indentation before text, first line and hanging indents, distributed alignment (written to .pptx and .odp); no tab stops
 
 ### Drawing
 - [x] Shapes gallery: 119 shapes in Lines, Rectangles, Basic Shapes, Block Arrows, Equation Shapes, Flowchart, Stars and Banners, Callouts
@@ -99,9 +101,9 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Shape Fill: theme/standard/recent/custom colors, No Fill, gradient presets, picture
 - [~] Shape Fill: 52 pattern fills with foreground/background colors (no built-in textures)
 - [x] Shape Outline: color, No Outline, weight, dashes, arrows
-- [ ] Shape Outline: sketched lines, compound lines
+- [~] Shape Outline: compound lines (double, thick-thin, thin-thick, triple; written to .pptx) and sketched lines (curved, freehand, scribble; kept only in files saved here)
 - [x] Shape Effects: shadow presets, glow, soft edges, reflection
-- [ ] Shape Effects: bevel, 3-D rotation, preset effects, inner shadow
+- [x] Shape Effects: 12 bevels, 3-D rotation (isometric, off axis, perspective), 6 presets, inner shadow; also for pictures; written to .pptx (bevels are drawn with a lighting filter, an approximation of the original's 3-D rendering)
 
 ### Editing
 - [x] Find (match case, whole words; selects the match in the text)
@@ -117,7 +119,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [~] Photo Album: pictures per slide (fit, 1, 2, 4, with or without title), frame shapes, captions, black and white; added after the current slide instead of a new file. No stock images, online pictures or screenshots
 - [x] Shapes
 - [x] Icons (about 120 built-in icons, searchable)
-- [ ] 3D models
+- [ ] 3D models (not done: needs a 3-D model viewer for .glb/.obj files)
 - [x] Diagrams (like SmartArt): 12 layouts in 7 categories (list, process, cycle, hierarchy, relationship, matrix, pyramid) with a text pane
 - [x] Chart: column, bar, line, pie, doughnut, area, scatter and combo, with clustered/stacked/100% variants and a data sheet
 - [~] Zoom: summary, section and slide zoom with live thumbnails that jump in the show (written to .pptx as linked frames)
@@ -128,11 +130,11 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Text Box (horizontal and vertical)
 - [x] Header & Footer (date and time, slide number, footer, not on title slide)
 - [x] WordArt (9 styles)
-- [ ] WordArt transform (warp) effects
+- [x] WordArt transform: Text Effects › Transform with arch, arch down, circle, wave, triangle, slant up and slant down (text follows the path; written to .pptx)
 - [x] Date & Time (formats, update automatically)
 - [x] Slide Number field
-- [ ] Object (embedded files)
-- [ ] Equation
+- [ ] Object (embedded files) (not done: embedded documents need the other program to show and edit them)
+- [~] Equation: linear format (TeX-like: ^, _, \frac, \sqrt, \sum, \int, Greek letters, relations, arrows) with a live preview and 8 built-in equations; inserted as text with italic variables and real super/subscripts, not as a two-dimensional math object
 - [x] Symbol (common symbols)
 - [~] Video and audio: insert, play while editing and in the show, trim, poster frame, start automatically or on click, loop, rewind, full screen, hide while not playing, volume (no screen recording, no fades or bookmarks)
 
@@ -144,8 +146,8 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Stroke eraser
 - [x] Pen thickness
 - [x] Pen color
-- [ ] Ink to Shape / Ink to Math
-- [ ] Ruler, lasso select, ink replay
+- [~] Ink to Shape (lines, triangles, rectangles, pentagons, ellipses); no Ink to Math
+- [~] Lasso Select and Ink Replay; no ruler
 
 ## Design tab
 
@@ -156,21 +158,21 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Fonts menu (12 font pairs, theme default)
 - [x] Custom font schemes (Customize Fonts: heading and body font)
 - [x] Background Styles (12 presets, reset)
-- [ ] Effects and style variants
+- [x] Effects (8 theme effect schemes for drawn shapes without their own effects; written to .pptx and .odp)
 - [x] Slide Size: Standard (4:3), Widescreen (16:9)
 - [x] Custom Slide Size dialog with presets, orientation, Maximize / Ensure Fit
 - [x] Format Background pane: solid, gradient, picture (tile), transparency
 - [x] Hide background graphics, Apply to All, Reset Background
 - [x] Pattern background fill
-- [ ] Designer (layout suggestions)
+- [ ] Designer (layout suggestions) — out of scope: needs an online AI service
 
 ## Transitions tab
 
 - [x] Preview
 - [x] 13 transitions plus None: Cut, Fade, Push, Wipe, Split, Reveal, Cover, Random Bars, Shape, Zoom, Dissolve, Blinds, Checkerboard
-- [~] 27 transitions incl. Morph (objects with the same name move and resize), Flip, Cube, Gallery, Fall Over, Curtains, Vortex, Clock, Wedge, Strips, Newsflash, Flash, Uncover (no Dynamic Content set; 3-D ones are written to .pptx as their closest basic transition)
+- [~] 27 transitions incl. Morph (objects with the same name move and resize), Flip, Cube, Gallery, Fall Over, Curtains, Vortex, Clock, Wedge, Strips, Newsflash, Flash, Uncover; newer ones are written to .pptx with their own effect plus a basic fallback (no Dynamic Content set)
 - [x] Effect Options (directions and variants per transition)
-- [~] Transition sound (7 synthesized sounds, played in the slide show; not written to .pptx)
+- [x] Transition sound (7 synthesized sounds, played in the slide show; written to .pptx as embedded WAV files and read back)
 - [x] Duration
 - [x] Apply To All
 - [x] Advance Slide: On Mouse Click
@@ -197,7 +199,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 
 - [x] From Beginning (F5)
 - [x] From Current Slide (Shift+F5)
-- [~] Custom Slide Show (define, edit, copy, show) — no Present Online
+- [x] Custom Slide Show (define, edit, copy, show; Present Online is out of scope: it needs an online service)
 - [x] Set Up Slide Show: loop until Esc, advance manually or using timings
 - [x] Set Up Show: presented by a speaker, browsed by an individual (window), kiosk; all/range/custom show; loop; without animation; pen and laser colors
 - [x] Hide Slide
@@ -242,7 +244,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Language: set the proofing language (26 languages) used by the spell checker, shown in the status bar and written to files
 - [x] New Comment, Delete (slide / presentation), Previous, Next, Show Comments
 - [x] Comment threads: reply, resolve, delete
-- [ ] Compare presentations
+- [x] Compare presentations: pick another version (.pptx, .ppsx, .potx, .odp), list changed/inserted/deleted slides with details (text, formatting, position, notes, layout, background, transition, animations), accept selected or all changes
 - [x] Hide Ink
 
 ## View tab
@@ -261,15 +263,15 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Zoom dialog
 - [x] Fit to Window
 - [x] Color / Grayscale / Black and White
-- [ ] New Window, Arrange All, Cascade, Switch Windows
-- [ ] Macros
+- [~] New Window (more windows on the same presentation, kept in step), Switch Windows, Arrange All and Cascade (the browser only lets the program move windows it opened itself)
+- [ ] Macros — out of scope: real VBA macros; a recorder for the program's own commands is not done yet
 
 ## Help tab
 
 - [x] Help (keyboard shortcut reference)
 - [x] Keyboard Shortcuts
 - [x] About
-- [ ] Feedback, training
+- [ ] Feedback, training — out of scope: needs online services
 
 ## Shape Format tab (contextual)
 
@@ -283,7 +285,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] WordArt Quick Styles
 - [x] Text Fill
 - [x] Text Outline
-- [~] Text Effects (shadow only; no glow, reflection, 3-D, transform)
+- [~] Text Effects: shadow, glow (6 presets), reflection, transform (written to .pptx); no 3-D text
 - [x] Alt Text
 - [x] Arrange: Bring Forward / to Front, Send Backward / to Back, Selection Pane, Align, Group, Rotate/Flip
 - [x] Size: height and width
@@ -292,7 +294,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 
 ## Picture Format tab (contextual)
 
-- [ ] Remove Background
+- [x] Remove Background: automatic background detection from the picture's edges, sensitivity, Mark Areas to Keep / to Remove, Keep Changes / Discard All Changes
 - [x] Corrections (brightness/contrast presets)
 - [~] Sharpen/Soften (5 presets; soften is written to .pptx as a blur, sharpening is shown here only)
 - [x] Color: saturation presets, grayscale
@@ -305,7 +307,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Picture Styles (9 presets)
 - [x] Picture Border
 - [x] Picture Effects
-- [ ] Picture Layout
+- [x] Picture Layout: selected pictures become a group in one of 5 layouts (captioned pictures, picture strips, circular pictures, pictures with banners, mosaic); captions use the alt text
 - [x] Alt Text
 - [x] Arrange group
 - [x] Crop (interactive handles)
@@ -335,7 +337,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] Arrow keys nudge (Ctrl for fine steps, Shift for big steps)
 - [x] Tab / Shift+Tab cycle through objects
 - [~] Yellow adjustment handles for rounded rectangle, triangle, parallelogram and trapezoid
-- [ ] Connectors that stay glued to shapes
+- [x] Connectors that stay glued to shapes: line and connector ends snap to the four connection sites of objects (shown while drawing or dragging an end), follow when objects move, resize or rotate, come loose when the connector is dragged on its own; written to and read from .pptx (stCxn/endCxn)
 - [x] Draw shapes by dragging (Shift for squares/circles/45° lines) or click for a default size
 - [x] Drag and drop pictures onto the slide
 - [x] Paste pictures and text (text becomes a text box)
@@ -421,7 +423,7 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] .pptx export: own package writer with a slide master, nine layouts with real placeholders (title, body, footers), theme, notes master and notes pages; slide placeholders linked to their layouts; date/footer/slide number placeholders
 - [x] .pptx export: nested groups and diagrams as p:grpSp; tables as real tables; charts as real charts with embedded data (secondary axes, trendlines, label options); video/audio; animations as timing trees with paragraph builds; picture fills in shapes and backgrounds
 - [x] .pptx package checked by unit tests (content types, relationships, unique shape ids, placeholder links, schema order of child elements)
-- [~] .pptx export: 3-D transitions as their closest basic ones; zooms as linked frames; not yet opened in the original program
+- [~] .pptx export: zooms as linked frames; not yet opened in the original program
 - [x] Exact round trip of files saved by Kontor Slides (model embedded in the file, ignored if the slides were changed elsewhere)
 - [x] .pptx import: slide size, theme colors and fonts, placeholders with layout/master inheritance (position, text styles, body settings)
 - [x] .pptx import: text runs and paragraphs with formatting, bullets and numbering
@@ -429,7 +431,10 @@ The list follows the ribbon and views of a typical desktop presentation program.
 - [x] .pptx import: backgrounds with inheritance, master and layout decoration shapes, notes, hidden slides, transitions and timings, headers/footers
 - [~] .pptx import: tables (with styles, merges, borders) and charts become real objects; custom geometry becomes editable free-form shapes; SmartArt shows a placeholder box
 - [~] .pptx import: animations (common presets, triggers, motion paths) and video/audio are read; EMF/WMF pictures are not
-- [ ] .ppt, .odp import/export
+- [x] .odp export (own writer): slides, backgrounds, hidden slides, transitions with timings, notes, custom shows, loop; shapes as custom shapes with their outlines, text boxes and placeholders with paragraph/character formatting and lists, pictures, groups, ink, tables, video/audio; charts, diagrams and zooms as pictures; the Kontor model is stored too so files saved here reopen exactly
+- [x] .odp import (own reader): page size, master page objects, frames, custom shapes, rectangles, ellipses, lines, polygons, paths, connectors, groups, tables, pictures, media, styles with inheritance, gradients, bitmaps, text formatting and lists, notes, hidden slides, transitions, custom shows
+- [x] .ppsx / .potx: the .pptx writer with the slide show or template content type
+- [ ] .ppt import/export (the binary format from before 2007; not done)
 - [x] PDF via the print dialog
 
 ## Phase 2 additions

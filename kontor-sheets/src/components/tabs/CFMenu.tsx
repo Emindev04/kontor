@@ -8,6 +8,7 @@ import type { IconSetId } from '../../model/extras'
 import { useApp } from '../appContext'
 import { keepFocus } from '../ui'
 import type { CFQuickKind } from '../dialogs/ChartTableDialogs'
+import { t } from '../../i18n'
 
 type Sub = 'highlight' | 'top' | 'bars' | 'scales' | 'icons' | 'clear' | null
 
@@ -50,51 +51,51 @@ export function CFMenu({ close }: { close: () => void }) {
   )
   return (
     <div className="cf-menu-body">
-      {head('highlight', 'Highlight Cells Rules')}
+      {head('highlight', t('Highlight Cells Rules'))}
       {sub === 'highlight' && (
         <div className="filter-sub">
-          {item('Greater Than…', () => quick('greaterThan'))}
-          {item('Less Than…', () => quick('lessThan'))}
-          {item('Between…', () => quick('between'))}
-          {item('Equal To…', () => quick('equal'))}
-          {item('Text that Contains…', () => quick('text'))}
-          {item('A Date Occurring…', () => quick('date'))}
-          {item('Duplicate Values…', () => quick('duplicate'))}
-          {item('More Rules…', () => app.dialog({ kind: 'cfRule', data: 'cell' }))}
+          {item(t('Greater Than…'), () => quick('greaterThan'))}
+          {item(t('Less Than…'), () => quick('lessThan'))}
+          {item(t('Between…'), () => quick('between'))}
+          {item(t('Equal To…'), () => quick('equal'))}
+          {item(t('Text that Contains…'), () => quick('text'))}
+          {item(t('A Date Occurring…'), () => quick('date'))}
+          {item(t('Duplicate Values…'), () => quick('duplicate'))}
+          {item(t('More Rules…'), () => app.dialog({ kind: 'cfRule', data: 'cell' }))}
         </div>
       )}
-      {head('top', 'Top/Bottom Rules')}
+      {head('top', t('Top/Bottom Rules'))}
       {sub === 'top' && (
         <div className="filter-sub">
-          {item('Top 10 Items…', () => quick('top'))}
-          {item('Top 10%…', () => quick('topPct'))}
-          {item('Bottom 10 Items…', () => quick('bottom'))}
-          {item('Bottom 10%…', () => quick('bottomPct'))}
-          {item('Above Average…', () => quick('aboveAvg'))}
-          {item('Below Average…', () => quick('belowAvg'))}
-          {item('More Rules…', () => app.dialog({ kind: 'cfRule', data: 'top' }))}
+          {item(t('Top 10 Items…'), () => quick('top'))}
+          {item(t('Top 10%…'), () => quick('topPct'))}
+          {item(t('Bottom 10 Items…'), () => quick('bottom'))}
+          {item(t('Bottom 10%…'), () => quick('bottomPct'))}
+          {item(t('Above Average…'), () => quick('aboveAvg'))}
+          {item(t('Below Average…'), () => quick('belowAvg'))}
+          {item(t('More Rules…'), () => app.dialog({ kind: 'cfRule', data: 'top' }))}
         </div>
       )}
       <div className="menu-sep" />
-      {head('bars', 'Data Bars')}
+      {head('bars', t('Data Bars'))}
       {sub === 'bars' && (
         <div className="filter-sub">
-          <div className="menu-heading">Gradient Fill</div>
+          <div className="menu-heading">{t('Gradient Fill')}</div>
           <div className="cf-swatches">
             {DATA_BAR_COLORS.map((c) => (
-              <button key={c} type="button" className="cf-bar-swatch" title={`Gradient ${c}`} style={{ background: `linear-gradient(90deg, ${c}, #fff)` }} onMouseDown={keepFocus} onClick={() => { close(); addRule(doc, { ranges: ranges(), stop: false, type: 'dataBar', color: c, gradient: true, min: { type: 'auto' }, max: { type: 'auto' }, showValue: true }) }} />
+              <button key={c} type="button" className="cf-bar-swatch" title={t('Gradient {color}', { color: c })} style={{ background: `linear-gradient(90deg, ${c}, #fff)` }} onMouseDown={keepFocus} onClick={() => { close(); addRule(doc, { ranges: ranges(), stop: false, type: 'dataBar', color: c, gradient: true, min: { type: 'auto' }, max: { type: 'auto' }, showValue: true }) }} />
             ))}
           </div>
-          <div className="menu-heading">Solid Fill</div>
+          <div className="menu-heading">{t('Solid Fill')}</div>
           <div className="cf-swatches">
             {DATA_BAR_COLORS.map((c) => (
-              <button key={c} type="button" className="cf-bar-swatch" title={`Solid ${c}`} style={{ background: c }} onMouseDown={keepFocus} onClick={() => { close(); addRule(doc, { ranges: ranges(), stop: false, type: 'dataBar', color: c, gradient: false, min: { type: 'auto' }, max: { type: 'auto' }, showValue: true }) }} />
+              <button key={c} type="button" className="cf-bar-swatch" title={t('Solid {color}', { color: c })} style={{ background: c }} onMouseDown={keepFocus} onClick={() => { close(); addRule(doc, { ranges: ranges(), stop: false, type: 'dataBar', color: c, gradient: false, min: { type: 'auto' }, max: { type: 'auto' }, showValue: true }) }} />
             ))}
           </div>
-          {item('More Rules…', () => app.dialog({ kind: 'cfRule', data: 'all' }))}
+          {item(t('More Rules…'), () => app.dialog({ kind: 'cfRule', data: 'all' }))}
         </div>
       )}
-      {head('scales', 'Color Scales')}
+      {head('scales', t('Color Scales'))}
       {sub === 'scales' && (
         <div className="filter-sub">
           <div className="cf-swatches">
@@ -103,7 +104,7 @@ export function CFMenu({ close }: { close: () => void }) {
                 key={s.label}
                 type="button"
                 className="cf-scale-swatch"
-                title={`${s.label} Color Scale`}
+                title={t('{name} Color Scale', { name: t(s.label) })}
                 style={{ background: `linear-gradient(180deg, ${[...s.stops].reverse().join(',')})` }}
                 onMouseDown={keepFocus}
                 onClick={() => {
@@ -114,37 +115,37 @@ export function CFMenu({ close }: { close: () => void }) {
               />
             ))}
           </div>
-          {item('More Rules…', () => app.dialog({ kind: 'cfRule', data: 'all' }))}
+          {item(t('More Rules…'), () => app.dialog({ kind: 'cfRule', data: 'all' }))}
         </div>
       )}
-      {head('icons', 'Icon Sets')}
+      {head('icons', t('Icon Sets'))}
       {sub === 'icons' && (
         <div className="filter-sub">
           {(['Directional', 'Shapes', 'Indicators', 'Ratings'] as const).map((g) => (
             <div key={g}>
-              <div className="menu-heading">{g}</div>
+              <div className="menu-heading">{t(g)}</div>
               <div className="cf-icon-grid">
                 {ICON_SETS.filter((s) => s.group === g).map((s) => (
-                  <button key={s.id} type="button" className="cf-icon-item" title={s.label} onMouseDown={keepFocus} onClick={() => { close(); addRule(doc, { ranges: ranges(), stop: false, type: 'iconSet', set: s.id, reverse: false, showValue: true, thresholds: defaultThresholds(s.id) }) }}>
+                  <button key={s.id} type="button" className="cf-icon-item" title={t(s.label)} onMouseDown={keepFocus} onClick={() => { close(); addRule(doc, { ranges: ranges(), stop: false, type: 'iconSet', set: s.id, reverse: false, showValue: true, thresholds: defaultThresholds(s.id) }) }}>
                     <IconPreview set={s.id} />
                   </button>
                 ))}
               </div>
             </div>
           ))}
-          {item('More Rules…', () => app.dialog({ kind: 'cfRule', data: 'all' }))}
+          {item(t('More Rules…'), () => app.dialog({ kind: 'cfRule', data: 'all' }))}
         </div>
       )}
       <div className="menu-sep" />
-      {item('New Rule…', () => app.dialog({ kind: 'cfRule' }))}
-      {head('clear', 'Clear Rules')}
+      {item(t('New Rule…'), () => app.dialog({ kind: 'cfRule' }))}
+      {head('clear', t('Clear Rules'))}
       {sub === 'clear' && (
         <div className="filter-sub">
-          {item('Clear Rules from Selected Cells', () => clearRules(doc, doc.sel.ranges))}
-          {item('Clear Rules from Entire Sheet', () => clearRules(doc, null))}
+          {item(t('Clear Rules from Selected Cells'), () => clearRules(doc, doc.sel.ranges))}
+          {item(t('Clear Rules from Entire Sheet'), () => clearRules(doc, null))}
         </div>
       )}
-      {item('Manage Rules…', () => app.dialog({ kind: 'cfManage' }))}
+      {item(t('Manage Rules…'), () => app.dialog({ kind: 'cfManage' }))}
     </div>
   )
 }

@@ -10,6 +10,8 @@ import { Workbook } from '../model/workbook'
 import type { Engine } from '../engine/engine'
 import { exportFormula, importFormula } from './formulaText'
 export { exportFormula, importFormula } from './formulaText'
+import type { PatternType } from '../model/fill'
+import { THEMES, type Theme } from '../model/theme'
 import { postProcess, readPackageExtras, readWithExcelJS, writeWithExcelJS } from './xlsxExtras'
 
 type ExcelModule = typeof EJ
@@ -40,6 +42,18 @@ function themeColors(xml: string | undefined): string[] {
     return m ? '#' + m[1].toUpperCase() : THEME[i]
   }
   return ['lt1', 'dk1', 'lt2', 'dk2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6', 'hlink', 'folHlink'].map(pick)
+}
+
+/** The workbook theme stored in the file (colors, fonts, name), unless it is the generic default theme. */
+export function themeFromXml(xml: string | undefined): Theme | undefined {
+  if (!xml) return undefined
+  const name = /<a:clrScheme name="([^"]*)"/.exec(xml)?.[1] ?? ''
+  const known = THEMES.find((t) => t.name === name)
+  const c = themeColors(xml)
+  const major = /<a:majorFont>\s*<a:latin typeface="([^"]*)"/.exec(xml)?.[1]
+  const minor = /<a:minorFont>\s*<a:latin typeface="([^"]*)"/.exec(xml)?.[1]
+  if (!known && (!name || /^office/i.test(name))) return undefined
+  return { name: name || 'Custom', colors: { lt1: c[0], dk1: c[1], lt2: c[2], dk2: c[3], accents: c.slice(4, 10), hlink: c[10], folHlink: c[11] }, fonts: { major: major || 'Calibri Light', minor: minor || 'Calibri' } }
 }
 
 /** Applies a tint the way the original does: on the HSL luminance. */
@@ -119,8 +133,21 @@ function styleFromExcel(s: Partial<EJ.Style>): StylePatch {
   }
   const fill = s.fill as EJ.FillPattern | undefined
   if (fill && fill.type === 'pattern' && fill.pattern && fill.pattern !== 'none') {
-    const fg = colorOf(fill.fgColor) ?? colorOf(fill.bgColor)
-    if (fg) p.fill = fg
+    if (fill.pattern === 'solid') {
+      const fg = colorOf(fill.fgColor) ?? colorOf(fill.bgColor)
+      if (fg) p.fill = fg
+    } else {
+      p.pattern = fill.pattern as PatternType
+      p.patternColor = colorOf(fill.fgColor) ?? '#000000'
+      const bg = colorOf(fill.bgColor)
+      if (bg && bg !== '#FFFFFF') p.fill = bg
+    }
+  }
+  const grad = s.fill as (EJ.FillGradientAngle | EJ.FillGradientPath) | undefined
+  if (grad && grad.type === 'gradient' && grad.stops?.length) {
+    const from = colorOf(grad.stops[0].color) ?? '#FFFFFF'
+    const to = colorOf(grad.stops[grad.stops.length - 1].color) ?? '#000000'
+    p.gradient = grad.gradient === 'path' ? { kind: 'path', angle: 0, from, to } : { kind: 'linear', angle: (grad as EJ.FillGradientAngle).degree ?? 0, from, to }
   }
   const a = s.alignment
   if (a) {
@@ -161,7 +188,12 @@ function styleToExcel(st: Style): Partial<EJ.Style> {
     color: st.color ? argb(st.color) : undefined,
     vertAlign: st.script,
   }
-  if (st.fill) out.fill = { type: 'pattern', pattern: 'solid', fgColor: argb(st.fill) }
+  if (st.gradient) {
+    const g = st.gradient
+    const stops = [{ position: 0, color: argb(g.from) }, { position: 1, color: argb(g.to) }]
+    out.fill = g.kind === 'path' ? { type: 'gradient', gradient: 'path', center: { left: 0.5, top: 0.5 }, stops } : { type: 'gradient', gradient: 'angle', degree: g.angle, stops }
+  } else if (st.pattern) out.fill = { type: 'pattern', pattern: st.pattern, fgColor: argb(st.patternColor ?? '#000000'), bgColor: argb(st.fill ?? '#FFFFFF') }
+  else if (st.fill) out.fill = { type: 'pattern', pattern: 'solid', fgColor: argb(st.fill) }
   if (st.h || st.v || st.wrap || st.indent || st.rotate || st.shrink)
     out.alignment = {
       horizontal: st.h as EJ.Alignment['horizontal'],
@@ -245,8 +277,11 @@ export async function importXlsx(data: ArrayBuffer): Promise<Workbook> {
   const Excel = await load()
   const x = new Excel.Workbook()
   await x.xlsx.load(data)
-  theme = themeColors((x as unknown as { _themes?: Record<string, string> })._themes?.theme1)
+  const themeXml = (x as unknown as { _themes?: Record<string, string> })._themes?.theme1
+  theme = themeColors(themeXml)
   const wb = new Workbook(true)
+  const fileTheme = themeFromXml(themeXml)
+  if (fileTheme && fileTheme.name !== THEMES[0].name) wb.theme = fileTheme
   const styleCache = new Map<string, number>()
   const internStyle = (s: Partial<EJ.Style> | undefined): number => {
     if (!s || !Object.keys(s).length) return 0
@@ -345,6 +380,10 @@ export async function importXlsx(data: ArrayBuffer): Promise<Workbook> {
       sheet.page.paper = PAPER[Number(ps.paperSize ?? 1)] ?? 'letter'
       if (ps.margins) sheet.page.margins = { ...sheet.page.margins, ...ps.margins }
       sheet.page.fitToPage = !!ps.fitToPage
+      if (ps.fitToPage) {
+        sheet.page.fitWide = ps.fitToWidth ?? 1
+        sheet.page.fitTall = ps.fitToHeight ?? 1
+      }
       sheet.page.scale = ps.scale ?? 100
       sheet.page.printGridlines = !!ps.showGridLines
       sheet.page.printHeadings = !!ps.showRowColHeaders
@@ -387,6 +426,8 @@ export async function exportXlsx(wb: Workbook, engine: Engine): Promise<Blob> {
   x.created = new Date()
   x.modified = new Date()
   const styleCache = new Map<number, Partial<EJ.Style>>()
+  // defined names that share a function's name must not be written as eta-reduced LAMBDAs
+  const nameSet = new Set([...wb.names.values()].map((n) => n.name.toUpperCase()))
   const ejStyle = (id: number) => {
     let s = styleCache.get(id)
     if (!s) styleCache.set(id, (s = styleToExcel(wb.styles.get(id))))
@@ -407,6 +448,8 @@ export async function exportXlsx(wb: Workbook, engine: Engine): Promise<Blob> {
         paperSize: PAPER_ID[sheet.page.paper] as EJ.PaperSize | undefined,
         margins: sheet.page.margins,
         fitToPage: sheet.page.fitToPage,
+        fitToWidth: sheet.page.fitToPage ? sheet.page.fitWide ?? 1 : undefined,
+        fitToHeight: sheet.page.fitToPage ? sheet.page.fitTall ?? 0 : undefined,
         scale: sheet.page.scale,
         showGridLines: sheet.page.printGridlines,
         showRowColHeaders: sheet.page.printHeadings,
@@ -447,8 +490,8 @@ export async function exportXlsx(wb: Workbook, engine: Engine): Promise<Blob> {
         if (sp) {
           const range = `${colName(c)}${r + 1}:${colName(c + sp.cols - 1)}${r + sp.rows}`
           const results = sp.matrix.data.map((v) => (v instanceof CellError ? 0 : (v as string | number | boolean | null) ?? 0))
-          ;(ws as unknown as { fillFormula: (a: string, b: string, c: unknown, d: string) => void }).fillFormula(range, exportFormula(d.f), results, 'array')
-        } else cell.value = { formula: exportFormula(d.f), result } as EJ.CellFormulaValue
+          ;(ws as unknown as { fillFormula: (a: string, b: string, c: unknown, d: string) => void }).fillFormula(range, exportFormula(d.f, nameSet), results, 'array')
+        } else cell.value = { formula: exportFormula(d.f, nameSet), result } as EJ.CellFormulaValue
       } else if (d.rich && typeof d.v === 'string') cell.value = { richText: d.rich.map((r) => ({ text: r.t, font: runFont(wb.styles.get(d.s), r) })) } as EJ.CellRichTextValue
       else if (d.link) cell.value = { text: String(d.v ?? d.link), hyperlink: d.link }
       else if (d.v instanceof CellError) cell.value = { error: d.v.code as EJ.CellErrorValue['error'] }

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Check, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { cellName, rangeName } from '../model/address'
+import { prefs } from '../model/prefs'
 import { refArea } from '../engine/parser'
 import { matchRef } from '../engine/tokenizer'
 import { validateName, defineName } from '../commands/ops'
@@ -10,21 +11,22 @@ import { FormulaAssist, FormulaMirror } from '../grid/CellEditor'
 import { handleEditKey } from '../grid/editKeys'
 import { useApp, useDocVersion } from './appContext'
 import { usePopover, Popup, keepFocus } from './ui'
+import { t } from '../i18n'
 
 /** Name Box: jump to a cell, range or name; typing a new name defines it for the selection. */
 export function goToReference(doc: Doc, text: string): string | null {
-  const t = text.trim()
-  if (!t) return null
-  const m = matchRef(t, 0)
-  if (m && m.end === t.length) {
+  const ref = text.trim()
+  if (!ref) return null
+  const m = matchRef(ref, 0)
+  if (m && m.end === ref.length) {
     const sheet = m.parts.sheet !== undefined ? doc.wb.sheetByName(m.parts.sheet) : doc.sheet
-    if (!sheet) return 'Reference isn’t valid.'
+    if (!sheet) return t('Reference isn’t valid.')
     const a = refArea(m.parts)
     goTo(doc, sheet, { r: a.r1, c: a.c1 })
     doc.selectRange(a, { r: a.r1, c: a.c1 })
     return null
   }
-  const n = doc.wb.getName(t, doc.sheet.id)
+  const n = doc.wb.getName(ref, doc.sheet.id)
   if (n) {
     const mm = matchRef(n.ref, 0)
     if (mm) {
@@ -36,14 +38,14 @@ export function goToReference(doc: Doc, text: string): string | null {
         return null
       }
     }
-    return 'That name does not refer to a range.'
+    return t('That name does not refer to a range.')
   }
-  const err = validateName(doc, t)
-  if (err) return 'Reference isn’t valid.'
+  const err = validateName(doc, ref)
+  if (err) return t('Reference isn’t valid.')
   const q = /^[A-Za-z_][A-Za-z0-9_.]*$/.test(doc.sheet.name) ? doc.sheet.name : `'${doc.sheet.name.replace(/'/g, "''")}'`
   const rg = doc.activeRange
   const abs = rangeName(rg).replace(/([A-Z]+)(\d+)/g, '$$$1$$$2')
-  defineName(doc, t, `${q}!${abs}`)
+  defineName(doc, ref, `${q}!${abs}`)
   return null
 }
 
@@ -54,7 +56,7 @@ function NameBox() {
   const { open, setOpen, ref } = usePopover()
   const sel = doc.sel
   const rg = doc.activeRange
-  let label = cellName(sel.active.r, sel.active.c)
+  let label = prefs().r1c1 ? `R${sel.active.r + 1}C${sel.active.c + 1}` : cellName(sel.active.r, sel.active.c)
   for (const n of doc.wb.names.values()) {
     const m = matchRef(n.ref, 0)
     if (!m || m.end !== n.ref.length) continue
@@ -65,7 +67,7 @@ function NameBox() {
   return (
     <div className="namebox popover-anchor" ref={ref}>
       <input
-        aria-label="Name Box"
+        aria-label={t('Name Box')}
         value={draft ?? label}
         onFocus={(e) => {
           setDraft(label)
@@ -85,12 +87,12 @@ function NameBox() {
           }
         }}
       />
-      <button type="button" className="namebox-btn" aria-label="Defined names" onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className="namebox-btn" aria-label={t('Defined names')} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <ChevronDown size={12} />
       </button>
       {open && (
         <Popup anchor={ref} className="combo-menu" role="listbox">
-          {[...doc.wb.names.values()].length === 0 && <div className="menu-heading">No defined names</div>}
+          {[...doc.wb.names.values()].length === 0 && <div className="menu-heading">{t('No defined names')}</div>}
           {[...doc.wb.names.values()].map((n) => (
             <button
               key={`${n.scope}-${n.name}`}
@@ -127,14 +129,14 @@ export function FormulaBar() {
     <div className={`formula-bar${expanded ? ' is-expanded' : ''}`}>
       <NameBox />
       <div className="fx-buttons">
-        <button type="button" className="fx-btn" title="Cancel" aria-label="Cancel" disabled={!ed} onMouseDown={keepFocus} onClick={() => { doc.cancelEdit(); app.focusGrid() }}>
+        <button type="button" className="fx-btn" title={t('Cancel')} aria-label={t('Cancel')} disabled={!ed} onMouseDown={keepFocus} onClick={() => { doc.cancelEdit(); app.focusGrid() }}>
           <X size={14} />
         </button>
         <button
           type="button"
           className="fx-btn"
-          title="Enter"
-          aria-label="Enter"
+          title={t('Enter')}
+          aria-label={t('Enter')}
           disabled={!ed}
           onMouseDown={keepFocus}
           onClick={() => {
@@ -145,7 +147,7 @@ export function FormulaBar() {
         >
           <Check size={14} />
         </button>
-        <button type="button" className="fx-btn fx-insert" title="Insert Function (Shift+F3)" aria-label="Insert Function" onMouseDown={keepFocus} onClick={() => {
+        <button type="button" className="fx-btn fx-insert" title={t('Insert Function (Shift+F3)')} aria-label={t('Insert Function')} onMouseDown={keepFocus} onClick={() => {
           // a formula that is one function call opens its arguments directly
           const a = doc.sel.active
           const f = doc.edit?.text ?? (doc.sheet.get(a.r, a.c)?.f !== undefined ? `=${doc.sheet.get(a.r, a.c)!.f}` : '')
@@ -159,7 +161,7 @@ export function FormulaBar() {
         {isFormula && <FormulaMirror text={text} />}
         <textarea
           ref={input}
-          aria-label="Formula Bar"
+          aria-label={t('Formula Bar')}
           spellCheck={false}
           className={isFormula ? 'is-formula' : undefined}
           value={text}
@@ -185,7 +187,7 @@ export function FormulaBar() {
         />
         {ed && ed.source === 'bar' && <FormulaAssist doc={doc} anchor={wrap.current} />}
       </div>
-      <button type="button" className="fx-btn fx-expand" title={expanded ? 'Collapse Formula Bar (Ctrl+Shift+U)' : 'Expand Formula Bar (Ctrl+Shift+U)'} aria-label="Expand Formula Bar" onMouseDown={keepFocus} onClick={() => setExpanded(!expanded)}>
+      <button type="button" className="fx-btn fx-expand" title={expanded ? t('Collapse Formula Bar (Ctrl+Shift+U)') : t('Expand Formula Bar (Ctrl+Shift+U)')} aria-label={t('Expand Formula Bar')} onMouseDown={keepFocus} onClick={() => setExpanded(!expanded)}>
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
     </div>

@@ -4,6 +4,7 @@ import { SlideView, presProps } from '../render/SlideView'
 import { slideTitleText as slideTitle } from '../model/accessibility'
 import type { PrintSettings } from './Backstage'
 import { DEFAULT_HANDOUT, DEFAULT_NOTES_MASTER } from './MasterViews'
+import { t } from '../i18n'
 
 function Marks({ s, page }: { s: { header: boolean; headerText: string; footer: boolean; footerText: string; date: boolean; pageNumber: boolean }; page: number }) {
   return (
@@ -58,7 +59,7 @@ export function PrintRoot({ pres, settings, currentId, selectedIds }: { pres: Pr
         {slides.map((s) => (
           <div key={s.id} className="print-outline-slide">
             <strong>
-              {pres.slides.indexOf(s) + 1}. {slideTitle(s) || 'Untitled'}
+              {pres.slides.indexOf(s) + 1}. {slideTitle(s) || t('Untitled')}
             </strong>
             {bodyText(s).map((p, i) => (
               <div key={i} style={{ marginLeft: 24 + p.level * 24 }}>

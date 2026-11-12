@@ -4,6 +4,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { mathMarkup } from './math'
 import { DrawingView, drawingAttributes, wrapStyle, type DrawingRenderer } from './Drawing'
 import { collectNotes } from './Notes'
+import { t } from '../i18n'
 
 // Inline objects: equations, bookmarks, cross-references and signature lines.
 
@@ -60,7 +61,7 @@ export const Equation = Node.create<{ onEdit: ((pos: number) => void) | null }>(
       const paint = (n: PMNode) => {
         dom.classList.toggle('is-display', !!n.attrs.display)
         dom.innerHTML = mathMarkup(n.attrs.latex, n.attrs.display)
-        dom.title = 'Double-click to edit the equation'
+        dom.title = t('Double-click to edit the equation')
       }
       paint(node)
       dom.addEventListener('dblclick', (e) => {
@@ -157,15 +158,15 @@ export const refPage = (pos: number) => refContext.pageLabel(refContext.pageOf(p
 export function crossRefText(doc: PMNode, a: CrossRefAttrs, refPos: number): string {
   if (a.refType === 'footnote' || a.refType === 'endnote') {
     const note = collectNotes(doc).find((n) => n.id === a.target)
-    if (!note) return 'Error! Reference source not found.'
+    if (!note) return t('Error! Reference source not found.')
     if (a.show === 'page') return refContext.pageLabel(refContext.pageOf(note.pos))
-    if (a.show === 'aboveBelow') return note.pos < refPos ? 'above' : 'below'
+    if (a.show === 'aboveBelow') return note.pos < refPos ? t('above') : t('below')
     return note.label
   }
   const mark = collectBookmarks(doc).find((b) => b.name === a.target)
-  if (!mark) return 'Error! Reference source not found.'
+  if (!mark) return t('Error! Reference source not found.')
   if (a.show === 'page') return refContext.pageLabel(refContext.pageOf(mark.pos))
-  if (a.show === 'aboveBelow') return mark.pos < refPos ? 'above' : 'below'
+  if (a.show === 'aboveBelow') return mark.pos < refPos ? t('above') : t('below')
   const $pos = doc.resolve(mark.pos)
   const text = $pos.parent.textContent.trim()
   if (a.show === 'number') {
@@ -208,7 +209,7 @@ export const CrossRef = Node.create({
       const paint = (n: PMNode) => {
         const pos = (getPos as () => number | undefined)() ?? 0
         dom.textContent = crossRefText(editor.state.doc, n.attrs as CrossRefAttrs, pos)
-        dom.title = `Cross-reference to ${n.attrs.target}. Ctrl+Click to follow.`
+        dom.title = t('Cross-reference to {target}. Ctrl+Click to follow.', { target: n.attrs.target })
       }
       paint(node)
       dom.addEventListener('click', (e) => {

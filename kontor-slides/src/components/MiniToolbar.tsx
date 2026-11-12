@@ -7,6 +7,7 @@ import * as T from '../editor/textCommands'
 import { useStore } from '../store/store'
 import { useOptions } from '../io/options'
 import { cls, keepFocus } from './ui'
+import { t } from '../i18n'
 
 export function MiniToolbar() {
   const opts = useOptions()
@@ -51,18 +52,18 @@ export function MiniToolbar() {
     </button>
   )
   return createPortal(
-    <div className="mini-toolbar" role="toolbar" aria-label="Mini toolbar" style={{ left: pos.x, top: pos.y }}>
-      {btn(AArrowUp, 'Increase Font Size', () => T.stepFontSize(1))}
-      {btn(AArrowDown, 'Decrease Font Size', () => T.stepFontSize(-1))}
-      {btn(Bold, 'Bold', () => T.toggleMark('bold'), T.isMarkActive('bold'))}
-      {btn(Italic, 'Italic', () => T.toggleMark('italic'), T.isMarkActive('italic'))}
-      {btn(Underline, 'Underline', () => T.toggleMark('underline'), T.isMarkActive('underline'))}
-      {btn(Highlighter, 'Text Highlight Color (yellow)', () => getActiveEditor()?.chain().focus().toggleHighlight({ color: '#FFFF00' }).run())}
-      {btn(Baseline, 'Font Color (red)', () => T.setTextStyle({ color: '#FF0000' }))}
-      {btn(AlignLeft, 'Align Left', () => T.setPara({ align: 'left' }))}
-      {btn(AlignCenter, 'Center', () => T.setPara({ align: 'center' }))}
-      {btn(AlignRight, 'Align Right', () => T.setPara({ align: 'right' }))}
-      {btn(List, 'Bullets', () => T.setPara({ bullet: T.paraValue('bullet') && T.paraValue('bullet') !== 'none' ? 'none' : '•' }))}
+    <div className="mini-toolbar" role="toolbar" aria-label={t('Mini toolbar')} style={{ left: pos.x, top: pos.y }}>
+      {btn(AArrowUp, t('Increase Font Size'), () => T.stepFontSize(1))}
+      {btn(AArrowDown, t('Decrease Font Size'), () => T.stepFontSize(-1))}
+      {btn(Bold, t('Bold'), () => T.toggleMark('bold'), T.isMarkActive('bold'))}
+      {btn(Italic, t('Italic'), () => T.toggleMark('italic'), T.isMarkActive('italic'))}
+      {btn(Underline, t('Underline'), () => T.toggleMark('underline'), T.isMarkActive('underline'))}
+      {btn(Highlighter, t('Text Highlight Color (yellow)'), () => getActiveEditor()?.chain().focus().toggleHighlight({ color: '#FFFF00' }).run())}
+      {btn(Baseline, t('Font Color (red)'), () => T.setTextStyle({ color: '#FF0000' }))}
+      {btn(AlignLeft, t('Align Left'), () => T.setPara({ align: 'left' }))}
+      {btn(AlignCenter, t('Center'), () => T.setPara({ align: 'center' }))}
+      {btn(AlignRight, t('Align Right'), () => T.setPara({ align: 'right' }))}
+      {btn(List, t('Bullets'), () => T.setPara({ bullet: T.paraValue('bullet') && T.paraValue('bullet') !== 'none' ? 'none' : '•' }))}
     </div>,
     document.body,
   )

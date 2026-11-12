@@ -4,17 +4,18 @@ import { currentTheme } from '../model/theme'
 import type { ChartDef } from '../model/extras'
 import { formatValue } from '../model/numfmt'
 import type { ChartData, SeriesData } from './chartData'
+import { t, tx } from '../i18n'
 
 /** Own color palettes: 0 is the colorful default, 1-7 are monochromatic. */
 export const PALETTES: { name: string; colors: string[] }[] = [
-  { name: 'Colorful', colors: ['#2E6FD8', '#F28C28', '#8D99AE', '#F2C12E', '#2FA6C8', '#4CAF50', '#1F3B73', '#B5562C', '#5C6B7A', '#A8841A'] },
-  { name: 'Blue', colors: ['#1F4E9A', '#2E6FD8', '#5B92E5', '#8DB4EE', '#B9D1F5', '#163A73'] },
-  { name: 'Orange', colors: ['#B8591A', '#F28C28', '#F5A85E', '#F8C493', '#FBDFC4', '#8A4313'] },
-  { name: 'Green', colors: ['#2C6E31', '#4CAF50', '#78C47B', '#A4D8A6', '#CFEBD0', '#1F4F23'] },
-  { name: 'Gray', colors: ['#3E4651', '#5C6B7A', '#8D99AE', '#B3BCCB', '#D6DCE5', '#2A3038'] },
-  { name: 'Gold', colors: ['#8A6A10', '#C8A12A', '#F2C12E', '#F6D36E', '#FAE6A9', '#5E480B'] },
-  { name: 'Teal', colors: ['#1B6E82', '#2FA6C8', '#62BEDA', '#96D5E7', '#C8EAF3', '#124A58'] },
-  { name: 'Berry', colors: ['#7A1F52', '#B53A7E', '#CF6EA4', '#E2A0C5', '#F1D0E2', '#541538'] },
+  { name: tx('Colorful'), colors: ['#2E6FD8', '#F28C28', '#8D99AE', '#F2C12E', '#2FA6C8', '#4CAF50', '#1F3B73', '#B5562C', '#5C6B7A', '#A8841A'] },
+  { name: tx('Blue'), colors: ['#1F4E9A', '#2E6FD8', '#5B92E5', '#8DB4EE', '#B9D1F5', '#163A73'] },
+  { name: tx('Orange'), colors: ['#B8591A', '#F28C28', '#F5A85E', '#F8C493', '#FBDFC4', '#8A4313'] },
+  { name: tx('Green'), colors: ['#2C6E31', '#4CAF50', '#78C47B', '#A4D8A6', '#CFEBD0', '#1F4F23'] },
+  { name: tx('Gray'), colors: ['#3E4651', '#5C6B7A', '#8D99AE', '#B3BCCB', '#D6DCE5', '#2A3038'] },
+  { name: tx('Gold'), colors: ['#8A6A10', '#C8A12A', '#F2C12E', '#F6D36E', '#FAE6A9', '#5E480B'] },
+  { name: tx('Teal'), colors: ['#1B6E82', '#2FA6C8', '#62BEDA', '#96D5E7', '#C8EAF3', '#124A58'] },
+  { name: tx('Berry'), colors: ['#7A1F52', '#B53A7E', '#CF6EA4', '#E2A0C5', '#F1D0E2', '#541538'] },
 ]
 
 type StylePreset = { bg: string; plot: string; grid: string; text: string; border: string; labelsInside: boolean; gradient: boolean; outline: string | null; gridDash: boolean }
@@ -154,14 +155,14 @@ export function renderChartSVG(chart: ChartDef, data: ChartData, W: number, H: n
     const all = series.flatMap((s) => s.values.filter((v): v is number => v !== null))
     const h = histogramBins(all)
     categories = h.labels
-    series = [{ name: series[0]?.name ?? 'Frequency', values: h.counts, labels: h.counts.map(String), type: 'column', secondary: false }]
+    series = [{ name: series[0]?.name ?? t('Frequency'), values: h.counts, labels: h.counts.map(String), type: 'column', secondary: false }]
   }
   const colors = seriesColors(chart, Math.max(series.length, categories.length))
   series = series.map((s, i) => ({ ...s, color: s.color ?? colors[i] }))
 
   const box: Box = { x: 10, y: 8, w: W - 20, h: H - 16 }
   // title
-  const titleText = chart.title.show ? chart.title.text ?? (series.length === 1 ? series[0].name : 'Chart Title') : ''
+  const titleText = chart.title.show ? chart.title.text ?? (series.length === 1 ? series[0].name : t('Chart Title')) : ''
   if (titleText) {
     out.push(`<text x="${W / 2}" y="${box.y + 16}" text-anchor="middle" font-size="${fs + 4.5}" fill="${text}">${esc(titleText)}</text>`)
     if (!chart.title.overlay) {
@@ -172,7 +173,7 @@ export function renderChartSVG(chart: ChartDef, data: ChartData, W: number, H: n
   // legend
   const pieLike = type === 'pie' || type === 'doughnut' || type === 'treemap'
   const legendItems = pieLike ? categories.map((c, i) => ({ name: c, color: colors[i % colors.length], line: false })) : type === 'waterfall' ? [
-    { name: 'Increase', color: colors[0], line: false }, { name: 'Decrease', color: colors[1], line: false }, { name: 'Total', color: colors[2], line: false },
+    { name: t('Increase'), color: colors[0], line: false }, { name: t('Decrease'), color: colors[1], line: false }, { name: t('Total'), color: colors[2], line: false },
   ] : series.map((s) => ({ name: s.name, color: s.color!, line: s.type === 'line' || type === 'scatter' || type === 'radar' }))
   if (chart.legend !== 'none' && legendItems.length && !(type === 'histogram')) {
     const items = legendItems
@@ -219,11 +220,20 @@ export function renderChartSVG(chart: ChartDef, data: ChartData, W: number, H: n
   }
 
   if (!series.length || series.every((s) => s.values.every((v) => v === null))) {
-    out.push(`<text x="${W / 2}" y="${H / 2}" text-anchor="middle" fill="${text}" opacity="0.7">No data to plot</text>`)
+    out.push(`<text x="${W / 2}" y="${H / 2}" text-anchor="middle" fill="${text}" opacity="0.7">${esc(t('No data to plot'))}</text>`)
     out.push('</svg>')
     return out.join('')
   }
 
+  // Data Table: series values in a grid under the plot area (category charts only)
+  const tableChart = chart.dataTable && !pieLike && type !== 'scatter' && type !== 'radar' && type !== 'funnel' && type !== 'boxWhisker' && type !== 'histogram'
+  if (tableChart) {
+    const rowH = 16
+    const th = rowH * (series.length + 1)
+    const tableBox: Box = { x: box.x, y: box.y + box.h - th, w: box.w, h: th }
+    box.h -= th + 4
+    out.push(dataTableSvg(series, categories, tableBox, text, rowH))
+  }
   if (type === 'funnel') drawFunnel(out, series[0], categories, colors[0], box, text, data.fmt)
   else if (type === 'treemap') drawTreemap(out, series[0], categories, colors, box, data.fmt)
   else if (type === 'boxWhisker') drawBoxes(out, series, box, text, data.fmt)
@@ -232,6 +242,29 @@ export function renderChartSVG(chart: ChartDef, data: ChartData, W: number, H: n
   else if (type === 'scatter') drawScatter(out, chart, series, box, text, st, data.fmt)
   else drawCategory(out, chart, series, categories, box, text, st, data.fmt)
   out.push('</svg>')
+  return out.join('')
+}
+
+/** The chart's data table: category headers, then one row per series with a legend key. */
+function dataTableSvg(series: SeriesData[], categories: string[], box: Box, text: string, rowH: number): string {
+  const keyW = Math.min(110, box.w * 0.25)
+  const cw = (box.w - keyW) / Math.max(1, categories.length)
+  const out: string[] = [`<g font-size="10" fill="${text}">`]
+  const line = (x1: number, y1: number, x2: number, y2: number) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#BFBFBF" stroke-width="0.75"/>`
+  for (let r = 0; r <= series.length + 1; r++) out.push(line(box.x, box.y + r * rowH, box.x + box.w, box.y + r * rowH))
+  out.push(line(box.x, box.y + rowH, box.x, box.y + box.h))
+  for (let c = 0; c <= categories.length; c++) out.push(line(box.x + keyW + c * cw, box.y, box.x + keyW + c * cw, box.y + box.h))
+  categories.forEach((cat, c) => out.push(`<text x="${box.x + keyW + c * cw + cw / 2}" y="${box.y + rowH - 4}" text-anchor="middle">${esc(clip(cat, cw - 4, 10))}</text>`))
+  series.forEach((s, r) => {
+    const y = box.y + (r + 1) * rowH
+    out.push(`<rect x="${box.x + 4}" y="${y + 4}" width="8" height="8" fill="${s.color}"/>`)
+    out.push(`<text x="${box.x + 16}" y="${y + rowH - 4}">${esc(clip(s.name, keyW - 20, 10))}</text>`)
+    s.values.forEach((v, c) => {
+      if (c >= categories.length) return
+      out.push(`<text x="${box.x + keyW + c * cw + cw / 2}" y="${y + rowH - 4}" text-anchor="middle">${esc(clip(s.labels[c] ?? (v === null ? '' : String(v)), cw - 4, 10))}</text>`)
+    })
+  })
+  out.push('</g>')
   return out.join('')
 }
 
@@ -548,7 +581,7 @@ function drawCategory(out: string[], chart: ChartDef, series: SeriesData[], cate
         const rect = horizontal
           ? `x="${p1}" y="${start}" width="${Math.max(0.5, p2 - p1)}" height="${thick}"`
           : `x="${start}" y="${p2}" width="${thick}" height="${Math.max(0.5, p1 - p2)}"`
-        out.push(`<rect ${rect} fill="${s.color}"${st.outline ? ` stroke="${st.outline}" stroke-width="0.75"` : ''}/>`)
+        out.push(`<rect ${rect} fill="${chart.pointColors?.[`${series.indexOf(s)}:${i}`] ?? s.color}"${st.outline ? ` stroke="${st.outline}" stroke-width="0.75"` : ''}/>`)
         if (st.gradient) out.push(`<rect ${rect} fill="url(#gl)"/>`)
         if (chart.dataLabels !== 'none') {
           const t = labelText(s, i, v0)
@@ -564,8 +597,10 @@ function drawCategory(out: string[], chart: ChartDef, series: SeriesData[], cate
     const pos = s.secondary ? vpos2 : vpos
     const isArea = type === 'area' || s.type === 'area'
     const pts: [number, number][] = []
+    const idxs: number[] = []
     s.values.forEach((v0, i) => {
       if (v0 === null) return
+      idxs.push(i)
       let v = v0
       if (percent) v = v0 / (series.reduce((a, se) => a + Math.abs(se.values[i] ?? 0), 0) || 1)
       if (stacked) {
@@ -580,7 +615,11 @@ function drawCategory(out: string[], chart: ChartDef, series: SeriesData[], cate
       const base = pos(Math.max(sc.min, 0))
       out.push(`<path d="${path}L${pts[pts.length - 1][0]},${base}L${pts[0][0]},${base}Z" fill="${s.color}" fill-opacity="${stacked ? 0.9 : 0.7}"/>`)
     } else out.push(`<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/>`)
-    if (!isArea && (chart.markers || type === 'combo')) for (const [x, y] of pts) out.push(`<circle cx="${x}" cy="${y}" r="3.2" fill="${s.color}" stroke="#fff" stroke-width="0.8"/>`)
+    if (!isArea && (chart.markers || type === 'combo' || chart.pointColors))
+      pts.forEach(([x, y], k) => {
+        const pc = chart.pointColors?.[`${series.indexOf(s)}:${idxs[k]}`]
+        if (chart.markers || type === 'combo' || pc) out.push(`<circle cx="${x}" cy="${y}" r="3.2" fill="${pc ?? s.color}" stroke="#fff" stroke-width="0.8"/>`)
+      })
     if (chart.dataLabels !== 'none')
       pts.forEach(([x, y], k) => {
         const i = s.values.findIndex((_, j) => s.values.slice(0, j + 1).filter((v) => v !== null).length === k + 1)
@@ -657,7 +696,7 @@ function drawPie(out: string[], chart: ChartDef, s: SeriesData, categories: stri
     const a2 = a + da
     const large = da > Math.PI ? 1 : 0
     const p = (ang: number, rad: number) => `${(cx + Math.cos(ang) * rad).toFixed(2)},${(cy + Math.sin(ang) * rad).toFixed(2)}`
-    const color = s.color && vals.length === 1 ? s.color : colors[i % colors.length]
+    const color = chart.pointColors?.[`0:${i}`] ?? (s.color && vals.length === 1 ? s.color : colors[i % colors.length])
     let d: string
     if (da >= Math.PI * 2 - 1e-9) {
       d = `M${cx - r},${cy}a${r},${r} 0 1,0 ${2 * r},0a${r},${r} 0 1,0 ${-2 * r},0` + (inner ? `M${cx - inner},${cy}a${inner},${inner} 0 1,1 ${2 * inner},0a${inner},${inner} 0 1,1 ${-2 * inner},0` : '')

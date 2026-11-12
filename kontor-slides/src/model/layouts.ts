@@ -1,5 +1,6 @@
 import type { ColorRef, LayoutId, MasterData, PlaceholderStyle, TextAlign } from './types'
 import type { DecoKind } from './themes'
+import { tx } from '../i18n'
 
 type Box = { style: PlaceholderStyle; idx: number; x: number; y: number; w: number; h: number }
 
@@ -44,15 +45,15 @@ const BASE: Record<LayoutId, Box[]> = {
 }
 
 export const LAYOUTS: { id: LayoutId; name: string }[] = [
-  { id: 'title', name: 'Title Slide' },
-  { id: 'titleContent', name: 'Title and Content' },
-  { id: 'section', name: 'Section Header' },
-  { id: 'twoContent', name: 'Two Content' },
-  { id: 'comparison', name: 'Comparison' },
-  { id: 'titleOnly', name: 'Title Only' },
-  { id: 'blank', name: 'Blank' },
-  { id: 'contentCaption', name: 'Content with Caption' },
-  { id: 'pictureCaption', name: 'Picture with Caption' },
+  { id: 'title', name: tx('Title Slide') },
+  { id: 'titleContent', name: tx('Title and Content') },
+  { id: 'section', name: tx('Section Header') },
+  { id: 'twoContent', name: tx('Two Content') },
+  { id: 'comparison', name: tx('Comparison') },
+  { id: 'titleOnly', name: tx('Title Only') },
+  { id: 'blank', name: tx('Blank') },
+  { id: 'contentCaption', name: tx('Content with Caption') },
+  { id: 'pictureCaption', name: tx('Picture with Caption') },
 ]
 
 // The slide master of the open presentation (set by the store whenever the presentation changes).
@@ -133,17 +134,17 @@ const BODY_SIZES = [28, 24, 20, 18, 18, 18, 18, 18, 18]
 const SUB_SIZES = [24, 20, 18, 16, 16, 16, 16, 16, 16]
 
 export const STYLE_DEFS: Record<PlaceholderStyle | 'textBox' | 'shape', StyleDef> = {
-  title: { font: 'major', sizes: [44], align: 'title', anchor: 'middle', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: 'Click to add title' },
-  ctrTitle: { font: 'major', sizes: [60], align: 'center', anchor: 'bottom', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: 'Click to add title' },
-  subTitle: { font: 'minor', sizes: SUB_SIZES, align: 'center', anchor: 'top', bullets: false, lineHeight: 0.9, spaceBefore: [10, 5], prompt: 'Click to add subtitle' },
-  sectionTitle: { font: 'major', sizes: [60], align: 'left', anchor: 'bottom', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: 'Click to add title' },
-  sectionText: { font: 'minor', sizes: SUB_SIZES, color: 'theme:tx1:l25', align: 'left', anchor: 'top', bullets: false, lineHeight: 0.9, spaceBefore: [10, 5], prompt: 'Click to add text' },
-  body: { font: 'minor', sizes: BODY_SIZES, align: 'left', anchor: 'top', bullets: true, lineHeight: 0.9, spaceBefore: [10, 5], prompt: 'Click to add text' },
-  compHeader: { font: 'minor', sizes: SUB_SIZES, bold: true, align: 'left', anchor: 'bottom', bullets: false, lineHeight: 0.9, spaceBefore: [10, 5], prompt: 'Click to add text' },
-  captionTitle: { font: 'major', sizes: [32], align: 'left', anchor: 'bottom', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: 'Click to add title' },
-  captionBody: { font: 'minor', sizes: [32, 28, 24, 20, 20, 20, 20, 20, 20], align: 'left', anchor: 'top', bullets: true, lineHeight: 0.9, spaceBefore: [10, 5], prompt: 'Click to add text' },
-  captionText: { font: 'minor', sizes: [16, 14, 12, 10, 10, 10, 10, 10, 10], align: 'left', anchor: 'top', bullets: false, lineHeight: 0.9, spaceBefore: [10, 5], prompt: 'Click to add text' },
-  pic: { font: 'minor', sizes: [32], align: 'center', anchor: 'middle', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: 'Click icon to add picture' },
+  title: { font: 'major', sizes: [44], align: 'title', anchor: 'middle', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: tx('Click to add title') },
+  ctrTitle: { font: 'major', sizes: [60], align: 'center', anchor: 'bottom', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: tx('Click to add title') },
+  subTitle: { font: 'minor', sizes: SUB_SIZES, align: 'center', anchor: 'top', bullets: false, lineHeight: 0.9, spaceBefore: [10, 5], prompt: tx('Click to add subtitle') },
+  sectionTitle: { font: 'major', sizes: [60], align: 'left', anchor: 'bottom', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: tx('Click to add title') },
+  sectionText: { font: 'minor', sizes: SUB_SIZES, color: 'theme:tx1:l25', align: 'left', anchor: 'top', bullets: false, lineHeight: 0.9, spaceBefore: [10, 5], prompt: tx('Click to add text') },
+  body: { font: 'minor', sizes: BODY_SIZES, align: 'left', anchor: 'top', bullets: true, lineHeight: 0.9, spaceBefore: [10, 5], prompt: tx('Click to add text') },
+  compHeader: { font: 'minor', sizes: SUB_SIZES, bold: true, align: 'left', anchor: 'bottom', bullets: false, lineHeight: 0.9, spaceBefore: [10, 5], prompt: tx('Click to add text') },
+  captionTitle: { font: 'major', sizes: [32], align: 'left', anchor: 'bottom', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: tx('Click to add title') },
+  captionBody: { font: 'minor', sizes: [32, 28, 24, 20, 20, 20, 20, 20, 20], align: 'left', anchor: 'top', bullets: true, lineHeight: 0.9, spaceBefore: [10, 5], prompt: tx('Click to add text') },
+  captionText: { font: 'minor', sizes: [16, 14, 12, 10, 10, 10, 10, 10, 10], align: 'left', anchor: 'top', bullets: false, lineHeight: 0.9, spaceBefore: [10, 5], prompt: tx('Click to add text') },
+  pic: { font: 'minor', sizes: [32], align: 'center', anchor: 'middle', bullets: false, lineHeight: 0.9, spaceBefore: [0], prompt: tx('Click icon to add picture') },
   textBox: { font: 'minor', sizes: [18], align: 'left', anchor: 'top', bullets: false, lineHeight: 1, spaceBefore: [0], prompt: '' },
   shape: { font: 'minor', sizes: [18], align: 'center', anchor: 'middle', bullets: false, lineHeight: 1, spaceBefore: [0], prompt: '' },
 }

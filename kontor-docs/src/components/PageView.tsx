@@ -6,6 +6,7 @@ import { PX_PER_IN } from '../units'
 import {
   PARAGRAPH_SPACING, SLOT_LABEL, formatPageNumber, paperDims, slotFor, themeColors, themeFonts, type HeaderFooter, type HeaderFooterSlot,
   type PageDesign, type PageSetup,
+  effectiveMargins,
 } from '../pageSetup'
 import { staticExtensions } from '../editor/extensions'
 import { fieldValue, resolveFieldTokens } from '../editor/Fields'
@@ -176,7 +177,7 @@ export function PageView(props: Props) {
   const { w, h } = paperDims(setup)
   const W = w * PX_PER_IN
   const H = h * PX_PER_IN
-  const m = setup.margins
+  const m = effectiveMargins(setup)
   const ml = m.left * PX_PER_IN
   const mr = m.right * PX_PER_IN
   const contentW = W - ml - mr

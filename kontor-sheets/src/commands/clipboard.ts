@@ -8,8 +8,15 @@ import { moveRefs, shiftFormula } from '../engine/refs'
 import type { ClipData, Doc } from './doc'
 import { cellView } from './display'
 import { blocked } from './review'
+import { subtract } from './validation'
+import type { CFRule, Validation } from '../model/extras'
+import { intersect } from '../model/address'
+import type { Sheet } from '../model/sheet'
+import { t, tx } from '../i18n'
 
-export type PasteWhat = 'all' | 'formulas' | 'values' | 'formats' | 'allNoBorders' | 'colWidths' | 'formulasAndFormats' | 'valuesAndFormats' | 'link' | 'keepWidths'
+export type PasteWhat =
+  | 'all' | 'formulas' | 'values' | 'formats' | 'allNoBorders' | 'colWidths' | 'formulasAndFormats' | 'valuesAndFormats' | 'link' | 'keepWidths'
+  | 'comments' | 'validation' | 'allMergeCF'
 export type PasteOp = 'none' | 'add' | 'subtract' | 'multiply' | 'divide'
 export type PasteOptions = { what: PasteWhat; op: PasteOp; skipBlanks: boolean; transpose: boolean }
 
@@ -41,7 +48,7 @@ function styleCss(st: Style): string {
 
 /** Copies the active range. Returns the plain-text and HTML representations for the system clipboard. */
 export function copy(doc: Doc, cut: boolean): { text: string; html: string } | string {
-  if (doc.sel.ranges.length > 1) return "This action won't work on multiple selections."
+  if (doc.sel.ranges.length > 1) return t("This action won't work on multiple selections.")
   const sheet = doc.sheet
   const rg = doc.boundToUsed(doc.activeRange)
   const cells: (CellData | undefined)[][] = []
@@ -99,6 +106,71 @@ function combine(op: PasteOp, dest: Scalar, src: Scalar): Scalar {
 
 const noBorders: StylePatch = { bt: undefined, bb: undefined, bl: undefined, br: undefined, bdd: undefined, bdu: undefined }
 
+type Placement = { dr: number; dc: number }
+
+/** Copies validation rules, conditional formats and/or notes and comments of the source range to every pasted block. */
+function pasteExtras(doc: Doc, src: Sheet, dest: Sheet, from: Range, places: Placement[], what: { validation?: boolean; cf?: boolean; notes?: boolean; replaceValidation?: boolean; replaceCF?: boolean }) {
+  const moved = (rg: Range, p: Placement): Range => ({ r1: rg.r1 + p.dr, c1: rg.c1 + p.dc, r2: rg.r2 + p.dr, c2: rg.c2 + p.dc })
+  const targets = places.map((p) => moved(from, p))
+  doc.noteProps(dest)
+  if (what.validation) {
+    const pieces: Validation[] = []
+    for (const v of src.x.validations)
+      for (const p of places) {
+        const ranges = v.ranges.map((rg) => intersect(rg, from)).filter((rg): rg is Range => !!rg).map((rg) => moved(rg, p))
+        if (!ranges.length) continue
+        const dr = ranges[0].r1 - v.ranges[0].r1
+        const dc = ranges[0].c1 - v.ranges[0].c1
+        pieces.push({ ...structuredClone(v), id: doc.wb.newObjectId(), ranges, f1: v.f1 && shiftFormula(v.f1, dr, dc), f2: v.f2 && shiftFormula(v.f2, dr, dc) })
+      }
+    if (pieces.length || what.replaceValidation) {
+      const kept = dest.x.validations
+        .map((v) => ({ ...v, ranges: targets.reduce((list, t) => list.flatMap((rg) => subtract(rg, [t])), v.ranges) }))
+        .filter((v) => v.ranges.length)
+      dest.x.validations = [...kept, ...pieces]
+    }
+  }
+  if (what.cf) {
+    const rules: CFRule[] = []
+    let priority = Math.max(0, ...dest.x.cf.map((r) => r.priority))
+    for (const rule of src.x.cf)
+      for (const p of places) {
+        const ranges = rule.ranges.map((rg) => intersect(rg, from)).filter((rg): rg is Range => !!rg).map((rg) => moved(rg, p))
+        if (!ranges.length) continue
+        const dr = ranges[0].r1 - rule.ranges[0].r1
+        const dc = ranges[0].c1 - rule.ranges[0].c1
+        const copy = structuredClone(rule) as CFRule
+        copy.id = doc.wb.newObjectId()
+        copy.ranges = ranges
+        copy.priority = ++priority
+        if (copy.type === 'expression') copy.formula = shiftFormula(copy.formula, dr, dc)
+        if (copy.type === 'cellIs') {
+          copy.f1 = shiftFormula(copy.f1, dr, dc)
+          if (copy.f2) copy.f2 = shiftFormula(copy.f2, dr, dc)
+        }
+        rules.push(copy)
+      }
+    let kept = dest.x.cf
+    if (what.replaceCF && rules.length)
+      kept = kept.map((r) => ({ ...r, ranges: targets.reduce((list, t) => list.flatMap((rg) => subtract(rg, [t])), r.ranges) })).filter((r) => r.ranges.length)
+    if (rules.length) dest.x.cf = [...kept, ...rules]
+  }
+  if (what.notes) {
+    const notes = { ...dest.x.notes }
+    const comments = { ...dest.x.comments }
+    for (const p of places)
+      for (let r = from.r1; r <= from.r2; r++)
+        for (let c = from.c1; c <= from.c2; c++) {
+          const k = cellKey(r, c)
+          const to = cellKey(r + p.dr, c + p.dc)
+          if (src.x.notes[k]) notes[to] = structuredClone(src.x.notes[k])
+          if (src.x.comments[k]) comments[to] = structuredClone(src.x.comments[k])
+        }
+    dest.x.notes = notes
+    dest.x.comments = comments
+  }
+}
+
 /** Pastes the internal clipboard at the active selection. */
 export function pasteInternal(doc: Doc, opts: PasteOptions = DEFAULT_PASTE): string | null {
   if (blocked(doc, 'cells')) return null
@@ -117,11 +189,21 @@ export function pasteInternal(doc: Doc, opts: PasteOptions = DEFAULT_PASTE): str
   const tileC = tw % w === 0 && tw > w ? tw / w : 1
   const r0 = target.r1
   const c0 = target.c1
-  if (r0 + h * tileR > MAX_ROWS || c0 + w * tileC > MAX_COLS) return "The content can't be pasted because it doesn't fit."
+  if (r0 + h * tileR > MAX_ROWS || c0 + w * tileC > MAX_COLS) return t("The content can't be pasted because it doesn't fit.")
   const styles = doc.wb.styles
   const cut = clip.cut && opts.what === 'all'
-  doc.transact(cut ? 'Cut and Paste' : 'Paste', () => {
+  doc.transact(cut ? tx('Cut and Paste') : tx('Paste'), () => {
     if (cut) for (const s of doc.wb.sheets) doc.noteFull(s)
+    if (!opts.transpose && !cut) {
+      const places: Placement[] = []
+      for (let ti = 0; ti < tileR; ti++) for (let tj = 0; tj < tileC; tj++) places.push({ dr: r0 + ti * h - clip.range.r1, dc: c0 + tj * w - clip.range.c1 })
+      if (opts.what === 'comments') return pasteExtras(doc, srcSheet, sheet, clip.range, places, { notes: true })
+      if (opts.what === 'validation') return pasteExtras(doc, srcSheet, sheet, clip.range, places, { validation: true, replaceValidation: true })
+      if (opts.what === 'all' || opts.what === 'allMergeCF' || opts.what === 'keepWidths' || opts.what === 'allNoBorders')
+        pasteExtras(doc, srcSheet, sheet, clip.range, places, { validation: true, cf: true, replaceCF: opts.what !== 'allMergeCF', notes: true })
+      else if (opts.what === 'formats') pasteExtras(doc, srcSheet, sheet, clip.range, places, { cf: true, replaceCF: true })
+    }
+    if (opts.what === 'comments' || opts.what === 'validation') return
     if (opts.what === 'colWidths' || opts.what === 'keepWidths') {
       doc.noteProps(sheet)
       for (let j = 0; j < w * tileC; j++) sheet.cols.manual.set(c0 + j, clip.colWidths[(opts.transpose ? 0 : j % w)] ?? sheet.cols.def)
@@ -151,6 +233,7 @@ export function pasteInternal(doc: Doc, opts: PasteOptions = DEFAULT_PASTE): str
             }
             switch (opts.what) {
               case 'all':
+              case 'allMergeCF':
               case 'keepWidths':
                 next = { ...content(), s: src?.s }
                 break
@@ -318,7 +401,7 @@ export function pasteExternal(doc: Doc, text: string, html: string, valuesOnly =
   const c0 = doc.activeRange.c1
   const h = grid.length
   const w = Math.max(...grid.map((r) => r.length))
-  doc.transact('Paste', () => {
+  doc.transact(tx('Paste'), () => {
     for (let i = 0; i < h; i++)
       for (let j = 0; j < w; j++) {
         const cell = grid[i][j] ?? { text: '', style: {} }

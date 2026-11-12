@@ -1,10 +1,88 @@
 import { Extension } from '@tiptap/core'
-import type { Node as PMNode } from '@tiptap/pm/model'
-import { Plugin, PluginKey, type EditorState } from '@tiptap/pm/state'
+import type { Mark, Node as PMNode, Schema } from '@tiptap/pm/model'
+import { Plugin, PluginKey, type EditorState, type Transaction } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 
 export type Range = { from: number; to: number }
-export type SearchOptions = { matchCase?: boolean; wholeWord?: boolean; wildcards?: boolean }
+/**
+ * Find › Format: character formatting and paragraph style the found text must have (or, for
+ * Replace, gets). `true`/`false` require the attribute on or off; unset means "any".
+ */
+export type FormatFilter = {
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  strike?: boolean
+  highlight?: boolean
+  fontFamily?: string
+  fontSize?: string
+  color?: string
+  /** "normal", "h1" … "h6" or a paragraph style id. */
+  paragraphStyle?: string
+}
+export type SearchOptions = { matchCase?: boolean; wholeWord?: boolean; wildcards?: boolean; format?: FormatFilter | null }
+
+export const hasFormat = (f: FormatFilter | null | undefined): f is FormatFilter => !!f && Object.values(f).some((v) => v !== undefined && v !== '')
+
+const firstFamily = (v: unknown) => String(v ?? '').split(',')[0].trim().replace(/^["']|["']$/g, '').toLowerCase()
+const sameSize = (a: unknown, b: string) => parseFloat(String(a ?? '')) === parseFloat(b) && !!a
+const sameColor = (a: unknown, b: string) => String(a ?? '').toLowerCase() === b.toLowerCase()
+
+/** The style id of a textblock as the Format filter names it. */
+export function blockStyleOf(block: PMNode): string {
+  if (block.type.name === 'heading') return `h${block.attrs.level}`
+  return (block.attrs.pStyle as string | null) ?? 'normal'
+}
+
+/** Whether a text node (inside `block`) has the formatting of the filter. */
+export function textHasFormat(marks: readonly Mark[], block: PMNode, f: FormatFilter): boolean {
+  const has = (type: string) => marks.some((m) => m.type.name === type)
+  const style = marks.find((m) => m.type.name === 'textStyle')?.attrs ?? {}
+  if (f.bold !== undefined && has('bold') !== f.bold) return false
+  if (f.italic !== undefined && has('italic') !== f.italic) return false
+  if (f.underline !== undefined && has('underline') !== f.underline) return false
+  if (f.strike !== undefined && has('strike') !== f.strike) return false
+  if (f.highlight !== undefined && has('highlight') !== f.highlight) return false
+  if (f.fontFamily && firstFamily(style.fontFamily) !== firstFamily(f.fontFamily)) return false
+  if (f.fontSize && !sameSize(style.fontSize, f.fontSize)) return false
+  if (f.color && !sameColor(style.color, f.color)) return false
+  if (f.paragraphStyle && blockStyleOf(block) !== f.paragraphStyle) return false
+  return true
+}
+
+/** Applies Replace › Format to a range. */
+export function applyFormat(tr: Transaction, from: number, to: number, f: FormatFilter, schema: Schema) {
+  const toggle = (name: string, on: boolean | undefined, attrs?: Record<string, unknown>) => {
+    const type = schema.marks[name]
+    if (!type || on === undefined) return
+    if (on) tr.addMark(from, to, type.create(attrs))
+    else tr.removeMark(from, to, type)
+  }
+  toggle('bold', f.bold)
+  toggle('italic', f.italic)
+  toggle('underline', f.underline)
+  toggle('strike', f.strike)
+  toggle('highlight', f.highlight, { color: '#FFFF00' })
+  const textStyle = schema.marks.textStyle
+  if (textStyle && (f.fontFamily || f.fontSize || f.color)) {
+    tr.doc.nodesBetween(from, to, (node, pos) => {
+      if (!node.isText) return
+      const start = Math.max(from, pos)
+      const end = Math.min(to, pos + node.nodeSize)
+      const current = node.marks.find((m) => m.type === textStyle)?.attrs ?? {}
+      tr.addMark(start, end, textStyle.create({ ...current, ...(f.fontFamily ? { fontFamily: f.fontFamily } : {}), ...(f.fontSize ? { fontSize: /pt|px$/.test(f.fontSize) ? f.fontSize : `${parseFloat(f.fontSize)}pt` } : {}), ...(f.color ? { color: f.color } : {}) }))
+    })
+  }
+  if (f.paragraphStyle) {
+    tr.doc.nodesBetween(from, to, (node, pos) => {
+      if (!node.isTextblock) return
+      const level = f.paragraphStyle!.match(/^h([1-6])$/)
+      if (level && schema.nodes.heading) tr.setNodeMarkup(pos, schema.nodes.heading, { ...node.attrs, level: Number(level[1]) })
+      else if (schema.nodes.paragraph) tr.setNodeMarkup(pos, schema.nodes.paragraph, { ...node.attrs, pStyle: f.paragraphStyle === 'normal' ? null : f.paragraphStyle })
+      return false
+    })
+  }
+}
 type SearchState = { query: string; options: SearchOptions; current: number; matches: Range[]; decorations: DecorationSet }
 type SearchMeta = { query?: string; current?: number; options?: SearchOptions }
 
@@ -73,6 +151,35 @@ export function expandReplacement(replacement: string, found: string, query: str
 
 /** Finds matches inside every textblock, also across formatting boundaries. */
 export function findMatches(doc: PMNode, query: string, options: SearchOptions = {}): Range[] {
+  const format = hasFormat(options.format) ? options.format : null
+  if (!format) return findText(doc, query, options)
+  // Formatting only: every stretch of text with that formatting.
+  if (!query) {
+    const out: Range[] = []
+    doc.descendants((node, pos) => {
+      if (!node.isTextblock) return
+      node.forEach((child, offset) => {
+        if (!child.isText || !textHasFormat(child.marks, node, format)) return
+        const from = pos + 1 + offset
+        const last = out[out.length - 1]
+        if (last && last.to === from) last.to = from + child.nodeSize
+        else out.push({ from, to: from + child.nodeSize })
+      })
+      return false
+    })
+    return out
+  }
+  return findText(doc, query, options).filter((r) => {
+    let ok = true
+    doc.nodesBetween(r.from, r.to, (node, pos, parent) => {
+      if (node.isText && parent && !textHasFormat(node.marks, parent, format)) ok = false
+      return ok
+    })
+    return ok
+  })
+}
+
+function findText(doc: PMNode, query: string, options: SearchOptions): Range[] {
   const results: Range[] = []
   if (!query) return results
   const re = searchRegExp(query, options)
@@ -139,7 +246,7 @@ export const Search = Extension.create({
           apply(tr, prev, _old, newState) {
             const meta = tr.getMeta(searchKey) as SearchMeta | undefined
             if (meta) return build(newState.doc, meta.query ?? prev.query, meta.current ?? 0, meta.options ?? prev.options)
-            if (tr.docChanged && prev.query) return build(newState.doc, prev.query, prev.current, prev.options)
+            if (tr.docChanged && (prev.query || hasFormat(prev.options.format))) return build(newState.doc, prev.query, prev.current, prev.options)
             return prev
           },
         },

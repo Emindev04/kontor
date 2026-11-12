@@ -1,13 +1,14 @@
+import { tx } from './i18n'
 // All lengths are stored in inches (like the en-US original) and only converted for display.
 
 export type Unit = 'in' | 'cm' | 'mm' | 'pt' | 'pi'
 
 export const UNITS: { id: Unit; label: string }[] = [
-  { id: 'in', label: 'Inches' },
-  { id: 'cm', label: 'Centimeters' },
-  { id: 'mm', label: 'Millimeters' },
-  { id: 'pt', label: 'Points' },
-  { id: 'pi', label: 'Picas' },
+  { id: 'in', label: tx('Inches') },
+  { id: 'cm', label: tx('Centimeters') },
+  { id: 'mm', label: tx('Millimeters') },
+  { id: 'pt', label: tx('Points') },
+  { id: 'pi', label: tx('Picas') },
 ]
 
 const PER_INCH: Record<Unit, number> = { in: 1, cm: 2.54, mm: 25.4, pt: 72, pi: 6 }
@@ -55,6 +56,8 @@ export type Settings = {
   qat?: string[]
   /** Ribbon tabs hidden in Options › Customize Ribbon. */
   hiddenTabs?: string[]
+  /** Own ribbon tabs (Options › Customize Ribbon › New Tab) with groups of commands and macros. */
+  customTabs?: import('./editor/macros').CustomTab[]
   /** Status bar items turned off (right-click the status bar). */
   hiddenStatus?: string[]
 }

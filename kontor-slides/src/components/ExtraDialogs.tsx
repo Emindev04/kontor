@@ -14,16 +14,18 @@ import { Modal, NumberField, cls } from './ui'
 import { getActiveEditor } from '../editor/activeEditor'
 import { matchCase, synonyms } from '../editor/thesaurus'
 import { ColorPickerButton } from './Panes'
+import { getLanguage, LANGUAGES, setLanguage, t, tx, type Language } from '../i18n'
+import { saveLocal } from '../io/storage'
 
-function OkCancel({ onOk, onClose, okLabel = 'OK' }: { onOk: () => void; onClose: () => void; okLabel?: string }) {
+function OkCancel({ onOk, onClose, okLabel }: { onOk: () => void; onClose: () => void; okLabel?: string }) {
   return (
     <>
       <span className="spacer" />
       <button type="button" className="btn btn-primary" onClick={onOk}>
-        {okLabel}
+        {okLabel ?? t('OK')}
       </button>
       <button type="button" className="btn" onClick={onClose}>
-        Cancel
+        {t('Cancel')}
       </button>
     </>
   )
@@ -42,12 +44,12 @@ export function ColumnsDialog({ onClose }: { onClose: () => void }) {
     onClose()
   }
   return (
-    <Modal title="Columns" onClose={onClose} width={320} footer={<OkCancel onOk={ok} onClose={onClose} />}>
+    <Modal title={t('Columns')} onClose={onClose} width={320} footer={<OkCancel onOk={ok} onClose={onClose} />}>
       <div className="form-grid">
-        <label>Number:</label>
-        <NumberField label="Number of columns" value={n} min={1} max={16} step={1} decimals={0} onChange={setN} />
-        <label>Spacing:</label>
-        <NumberField label="Spacing between columns" value={spacing} min={0} max={10} step={0.1} suffix='"' onChange={setSpacing} />
+        <label>{t('Number:')}</label>
+        <NumberField label={t('Number of columns')} value={n} min={1} max={16} step={1} decimals={0} onChange={setN} />
+        <label>{t('Spacing:')}</label>
+        <NumberField label={t('Spacing between columns')} value={spacing} min={0} max={10} step={0.1} suffix='"' onChange={setSpacing} />
       </div>
     </Modal>
   )
@@ -75,13 +77,13 @@ export function BulletsDialog({ onClose }: { onClose: () => void }) {
   const chars = [...new Set([...BULLET_CHARS.map((b) => b.char), '–', '✓', '➢', '★', '♦', '→'])]
   return (
     <Modal
-      title="Bullets and Numbering"
+      title={t('Bullets and Numbering')}
       onClose={onClose}
       width={460}
       footer={
         <>
           <button type="button" className="btn" onClick={() => apply(true)}>
-            None
+            {t('None')}
           </button>
           <OkCancel onOk={() => apply()} onClose={onClose} />
         </>
@@ -89,10 +91,10 @@ export function BulletsDialog({ onClose }: { onClose: () => void }) {
     >
       <div className="dlg-tabs" role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'bullets'} className={cls('dlg-tab', tab === 'bullets' && 'is-active')} onClick={() => setTab('bullets')}>
-          Bulleted
+          {t('Bulleted')}
         </button>
         <button type="button" role="tab" aria-selected={tab === 'numbers'} className={cls('dlg-tab', tab === 'numbers' && 'is-active')} onClick={() => setTab('numbers')}>
-          Numbered
+          {t('Numbered')}
         </button>
       </div>
       {tab === 'bullets' ? (
@@ -103,8 +105,8 @@ export function BulletsDialog({ onClose }: { onClose: () => void }) {
             </button>
           ))}
           <label className="bullet-custom">
-            Customize…
-            <input value={custom} maxLength={2} placeholder="Character" onChange={(e) => (setCustom(e.target.value), e.target.value && setBullet(e.target.value))} />
+            {t('Customize…')}
+            <input value={custom} maxLength={2} placeholder={t('Character')} onChange={(e) => (setCustom(e.target.value), e.target.value && setBullet(e.target.value))} />
           </label>
         </div>
       ) : (
@@ -119,21 +121,21 @@ export function BulletsDialog({ onClose }: { onClose: () => void }) {
         </div>
       )}
       <div className="form-grid">
-        <label>Size:</label>
-        <NumberField label="Bullet size in percent of text" value={size} min={25} max={400} step={5} decimals={0} suffix="% of text" width={120} onChange={setSize} />
-        <label>Color:</label>
+        <label>{t('Size:')}</label>
+        <NumberField label={t('Bullet size in percent of text')} value={size} min={25} max={400} step={5} decimals={0} suffix={t('% of text')} width={120} onChange={setSize} />
+        <label>{t('Color:')}</label>
         <span className="row">
-          <ColorPickerButton label="Bullet color" value={color ?? 'theme:tx1'} onChange={(c) => setColor(c)} />
+          <ColorPickerButton label={t('Bullet color')} value={color ?? 'theme:tx1'} onChange={(c) => setColor(c)} />
           {color && (
             <button type="button" className="btn btn-small" onClick={() => setColor(null)}>
-              Automatic
+              {t('Automatic')}
             </button>
           )}
         </span>
         {tab === 'numbers' && (
           <>
-            <label>Start at:</label>
-            <NumberField label="Start at" value={start} min={1} max={32767} step={1} decimals={0} onChange={setStart} />
+            <label>{t('Start at:')}</label>
+            <NumberField label={t('Start at')} value={start} min={1} max={32767} step={1} decimals={0} onChange={setStart} />
           </>
         )}
       </div>
@@ -144,56 +146,56 @@ export function BulletsDialog({ onClose }: { onClose: () => void }) {
 // ---------- Theme colors and fonts ----------
 
 const SLOT_LABELS: [ThemeSlot, string][] = [
-  ['tx1', 'Text/Background – Dark 1'],
-  ['bg1', 'Text/Background – Light 1'],
-  ['tx2', 'Text/Background – Dark 2'],
-  ['bg2', 'Text/Background – Light 2'],
-  ['accent1', 'Accent 1'],
-  ['accent2', 'Accent 2'],
-  ['accent3', 'Accent 3'],
-  ['accent4', 'Accent 4'],
-  ['accent5', 'Accent 5'],
-  ['accent6', 'Accent 6'],
-  ['hlink', 'Hyperlink'],
+  ['tx1', tx('Text/Background – Dark 1')],
+  ['bg1', tx('Text/Background – Light 1')],
+  ['tx2', tx('Text/Background – Dark 2')],
+  ['bg2', tx('Text/Background – Light 2')],
+  ['accent1', tx('Accent 1')],
+  ['accent2', tx('Accent 2')],
+  ['accent3', tx('Accent 3')],
+  ['accent4', tx('Accent 4')],
+  ['accent5', tx('Accent 5')],
+  ['accent6', tx('Accent 6')],
+  ['hlink', tx('Hyperlink')],
 ]
 
 export function ThemeColorsDialog({ onClose }: { onClose: () => void }) {
   const pres = useStore((s) => s.pres)
   const base = getVariant(getTheme(pres.themeId), pres.variant).colors
   const [cols, setCols] = useState<Record<string, string>>(() => ({ ...base, ...(pres.colors ?? {}) }))
-  const [name, setName] = useState(pres.colorsName || 'Custom 1')
+  const [name, setName] = useState(pres.colorsName || t('Custom 1'))
   const ok = () => {
     const diff = Object.fromEntries(Object.entries(cols).filter(([k, v]) => (base as Record<string, string>)[k]?.toUpperCase() !== v.toUpperCase()))
     A.setThemeColors(Object.keys(diff).length ? diff : null, name)
     onClose()
   }
   return (
-    <Modal title="Create New Theme Colors" onClose={onClose} width={520} footer={<OkCancel onOk={ok} onClose={onClose} okLabel="Save" />}>
+    <Modal title={t('Create New Theme Colors')} onClose={onClose} width={520} footer={<OkCancel onOk={ok} onClose={onClose} okLabel={t('Save')} />}>
       <div className="theme-colors-dlg">
         <div className="form-grid">
           {SLOT_LABELS.map(([slot, label]) => (
             <label key={slot} className="tc-row">
-              <span>{label}</span>
+              <span>{t(label)}</span>
               <input type="color" value={(cols[slot] ?? '#000000').slice(0, 7)} onChange={(e) => setCols((c) => ({ ...c, [slot]: e.target.value.toUpperCase() }))} />
             </label>
           ))}
         </div>
         <div className="tc-sample" style={{ background: cols.bg1, color: cols.tx1 }}>
-          <strong>Text</strong>
+          <strong>{t('Text')}</strong>
           <div className="tc-bars">
             {THEME_SLOTS.filter((s) => s.startsWith('accent')).map((s) => (
               <span key={s} style={{ background: cols[s] }} />
             ))}
           </div>
-          <span style={{ color: cols.hlink ?? cols.accent1, textDecoration: 'underline' }}>Hyperlink</span>
+          <span style={{ color: cols.hlink ?? cols.accent1, textDecoration: 'underline' }}>{t('Hyperlink')}</span>
         </div>
       </div>
       <div className="form-grid">
-        <label>Name:</label>
+        <label>{t('Name:')}</label>
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <button type="button" className="btn btn-small" onClick={() => setCols({ ...base })}>
-        Reset
+        {t('Reset')}
       </button>
     </Modal>
   )
@@ -204,32 +206,32 @@ export function ThemeFontsDialog({ onClose }: { onClose: () => void }) {
   const theme = getTheme(pres.themeId)
   const [major, setMajor] = useState(pres.fonts?.major ?? theme.fonts.major)
   const [minor, setMinor] = useState(pres.fonts?.minor ?? theme.fonts.minor)
-  const [name, setName] = useState('Custom 1')
+  const [name, setName] = useState(t('Custom 1'))
   const ok = () => {
     A.setThemeFonts(major === theme.fonts.major && minor === theme.fonts.minor ? null : { major, minor })
     onClose()
   }
   return (
-    <Modal title="Create New Theme Fonts" onClose={onClose} width={480} footer={<OkCancel onOk={ok} onClose={onClose} okLabel="Save" />}>
+    <Modal title={t('Create New Theme Fonts')} onClose={onClose} width={480} footer={<OkCancel onOk={ok} onClose={onClose} okLabel={t('Save')} />}>
       <div className="form-grid">
-        <label>Heading font:</label>
+        <label>{t('Heading font:')}</label>
         <select value={major} onChange={(e) => setMajor(e.target.value)}>
           {FONT_LIST.map((f) => (
             <option key={f}>{f}</option>
           ))}
         </select>
-        <label>Body font:</label>
+        <label>{t('Body font:')}</label>
         <select value={minor} onChange={(e) => setMinor(e.target.value)}>
           {FONT_LIST.map((f) => (
             <option key={f}>{f}</option>
           ))}
         </select>
-        <label>Name:</label>
+        <label>{t('Name:')}</label>
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div className="tf-sample">
-        <div style={{ fontFamily: fontStack(major), fontSize: 22 }}>Heading</div>
-        <div style={{ fontFamily: fontStack(minor) }}>Body text body text body text. Body text body text.</div>
+        <div style={{ fontFamily: fontStack(major), fontSize: 22 }}>{t('Heading')}</div>
+        <div style={{ fontFamily: fontStack(minor) }}>{t('Body text body text body text. Body text body text.')}</div>
       </div>
     </Modal>
   )
@@ -249,30 +251,30 @@ export function GridGuidesDialog({ onClose }: { onClose: () => void }) {
     onClose()
   }
   return (
-    <Modal title="Grid and Guides" onClose={onClose} width={380} footer={<OkCancel onOk={ok} onClose={onClose} />}>
+    <Modal title={t('Grid and Guides')} onClose={onClose} width={380} footer={<OkCancel onOk={ok} onClose={onClose} />}>
       <fieldset className="dlg-fieldset">
-        <legend>Snap to</legend>
+        <legend>{t('Snap to')}</legend>
         <label className="check">
-          <input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} /> Snap objects to grid
+          <input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} /> {t('Snap objects to grid')}
         </label>
       </fieldset>
       <fieldset className="dlg-fieldset">
-        <legend>Grid settings</legend>
+        <legend>{t('Grid settings')}</legend>
         <div className="form-grid">
-          <label>Spacing:</label>
-          <NumberField label="Grid spacing" value={spacing} min={0.02} max={2} step={0.042} decimals={3} suffix='"' width={90} onChange={setSpacing} />
+          <label>{t('Spacing:')}</label>
+          <NumberField label={t('Grid spacing')} value={spacing} min={0.02} max={2} step={0.042} decimals={3} suffix='"' width={90} onChange={setSpacing} />
         </div>
         <label className="check">
-          <input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} /> Display grid on screen
+          <input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} /> {t('Display grid on screen')}
         </label>
       </fieldset>
       <fieldset className="dlg-fieldset">
-        <legend>Guide settings</legend>
+        <legend>{t('Guide settings')}</legend>
         <label className="check">
-          <input type="checkbox" checked={guides} onChange={(e) => setGuides(e.target.checked)} /> Display drawing guides on screen
+          <input type="checkbox" checked={guides} onChange={(e) => setGuides(e.target.checked)} /> {t('Display drawing guides on screen')}
         </label>
         <label className="check">
-          <input type="checkbox" checked={smart} onChange={(e) => setSmart(e.target.checked)} /> Display smart guides when shapes are aligned
+          <input type="checkbox" checked={smart} onChange={(e) => setSmart(e.target.checked)} /> {t('Display smart guides when shapes are aligned')}
         </label>
       </fieldset>
       <button
@@ -287,7 +289,7 @@ export function GridGuidesDialog({ onClose }: { onClose: () => void }) {
           store.set({ guides: null })
         }}
       >
-        Set as Default
+        {t('Set as Default')}
       </button>
     </Modal>
   )
@@ -301,75 +303,95 @@ export function OptionsDialog({ onClose }: { onClose: () => void }) {
   const [page, setPage] = useState<'general' | 'proofing' | 'advanced' | 'qat'>('general')
   const spell = useStore((s) => s.spellcheck)
   const [spellDraft, setSpellDraft] = useState(spell)
+  const [language, setLanguageDraft] = useState<Language>(getLanguage())
   const up = (p: Partial<AppOptions>) => setDraft((d) => ({ ...d, ...p }))
   const ok = () => {
     setOptions({ ...draft, initials: draft.initials || initialsOf(draft.userName) })
     store.set({ spellcheck: spellDraft })
     onClose()
+    if (language !== getLanguage()) {
+      // The program reloads in the new language: store the presentation first so nothing is lost.
+      const s = store.get()
+      void saveLocal(s.title, s.pres)
+        .catch(() => undefined)
+        .finally(() => setLanguage(language))
+    }
   }
   return (
-    <Modal title="Options" onClose={onClose} width={640} footer={<OkCancel onOk={ok} onClose={onClose} />}>
+    <Modal title={t('Options')} onClose={onClose} width={640} footer={<OkCancel onOk={ok} onClose={onClose} />}>
       <div className="options-dlg">
         <nav className="options-nav">
           {(
             [
-              ['general', 'General'],
-              ['proofing', 'Proofing'],
-              ['advanced', 'Advanced'],
-              ['qat', 'Quick Access Toolbar'],
+              ['general', tx('General')],
+              ['proofing', tx('Proofing')],
+              ['advanced', tx('Advanced')],
+              ['qat', tx('Quick Access Toolbar')],
             ] as const
           ).map(([id, label]) => (
             <button key={id} type="button" className={cls(page === id && 'is-active')} onClick={() => setPage(id)}>
-              {label}
+              {t(label)}
             </button>
           ))}
         </nav>
         <div className="options-page">
           {page === 'general' && (
             <>
-              <h3>Personalize your copy</h3>
+              <h3>{t('Personalize your copy')}</h3>
               <div className="form-grid">
-                <label>User name:</label>
-                <input value={draft.userName} placeholder="Shown on comments" onChange={(e) => up({ userName: e.target.value })} />
-                <label>Initials:</label>
+                <label>{t('User name:')}</label>
+                <input value={draft.userName} placeholder={t('Shown on comments')} onChange={(e) => up({ userName: e.target.value })} />
+                <label>{t('Initials:')}</label>
                 <input value={draft.initials} maxLength={4} placeholder={initialsOf(draft.userName)} onChange={(e) => up({ initials: e.target.value })} />
-                <label>App theme:</label>
+                <label>{t('App theme:')}</label>
                 <select value={draft.officeTheme} onChange={(e) => up({ officeTheme: e.target.value as AppOptions['officeTheme'] })}>
-                  <option value="colorful">Colorful</option>
-                  <option value="white">White</option>
-                  <option value="dark">Dark Gray</option>
+                  <option value="colorful">{t('Colorful')}</option>
+                  <option value="white">{t('White')}</option>
+                  <option value="dark">{t('Dark Gray')}</option>
                 </select>
               </div>
-              <h3>User interface options</h3>
+              <h3>{t('Language')}</h3>
+              <div className="form-grid">
+                <label htmlFor="ui-language">{t('Display language:')}</label>
+                <select id="ui-language" value={language} onChange={(e) => setLanguageDraft(e.target.value as Language)}>
+                  {LANGUAGES.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {language !== getLanguage() && <p className="muted">{t('The program restarts in the new language when you click OK.')}</p>}
+              <h3>{t('User interface options')}</h3>
               <label className="check">
-                <input type="checkbox" checked={draft.miniToolbar} onChange={(e) => up({ miniToolbar: e.target.checked })} /> Show Mini Toolbar on selection
+                <input type="checkbox" checked={draft.miniToolbar} onChange={(e) => up({ miniToolbar: e.target.checked })} /> {t('Show Mini Toolbar on selection')}
               </label>
             </>
           )}
           {page === 'proofing' && (
             <>
-              <h3>AutoCorrect options</h3>
+              <h3>{t('AutoCorrect options')}</h3>
               <label className="check">
-                <input type="checkbox" checked={draft.autoCorrect} onChange={(e) => up({ autoCorrect: e.target.checked })} /> Replace text as you type ((c) → ©, (tm) → ™, -- → —, -&gt; → →)
+                <input type="checkbox" checked={draft.autoCorrect} onChange={(e) => up({ autoCorrect: e.target.checked })} /> {t('Replace text as you type ((c) → ©, (tm) → ™, -- → —, -> → →)')}
               </label>
               <label className="check">
-                <input type="checkbox" checked={draft.smartQuotes} onChange={(e) => up({ smartQuotes: e.target.checked })} /> Replace "straight quotes" with “smart quotes”
+                <input type="checkbox" checked={draft.smartQuotes} onChange={(e) => up({ smartQuotes: e.target.checked })} /> {t('Replace "straight quotes" with “smart quotes”')}
               </label>
               <label className="check">
-                <input type="checkbox" checked={draft.autoLists} onChange={(e) => up({ autoLists: e.target.checked })} /> Automatic bulleted and numbered lists
+                <input type="checkbox" checked={draft.autoLists} onChange={(e) => up({ autoLists: e.target.checked })} /> {t('Automatic bulleted and numbered lists')}
               </label>
-              <h3>When correcting spelling</h3>
+              <h3>{t('When correcting spelling')}</h3>
               <label className="check">
-                <input type="checkbox" checked={spellDraft} onChange={(e) => setSpellDraft(e.target.checked)} /> Check spelling as you type
+                <input type="checkbox" checked={spellDraft} onChange={(e) => setSpellDraft(e.target.checked)} /> {t('Check spelling as you type')}
               </label>
             </>
           )}
           {page === 'advanced' && (
             <>
-              <h3>Editing options</h3>
-              <p className="muted">Undo keeps the last 200 actions. Presentations are saved automatically in this browser while AutoSave is on.</p>
+              <h3>{t('Editing options')}</h3>
+              <p className="muted">{t('Undo keeps the last 200 actions. Presentations are saved automatically in this browser while AutoSave is on.')}</p>
               <button type="button" className="btn btn-small" onClick={() => setDraft({ ...DEFAULT_OPTIONS, userName: draft.userName, initials: draft.initials })}>
-                Reset all options
+                {t('Reset all options')}
               </button>
             </>
           )}
@@ -393,40 +415,40 @@ function QatEditor({ value, below, onChange }: { value: QatId[]; below: boolean;
   }
   return (
     <>
-      <h3>Customize the Quick Access Toolbar</h3>
+      <h3>{t('Customize the Quick Access Toolbar')}</h3>
       <div className="qat-editor">
-        <div className="qat-list" role="listbox" aria-label="Available commands">
+        <div className="qat-list" role="listbox" aria-label={t('Available commands')}>
           {QAT_COMMANDS.filter((c) => !value.includes(c.id)).map((c) => (
             <button key={c.id} type="button" onDoubleClick={() => onChange([...value, c.id], below)} onClick={() => onChange([...value, c.id], below)}>
-              {c.label}
+              {t(c.label)}
             </button>
           ))}
         </div>
-        <div className="qat-list" role="listbox" aria-label="Quick Access Toolbar">
+        <div className="qat-list" role="listbox" aria-label={t('Quick Access Toolbar')}>
           {value.map((id) => (
             <button key={id} type="button" className={cls(sel === id && 'is-active')} onClick={() => setSel(id)} onDoubleClick={() => onChange(value.filter((x) => x !== id), below)}>
-              {QAT_COMMANDS.find((c) => c.id === id)?.label ?? id}
+              {t(QAT_COMMANDS.find((c) => c.id === id)?.label ?? id)}
             </button>
           ))}
         </div>
         <div className="qat-buttons">
-          <button type="button" className="btn btn-small" aria-label="Move up" disabled={!sel} onClick={() => move(-1)}>
+          <button type="button" className="btn btn-small" aria-label={t('Move up')} disabled={!sel} onClick={() => move(-1)}>
             <ArrowUp size={14} />
           </button>
-          <button type="button" className="btn btn-small" aria-label="Move down" disabled={!sel} onClick={() => move(1)}>
+          <button type="button" className="btn btn-small" aria-label={t('Move down')} disabled={!sel} onClick={() => move(1)}>
             <ArrowDown size={14} />
           </button>
           <button type="button" className="btn btn-small" disabled={!sel} onClick={() => sel && (onChange(value.filter((x) => x !== sel), below), setSel(null))}>
-            Remove
+            {t('Remove')}
           </button>
           <button type="button" className="btn btn-small" onClick={() => onChange(DEFAULT_OPTIONS.qat, false)}>
-            Reset
+            {t('Reset')}
           </button>
         </div>
       </div>
-      <p className="muted">Click a command on the left to add it; double-click one on the right to remove it.</p>
+      <p className="muted">{t('Click a command on the left to add it; double-click one on the right to remove it.')}</p>
       <label className="check">
-        <input type="checkbox" checked={below} onChange={(e) => onChange(value, e.target.checked)} /> Show Quick Access Toolbar below the ribbon
+        <input type="checkbox" checked={below} onChange={(e) => onChange(value, e.target.checked)} /> {t('Show Quick Access Toolbar below the ribbon')}
       </label>
     </>
   )
@@ -458,13 +480,13 @@ export function ThesaurusDialog({ onClose }: { onClose: () => void }) {
     onClose()
   }
   return (
-    <Modal title="Thesaurus" onClose={onClose} width={380} footer={<OkCancel onOk={() => picked && ed && replace(picked)} onClose={onClose} okLabel="Insert" />}>
+    <Modal title={t('Thesaurus')} onClose={onClose} width={380} footer={<OkCancel onOk={() => picked && ed && replace(picked)} onClose={onClose} okLabel={t('Insert')} />}>
       <div className="form-grid">
-        <label>Search for:</label>
+        <label>{t('Search for:')}</label>
         <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
       {list.length ? (
-        <div className="qat-list" role="listbox" aria-label="Synonyms">
+        <div className="qat-list" role="listbox" aria-label={t('Synonyms')}>
           {list.map((w) => (
             <button key={w} type="button" role="option" aria-selected={picked === w} className={cls(picked === w && 'is-active')} onClick={() => setPicked(w)} onDoubleClick={() => ed && replace(w)}>
               {w}
@@ -472,9 +494,9 @@ export function ThesaurusDialog({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       ) : (
-        <p className="muted">{query ? `No results found for “${query}”.` : 'Type a word to look up.'}</p>
+        <p className="muted">{query ? t('No results found for “{query}”.', { query }) : t('Type a word to look up.')}</p>
       )}
-      {!ed && <p className="muted">Click into text on a slide to insert a synonym.</p>}
+      {!ed && <p className="muted">{t('Click into text on a slide to insert a synonym.')}</p>}
     </Modal>
   )
 }

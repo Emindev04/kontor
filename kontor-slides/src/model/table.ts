@@ -2,6 +2,7 @@
 // merge, split, distribute). All functions are pure and return new table elements.
 import type { CellSide, ColorRef, Fill, Line, RichDoc, SlideElement, TableCell, TableElement, TableOptions, TableRow, TextAlign } from './types'
 import { emptyDoc, isDocEmpty, setParaAll } from './richtext'
+import { t, tx } from '../i18n'
 
 export const DEFAULT_CELL_MARGINS: [number, number, number, number] = [9.6, 4.8, 9.6, 4.8]
 export const DEFAULT_ROW_H = 40
@@ -14,6 +15,8 @@ type Part = { fill?: ColorRef | null; color?: ColorRef; bold?: boolean; borders?
 export type TableStyleDef = {
   id: string
   name: string
+  /** Accent color name filled into {accent} in the name. */
+  accent?: string
   family: 'Plain' | 'Light' | 'Medium' | 'Dark'
   whole: Part
   header?: Part
@@ -24,23 +27,23 @@ export type TableStyleDef = {
 }
 
 const ACCENTS: { slot: string; label: string }[] = [
-  { slot: 'tx1', label: 'Text' },
-  { slot: 'accent1', label: 'Accent 1' },
-  { slot: 'accent2', label: 'Accent 2' },
-  { slot: 'accent3', label: 'Accent 3' },
-  { slot: 'accent4', label: 'Accent 4' },
-  { slot: 'accent5', label: 'Accent 5' },
-  { slot: 'accent6', label: 'Accent 6' },
+  { slot: 'tx1', label: tx('Text') },
+  { slot: 'accent1', label: tx('Accent 1') },
+  { slot: 'accent2', label: tx('Accent 2') },
+  { slot: 'accent3', label: tx('Accent 3') },
+  { slot: 'accent4', label: tx('Accent 4') },
+  { slot: 'accent5', label: tx('Accent 5') },
+  { slot: 'accent6', label: tx('Accent 6') },
 ]
 
 const ln = (color: ColorRef, width = 1): Line => ({ color, width, dash: 'solid' })
 
 function buildStyles(): TableStyleDef[] {
   const out: TableStyleDef[] = [
-    { id: 'none', name: 'Plain – No Grid', family: 'Plain', whole: { fill: null, color: 'theme:tx1' } },
+    { id: 'none', name: tx('Plain – No Grid'), family: 'Plain', whole: { fill: null, color: 'theme:tx1' } },
     {
       id: 'grid',
-      name: 'Plain – Grid',
+      name: tx('Plain – Grid'),
       family: 'Plain',
       whole: { fill: null, color: 'theme:tx1', borders: { t: ln('theme:tx1'), r: ln('theme:tx1'), b: ln('theme:tx1'), l: ln('theme:tx1'), insideH: ln('theme:tx1'), insideV: ln('theme:tx1') } },
     },
@@ -49,7 +52,8 @@ function buildStyles(): TableStyleDef[] {
     const c = `theme:${slot}`
     out.push({
       id: `light-${slot}`,
-      name: `Light Lines – ${label}`,
+      name: tx('Light Lines – {accent}'),
+      accent: label,
       family: 'Light',
       whole: { fill: null, color: 'theme:tx1', borders: { t: ln(c, 1), b: ln(c, 1) } },
       header: { bold: true, borders: { b: ln(c, 1) } },
@@ -60,7 +64,8 @@ function buildStyles(): TableStyleDef[] {
     })
     out.push({
       id: `lightgrid-${slot}`,
-      name: `Light Grid – ${label}`,
+      name: tx('Light Grid – {accent}'),
+      accent: label,
       family: 'Light',
       whole: { fill: null, color: 'theme:tx1', borders: { t: ln(c), r: ln(c), b: ln(c), l: ln(c), insideH: ln(c), insideV: ln(c) } },
       header: { bold: true, borders: { b: ln(c, 2.25) } },
@@ -71,7 +76,8 @@ function buildStyles(): TableStyleDef[] {
     })
     out.push({
       id: `medium-${slot}`,
-      name: `Medium Banded – ${label}`,
+      name: tx('Medium Banded – {accent}'),
+      accent: label,
       family: 'Medium',
       whole: { fill: `${c}:l80`, color: 'theme:tx1', borders: { insideH: ln('theme:bg1'), insideV: ln('theme:bg1'), t: ln('theme:bg1'), b: ln('theme:bg1'), l: ln('theme:bg1'), r: ln('theme:bg1') } },
       header: { fill: c, color: 'theme:bg1', bold: true, borders: { b: ln('theme:bg1', 3) } },
@@ -82,7 +88,8 @@ function buildStyles(): TableStyleDef[] {
     })
     out.push({
       id: `mediumgrid-${slot}`,
-      name: `Medium Grid – ${label}`,
+      name: tx('Medium Grid – {accent}'),
+      accent: label,
       family: 'Medium',
       whole: { fill: `${c}:l80`, color: 'theme:tx1', borders: { t: ln(c), r: ln(c), b: ln(c), l: ln(c), insideH: ln(c), insideV: ln(c) } },
       header: { fill: `${c}:l40`, bold: true },
@@ -93,7 +100,8 @@ function buildStyles(): TableStyleDef[] {
     })
     out.push({
       id: `dark-${slot}`,
-      name: `Dark – ${label}`,
+      name: tx('Dark – {accent}'),
+      accent: label,
       family: 'Dark',
       whole: { fill: slot === 'tx1' ? 'theme:tx1:l25' : `${c}:d25`, color: 'theme:bg1', borders: { insideH: ln('theme:bg1', 0.75), insideV: ln('theme:bg1', 0.75) } },
       header: { fill: slot === 'tx1' ? 'theme:tx1' : `${c}:d50`, color: 'theme:bg1', bold: true, borders: { b: ln('theme:bg1', 2.25) } },
@@ -108,6 +116,11 @@ function buildStyles(): TableStyleDef[] {
 
 export const TABLE_STYLES = buildStyles()
 export const DEFAULT_TABLE_STYLE = 'medium-accent1'
+
+/** The style's name in the interface language. */
+export function tableStyleName(s: TableStyleDef) {
+  return t(s.name, s.accent ? { accent: t(s.accent) } : undefined)
+}
 
 export function tableStyle(id: string) {
   return TABLE_STYLES.find((s) => s.id === id) ?? TABLE_STYLES.find((s) => s.id === DEFAULT_TABLE_STYLE)!

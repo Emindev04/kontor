@@ -3,20 +3,21 @@ import { MenuButton, RibbonButton, RibbonGroup } from '../ui'
 import { CHART_PALETTES, type ChartData, type ChartType } from '../../editor/Chart'
 import { ArrangeGroup, SizeGroup, selectedDrawing, updateDrawing } from './DrawingGroups'
 import type { TabProps } from './types'
+import { t, tx } from '../../i18n'
 
 export const CHART_TYPES: { id: ChartType; label: string; stacking?: ChartData['stacking'] }[] = [
-  { id: 'column', label: 'Clustered Column' },
-  { id: 'column', label: 'Stacked Column', stacking: 'stacked' },
-  { id: 'column', label: '100% Stacked Column', stacking: 'percent' },
-  { id: 'bar', label: 'Clustered Bar' },
-  { id: 'bar', label: 'Stacked Bar', stacking: 'stacked' },
-  { id: 'line', label: 'Line with Markers' },
-  { id: 'line', label: 'Stacked Line', stacking: 'stacked' },
-  { id: 'area', label: 'Area' },
-  { id: 'area', label: 'Stacked Area', stacking: 'stacked' },
-  { id: 'pie', label: 'Pie' },
-  { id: 'doughnut', label: 'Doughnut' },
-  { id: 'scatter', label: 'Scatter' },
+  { id: 'column', label: tx('Clustered Column') },
+  { id: 'column', label: tx('Stacked Column'), stacking: 'stacked' },
+  { id: 'column', label: tx('100% Stacked Column'), stacking: 'percent' },
+  { id: 'bar', label: tx('Clustered Bar') },
+  { id: 'bar', label: tx('Stacked Bar'), stacking: 'stacked' },
+  { id: 'line', label: tx('Line with Markers') },
+  { id: 'line', label: tx('Stacked Line'), stacking: 'stacked' },
+  { id: 'area', label: tx('Area') },
+  { id: 'area', label: tx('Stacked Area'), stacking: 'stacked' },
+  { id: 'pie', label: tx('Pie') },
+  { id: 'doughnut', label: tx('Doughnut') },
+  { id: 'scatter', label: tx('Scatter') },
 ]
 
 /** Contextual tab of a selected chart. */
@@ -27,31 +28,31 @@ export function ChartDesignTab({ editor, app }: TabProps) {
   const set = (patch: Partial<ChartData>) => updateDrawing(editor, { data: { ...data, ...patch } })
   return (
     <>
-      <RibbonGroup label="Chart Layouts" priority={2}>
+      <RibbonGroup label={t('Chart Layouts')} priority={2}>
         <MenuButton
           large
           icon={LayoutList}
-          label="Add Chart Element"
+          label={t('Add Chart Element')}
           items={[
-            { heading: 'Chart Title' },
-            { label: 'None', active: !data.title, onClick: () => set({ title: '' }) },
-            { label: 'Above Chart', active: !!data.title, onClick: () => set({ title: data.title || 'Chart Title' }) },
-            { heading: 'Legend' },
-            ...(['none', 'right', 'top', 'left', 'bottom'] as const).map((l) => ({ label: l === 'none' ? 'None' : l[0].toUpperCase() + l.slice(1), active: data.legend === l, onClick: () => set({ legend: l }) })),
-            { heading: 'Data Labels' },
-            { label: 'Show Data Labels', checked: data.dataLabels, onClick: () => set({ dataLabels: !data.dataLabels }) },
-            { heading: 'Gridlines' },
-            { label: 'Primary Major Gridlines', checked: data.gridlines, onClick: () => set({ gridlines: !data.gridlines }) },
+            { heading: t('Chart Title') },
+            { label: t('None'), active: !data.title, onClick: () => set({ title: '' }) },
+            { label: t('Above Chart'), active: !!data.title, onClick: () => set({ title: data.title || t('Chart Title') }) },
+            { heading: t('Legend') },
+            ...(['none', 'right', 'top', 'left', 'bottom'] as const).map((l) => ({ label: l === 'none' ? t('None') : l[0].toUpperCase() + l.slice(1), active: data.legend === l, onClick: () => set({ legend: l }) })),
+            { heading: t('Data Labels') },
+            { label: t('Show Data Labels'), checked: data.dataLabels, onClick: () => set({ dataLabels: !data.dataLabels }) },
+            { heading: t('Gridlines') },
+            { label: t('Primary Major Gridlines'), checked: data.gridlines, onClick: () => set({ gridlines: !data.gridlines }) },
           ]}
         />
       </RibbonGroup>
-      <RibbonGroup label="Chart Styles" priority={3}>
+      <RibbonGroup label={t('Chart Styles')} priority={3}>
         <MenuButton
           large
           icon={Palette}
-          label="Change Colors"
+          label={t('Change Colors')}
           items={Object.entries(CHART_PALETTES).map(([id, p]) => ({
-            label: p.label,
+            label: t(p.label),
             active: data.palette === id,
             preview: (
               <span className="palette-strip">
@@ -64,12 +65,12 @@ export function ChartDesignTab({ editor, app }: TabProps) {
           }))}
         />
       </RibbonGroup>
-      <RibbonGroup label="Data" priority={2}>
-        <RibbonButton large icon={Table2} label="Edit Data" onClick={() => (app.setObjectPos(d.pos), app.openDialog('chartData'))} />
+      <RibbonGroup label={t('Data')} priority={2}>
+        <RibbonButton large icon={Table2} label={t('Edit Data')} onClick={() => (app.setObjectPos(d.pos), app.openDialog('chartData'))} />
         <RibbonButton
           large
           icon={Type}
-          label="Switch Row/Column"
+          label={t('Switch Row/Column')}
           disabled={data.chartType === 'pie' || data.chartType === 'doughnut'}
           onClick={() =>
             set({
@@ -79,18 +80,18 @@ export function ChartDesignTab({ editor, app }: TabProps) {
           }
         />
       </RibbonGroup>
-      <RibbonGroup label="Type" priority={2}>
+      <RibbonGroup label={t('Type')} priority={2}>
         <MenuButton
           large
           icon={data.chartType === 'pie' || data.chartType === 'doughnut' ? ChartPie : data.chartType === 'line' ? ChartLine : data.chartType === 'bar' ? ChartBar : ChartColumn}
-          label="Change Chart Type"
+          label={t('Change Chart Type')}
           wide
-          items={CHART_TYPES.map((t) => ({ label: t.label, active: data.chartType === t.id && (t.stacking ?? 'none') === data.stacking, onClick: () => set({ chartType: t.id, stacking: t.stacking ?? 'none' }) }))}
+          items={CHART_TYPES.map((item) => ({ label: t(item.label), active: data.chartType === item.id && (item.stacking ?? 'none') === data.stacking, onClick: () => set({ chartType: item.id, stacking: item.stacking ?? 'none' }) }))}
         />
       </RibbonGroup>
-      <RibbonGroup label="Accessibility" priority={0}>
-        <RibbonButton large icon={Tag} label="Chart Title" onClick={() => {
-          const title = prompt('Chart title:', data.title)
+      <RibbonGroup label={t('Accessibility')} priority={0}>
+        <RibbonButton large icon={Tag} label={t('Chart Title')} onClick={() => {
+          const title = prompt(t('Chart title:'), data.title)
           if (title != null) set({ title })
         }} />
       </RibbonGroup>

@@ -3,15 +3,16 @@ import type { Editor } from '@tiptap/react'
 import { htmlToText, insertPicture, readClipboard } from '../../editor/commands'
 import { insertPaste } from '../../editor/Paste'
 import { Modal, OkCancel, cls } from '../ui'
+import { t, tx } from '../../i18n'
 
 type Clip = Awaited<ReturnType<typeof readClipboard>>
 type Format = 'html' | 'formatted' | 'text' | 'picture'
 
 const FORMATS: { id: Format; label: string; result: string }[] = [
-  { id: 'html', label: 'HTML Format', result: 'Inserts the contents of the Clipboard as HTML, with all of its formatting.' },
-  { id: 'formatted', label: 'Formatted Text', result: 'Inserts the contents of the Clipboard as text with emphasis (bold, italic, links) but in the formatting of the destination.' },
-  { id: 'text', label: 'Unformatted Unicode Text', result: 'Inserts the contents of the Clipboard as text without any formatting.' },
-  { id: 'picture', label: 'Picture (PNG)', result: 'Inserts the contents of the Clipboard as a picture.' },
+  { id: 'html', label: tx('HTML Format'), result: tx('Inserts the contents of the Clipboard as HTML, with all of its formatting.') },
+  { id: 'formatted', label: tx('Formatted Text'), result: tx('Inserts the contents of the Clipboard as text with emphasis (bold, italic, links) but in the formatting of the destination.') },
+  { id: 'text', label: tx('Unformatted Unicode Text'), result: tx('Inserts the contents of the Clipboard as text without any formatting.') },
+  { id: 'picture', label: tx('Picture (PNG)'), result: tx('Inserts the contents of the Clipboard as a picture.') },
 ]
 
 /** Home › Paste › Paste Special: choose the format the clipboard content is inserted in. */
@@ -36,15 +37,15 @@ export function PasteSpecialDialog({ editor, onClose }: { editor: Editor; onClos
     insertPaste(editor.view, clip.html, text, format === 'html' ? 'keep' : format === 'formatted' ? 'merge' : 'text')
   }
   return (
-    <Modal title="Paste Special" onClose={onClose} width={460} footer={<OkCancel onOk={apply} onCancel={onClose} okDisabled={!clip || !available(format)} />}>
+    <Modal title={t('Paste Special')} onClose={onClose} width={460} footer={<OkCancel onOk={apply} onCancel={onClose} okDisabled={!clip || !available(format)} />}>
       {error ? (
-        <p className="dlg-hint">Your browser does not allow reading the Clipboard here. Use Ctrl+V (⌘+V on a Mac) and choose a Paste Option afterwards.</p>
+        <p className="dlg-hint">{t('Your browser does not allow reading the Clipboard here. Use Ctrl+V (⌘+V on a Mac) and choose a Paste Option afterwards.')}</p>
       ) : !clip ? (
-        <p className="dlg-hint">Reading the Clipboard…</p>
+        <p className="dlg-hint">{t('Reading the Clipboard…')}</p>
       ) : (
         <div className="dlg-stack">
-          <div className="dlg-label">As:</div>
-          <div className="dlg-list" role="listbox" aria-label="Paste as">
+          <div className="dlg-label">{t('As:')}</div>
+          <div className="dlg-list" role="listbox" aria-label={t('Paste as')}>
             {FORMATS.map((f) => (
               <button
                 key={f.id}
@@ -56,13 +57,13 @@ export function PasteSpecialDialog({ editor, onClose }: { editor: Editor; onClos
                 onClick={() => setFormat(f.id)}
                 onDoubleClick={apply}
               >
-                {f.label}
+                {t(f.label)}
               </button>
             ))}
           </div>
           <fieldset className="dlg-fieldset">
-            <legend>Result</legend>
-            <p className="dlg-hint">{FORMATS.find((f) => f.id === format)?.result}</p>
+            <legend>{t('Result')}</legend>
+            <p className="dlg-hint">{t(FORMATS.find((f) => f.id === format)?.result ?? '')}</p>
           </fieldset>
         </div>
       )}

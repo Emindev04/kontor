@@ -1,3 +1,5 @@
+import { t, tx } from '../../i18n'
+import { DATE_ORDERS, convertPart, type ColumnFormat } from '../../commands/textColumns'
 import { CUSTOM_LISTS } from '../../commands/sort'
 import { useMemo, useState } from 'react'
 import { MAX_COLS, MAX_ROWS, cellKey, cellName, colName, parseCell, parseRange, rangeName } from '../../model/address'
@@ -37,7 +39,7 @@ export function MessageDialog({ title, message, onClose, onYes }: P & { title?: 
           <>
             <span className="spacer" />
             <button type="button" className="btn btn-primary" autoFocus onClick={onClose}>
-              OK
+              {t('OK')}
             </button>
           </>
         )
@@ -53,8 +55,8 @@ export function InsertDeleteCellsDialog({ onClose, insert }: P & { insert: boole
   const doc = app.doc
   const [choice, setChoice] = useState(insert ? 'right' : 'left')
   const options = insert
-    ? [['right', 'Shift cells right'], ['down', 'Shift cells down'], ['row', 'Entire row'], ['col', 'Entire column']]
-    : [['left', 'Shift cells left'], ['up', 'Shift cells up'], ['row', 'Entire row'], ['col', 'Entire column']]
+    ? [['right', t('Shift cells right')], ['down', t('Shift cells down')], ['row', t('Entire row')], ['col', t('Entire column')]]
+    : [['left', t('Shift cells left')], ['up', t('Shift cells up')], ['row', t('Entire row')], ['col', t('Entire column')]]
   const ok = () => {
     const rg = doc.activeRange
     const nr = rg.r2 - rg.r1 + 1
@@ -66,9 +68,9 @@ export function InsertDeleteCellsDialog({ onClose, insert }: P & { insert: boole
     onClose()
   }
   return (
-    <Modal title={insert ? 'Insert' : 'Delete'} onClose={onClose} width={300} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={insert ? t('Insert') : t('Delete')} onClose={onClose} width={300} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <fieldset className="dlg-fieldset">
-        <legend>{insert ? 'Insert' : 'Delete'}</legend>
+        <legend>{insert ? t('Insert') : t('Delete')}</legend>
         {options.map(([id, label]) => (
           <label key={id} className="check-item">
             <input type="radio" name="idc" checked={choice === id} onChange={() => setChoice(id)} /> {label}
@@ -89,15 +91,15 @@ export function SizeDialog({ onClose, kind }: P & { kind: 'rowHeight' | 'colWidt
   const [value, setValue] = useState(String(Math.round(initial * 100) / 100))
   const ok = () => {
     const n = Number(value)
-    if (!Number.isFinite(n) || n < 0 || (kind === 'rowHeight' ? n > 409 : n > 255)) return app.alert(kind === 'rowHeight' ? 'Row height must be between 0 and 409.' : 'Column width must be between 0 and 255.')
+    if (!Number.isFinite(n) || n < 0 || (kind === 'rowHeight' ? n > 409 : n > 255)) return app.alert(kind === 'rowHeight' ? t('Row height must be between 0 and 409.') : t('Column width must be between 0 and 255.'))
     if (kind === 'rowHeight') setSizes(doc, 'row', selectedIndexes(doc, 'row'), (n * 96) / 72)
     else if (kind === 'colWidth') setSizes(doc, 'col', selectedIndexes(doc, 'col'), n === 0 ? 0 : Math.round(n * 7 + 5))
     else setDefaultColWidth(doc, Math.round(n * 7 + 5))
     onClose()
   }
-  const label = kind === 'rowHeight' ? 'Row height:' : kind === 'colWidth' ? 'Column width:' : 'Standard column width:'
+  const label = kind === 'rowHeight' ? t('Row height:') : kind === 'colWidth' ? t('Column width:') : t('Standard column width:')
   return (
-    <Modal title={kind === 'rowHeight' ? 'Row Height' : kind === 'colWidth' ? 'Column Width' : 'Standard Width'} onClose={onClose} width={300} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={kind === 'rowHeight' ? t('Row Height') : kind === 'colWidth' ? t('Column Width') : t('Standard Width')} onClose={onClose} width={300} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <label className="dlg-inline">
         {label}
         <input autoFocus value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ok()} />
@@ -116,17 +118,17 @@ export function PasteSpecialDialog({ onClose }: P) {
   const ok = (link = false) => {
     if (!doc.clip) {
       onClose()
-      return app.alert('Copy cells in this workbook first, then use Paste Special.')
+      return app.alert(t('Copy cells in this workbook first, then use Paste Special.'))
     }
     const err = pasteInternal(doc, { ...DEFAULT_PASTE, what: link ? 'link' : what, op, skipBlanks: skip, transpose })
     onClose()
     if (err) app.alert(err)
   }
-  const whats: [PasteWhat, string][] = [['all', 'All'], ['formulas', 'Formulas'], ['values', 'Values'], ['formats', 'Formats'], ['allNoBorders', 'All except borders'], ['colWidths', 'Column widths'], ['formulasAndFormats', 'Formulas and number formats'], ['valuesAndFormats', 'Values and number formats']]
-  const ops: [PasteOp, string][] = [['none', 'None'], ['add', 'Add'], ['subtract', 'Subtract'], ['multiply', 'Multiply'], ['divide', 'Divide']]
+  const whats: [PasteWhat, string][] = [['all', t('All')], ['formulas', t('Formulas')], ['values', t('Values')], ['formats', t('Formats')], ['comments', t('Comments and notes')], ['validation', t('Validation')], ['allNoBorders', t('All except borders')], ['colWidths', t('Column widths')], ['formulasAndFormats', t('Formulas and number formats')], ['valuesAndFormats', t('Values and number formats')], ['allMergeCF', t('All merging conditional formats')]]
+  const ops: [PasteOp, string][] = [['none', t('None')], ['add', t('Add')], ['subtract', t('Subtract')], ['multiply', t('Multiply')], ['divide', t('Divide')]]
   return (
     <Modal
-      title="Paste Special"
+      title={t('Paste Special')}
       onClose={onClose}
       width={460}
       footer={
@@ -135,14 +137,14 @@ export function PasteSpecialDialog({ onClose }: P) {
           onCancel={onClose}
           extra={
             <button type="button" className="btn" onClick={() => ok(true)}>
-              Paste Link
+              {t('Paste Link')}
             </button>
           }
         />
       }
     >
       <fieldset className="dlg-fieldset dlg-two">
-        <legend>Paste</legend>
+        <legend>{t('Paste')}</legend>
         {whats.map(([id, label]) => (
           <label key={id} className="check-item">
             <input type="radio" name="psw" checked={what === id} onChange={() => setWhat(id)} /> {label}
@@ -150,7 +152,7 @@ export function PasteSpecialDialog({ onClose }: P) {
         ))}
       </fieldset>
       <fieldset className="dlg-fieldset dlg-two">
-        <legend>Operation</legend>
+        <legend>{t('Operation')}</legend>
         {ops.map(([id, label]) => (
           <label key={id} className="check-item">
             <input type="radio" name="pso" checked={op === id} onChange={() => setOp(id)} /> {label}
@@ -159,10 +161,10 @@ export function PasteSpecialDialog({ onClose }: P) {
       </fieldset>
       <div className="dlg-inline">
         <label className="check-item">
-          <input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} /> Skip blanks
+          <input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} />{' '}{t('Skip blanks')}
         </label>
         <label className="check-item">
-          <input type="checkbox" checked={transpose} onChange={(e) => setTranspose(e.target.checked)} /> Transpose
+          <input type="checkbox" checked={transpose} onChange={(e) => setTranspose(e.target.checked)} />{' '}{t('Transpose')}
         </label>
       </div>
     </Modal>
@@ -181,19 +183,19 @@ export function FindReplaceDialog({ onClose, replace: startReplace, initial }: P
   const remember = () => (lastFind = o.query)
   const next = (back = false) => {
     remember()
-    if (!findNext(doc, o, back)) app.alert(`We couldn't find what you were looking for.`)
+    if (!findNext(doc, o, back)) app.alert(t("We couldn't find what you were looking for."))
   }
   return (
-    <Modal title="Find and Replace" onClose={onClose} width={520}>
-      <DialogTabs<'find' | 'replace'> tabs={[{ id: 'find', label: 'Find' }, { id: 'replace', label: 'Replace' }]} active={tab} onChange={setTab} />
+    <Modal title={t('Find and Replace')} onClose={onClose} width={520}>
+      <DialogTabs<'find' | 'replace'> tabs={[{ id: 'find', label: t('Find') }, { id: 'replace', label: t('Replace') }]} active={tab} onChange={setTab} />
       <div className="dlg-stack">
         <label className="dlg-inline find-field">
-          Find what:
+          {t('Find what:')}
           <input autoFocus value={o.query} onChange={(e) => set({ query: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && next(e.shiftKey)} />
         </label>
         {tab === 'replace' && (
           <label className="dlg-inline find-field">
-            Replace with:
+            {t('Replace with:')}
             <input value={repl} onChange={(e) => setRepl(e.target.value)} />
           </label>
         )}
@@ -201,33 +203,33 @@ export function FindReplaceDialog({ onClose, replace: startReplace, initial }: P
           <div className="fc-two">
             <div className="dlg-stack">
               <label className="dlg-inline">
-                Within:
+                {t('Within:')}
                 <select value={o.within} onChange={(e) => set({ within: e.target.value as FindOptions['within'] })}>
-                  <option value="sheet">Sheet</option>
-                  <option value="workbook">Workbook</option>
+                  <option value="sheet">{t('Sheet')}</option>
+                  <option value="workbook">{t('Workbook')}</option>
                 </select>
               </label>
               <label className="dlg-inline">
-                Search:
+                {t('Search:')}
                 <select value={o.by} onChange={(e) => set({ by: e.target.value as FindOptions['by'] })}>
-                  <option value="rows">By Rows</option>
-                  <option value="cols">By Columns</option>
+                  <option value="rows">{t('By Rows')}</option>
+                  <option value="cols">{t('By Columns')}</option>
                 </select>
               </label>
               <label className="dlg-inline">
-                Look in:
+                {t('Look in:')}
                 <select value={o.lookIn} onChange={(e) => set({ lookIn: e.target.value as FindOptions['lookIn'] })}>
-                  <option value="formulas">Formulas</option>
-                  <option value="values">Values</option>
+                  <option value="formulas">{t('Formulas')}</option>
+                  <option value="values">{t('Values')}</option>
                 </select>
               </label>
             </div>
             <div className="dlg-stack">
               <label className="check-item">
-                <input type="checkbox" checked={o.matchCase} onChange={(e) => set({ matchCase: e.target.checked })} /> Match case
+                <input type="checkbox" checked={o.matchCase} onChange={(e) => set({ matchCase: e.target.checked })} />{' '}{t('Match case')}
               </label>
               <label className="check-item">
-                <input type="checkbox" checked={o.whole} onChange={(e) => set({ whole: e.target.checked })} /> Match entire cell contents
+                <input type="checkbox" checked={o.whole} onChange={(e) => set({ whole: e.target.checked })} />{' '}{t('Match entire cell contents')}
               </label>
             </div>
           </div>
@@ -235,26 +237,26 @@ export function FindReplaceDialog({ onClose, replace: startReplace, initial }: P
         <div className="dlg-inline find-buttons">
           {tab === 'replace' && (
             <>
-              <button type="button" className="btn" onClick={() => { remember(); const n = replaceAll(doc, o, repl); app.alert(n ? `All done. We made ${n} replacement${n === 1 ? '' : 's'}.` : `We couldn't find anything to replace.`) }}>
-                Replace All
+              <button type="button" className="btn" onClick={() => { remember(); const n = replaceAll(doc, o, repl); app.alert(n ? (n === 1 ? t('All done. We made 1 replacement.') : t('All done. We made {n} replacements.', { n })) : t("We couldn't find anything to replace.")) }}>
+                {t('Replace All')}
               </button>
-              <button type="button" className="btn" onClick={() => { remember(); if (!replaceCurrent(doc, o, repl)) app.alert(`We couldn't find a match.`) }}>
-                Replace
+              <button type="button" className="btn" onClick={() => { remember(); if (!replaceCurrent(doc, o, repl)) app.alert(t("We couldn't find a match.")) }}>
+                {t('Replace')}
               </button>
             </>
           )}
           <button type="button" className="btn" onClick={() => { remember(); setHits(findAll(doc, o)) }}>
-            Find All
+            {t('Find All')}
           </button>
           <button type="button" className="btn btn-primary" onClick={() => next()}>
-            Find Next
+            {t('Find Next')}
           </button>
           <span className="spacer" />
           <button type="button" className="btn" onClick={() => setMore(!more)}>
-            Options {more ? '<<' : '>>'}
+            {t('Options')}{' '}{more ? '<<' : '>>'}
           </button>
           <button type="button" className="btn" onClick={onClose}>
-            Close
+            {t('Close')}
           </button>
         </div>
         {hits && (
@@ -262,10 +264,10 @@ export function FindReplaceDialog({ onClose, replace: startReplace, initial }: P
             <table>
               <thead>
                 <tr>
-                  <th>Sheet</th>
-                  <th>Cell</th>
-                  <th>Value</th>
-                  <th>Formula</th>
+                  <th>{t('Sheet')}</th>
+                  <th>{t('Cell')}</th>
+                  <th>{t('Value')}</th>
+                  <th>{t('Formula')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -279,7 +281,7 @@ export function FindReplaceDialog({ onClose, replace: startReplace, initial }: P
                 ))}
               </tbody>
             </table>
-            <div className="dlg-hint">{hits.length} cell(s) found</div>
+            <div className="dlg-hint">{t('{n} cell(s) found', { n: hits.length })}</div>
           </div>
         )}
       </div>
@@ -300,7 +302,7 @@ export function GoToDialog({ onClose }: P) {
   }
   return (
     <Modal
-      title="Go To"
+      title={t('Go To')}
       onClose={onClose}
       width={340}
       footer={
@@ -309,14 +311,14 @@ export function GoToDialog({ onClose }: P) {
           onCancel={onClose}
           extra={
             <button type="button" className="btn" onClick={() => { onClose(); app.dialog({ kind: 'gotoSpecial' }) }}>
-              Special…
+              {t('Special…')}
             </button>
           }
         />
       }
     >
       <div className="dlg-stack">
-        Go to:
+        {t('Go to:')}
         <select size={6} onChange={(e) => setRef(e.target.value)}>
           {names.map((n) => (
             <option key={n.name} value={n.name}>
@@ -325,7 +327,7 @@ export function GoToDialog({ onClose }: P) {
           ))}
         </select>
         <label className="dlg-inline">
-          Reference:
+          {t('Reference:')}
           <input autoFocus value={ref} onChange={(e) => setRef(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ok()} />
         </label>
       </div>
@@ -337,19 +339,19 @@ export function GoToSpecialDialog({ onClose }: P) {
   const app = useApp()
   const doc = app.doc
   const [kind, setKind] = useState<SpecialKind>('constants')
-  const kinds: [SpecialKind, string][] = [['constants', 'Constants'], ['formulas', 'Formulas'], ['blanks', 'Blanks'], ['currentRegion', 'Current region'], ['currentArray', 'Current array'], ['lastCell', 'Last cell'], ['visible', 'Visible cells only'], ['merged', 'Merged cells'], ['numbers', 'Numbers'], ['text', 'Text'], ['errors', 'Errors'], ['notes', 'Notes and comments'], ['cf', 'Conditional formats'], ['validation', 'Data validation'], ['objects', 'Objects']]
+  const kinds: [SpecialKind, string][] = [['constants', t('Constants')], ['formulas', t('Formulas')], ['blanks', t('Blanks')], ['currentRegion', t('Current region')], ['currentArray', t('Current array')], ['lastCell', t('Last cell')], ['visible', t('Visible cells only')], ['merged', t('Merged cells')], ['numbers', t('Numbers')], ['text', t('Text')], ['errors', t('Errors')], ['notes', t('Notes and comments')], ['cf', t('Conditional formats')], ['validation', t('Data validation')], ['objects', t('Objects')]]
   const ok = () => {
     onClose()
     if (kind === 'currentRegion') {
       doc.selectRange(currentRegion(doc, doc.sel.active), doc.sel.active)
       return
     }
-    if (!goToSpecial(doc, kind)) app.alert('No cells were found.')
+    if (!goToSpecial(doc, kind)) app.alert(t('No cells were found.'))
   }
   return (
-    <Modal title="Go To Special" onClose={onClose} width={420} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Go To Special')} onClose={onClose} width={420} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <fieldset className="dlg-fieldset dlg-two">
-        <legend>Select</legend>
+        <legend>{t('Select')}</legend>
         {kinds.map(([id, label]) => (
           <label key={id} className="check-item">
             <input type="radio" name="gts" checked={kind === id} onChange={() => setKind(id)} /> {label}
@@ -366,7 +368,7 @@ export function InsertFunctionDialog({ onClose, onInsert }: P & { onInsert: (nam
   const list = useMemo(() => {
     if (query.trim()) {
       const q = query.trim().toLowerCase()
-      return [...FN_META.values()].filter((m) => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q)).map((m) => m.name)
+      return [...FN_META.values()].filter((m) => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t(m.description).toLowerCase().includes(q)).map((m) => m.name)
     }
     if (cat === 'Most Recently Used') return recentFunctions()
     if (cat === 'All') return [...FN_META.keys()].sort()
@@ -377,7 +379,7 @@ export function InsertFunctionDialog({ onClose, onInsert }: P & { onInsert: (nam
   const meta = current ? FN_META.get(current) : undefined
   return (
     <Modal
-      title="Insert Function"
+      title={t('Insert Function')}
       onClose={onClose}
       width={520}
       footer={
@@ -394,20 +396,20 @@ export function InsertFunctionDialog({ onClose, onInsert }: P & { onInsert: (nam
     >
       <div className="dlg-stack">
         <label className="dlg-inline find-field">
-          Search for a function:
-          <input autoFocus value={query} placeholder="Type a short description and press Enter" onChange={(e) => setQuery(e.target.value)} />
+          {t('Search for a function:')}
+          <input autoFocus value={query} placeholder={t('Type a short description and press Enter')} onChange={(e) => setQuery(e.target.value)} />
         </label>
         <label className="dlg-inline">
-          Or select a category:
+          {t('Or select a category:')}
           <select value={cat} onChange={(e) => { setCat(e.target.value as typeof cat); setQuery('') }}>
-            <option>Most Recently Used</option>
-            <option>All</option>
+            <option value="Most Recently Used">{t('Most Recently Used')}</option>
+            <option value="All">{t('All')}</option>
             {CATEGORY_ORDER.map((c) => (
-              <option key={c}>{c}</option>
+              <option key={c} value={c}>{t(c)}</option>
             ))}
           </select>
         </label>
-        Select a function:
+        {t('Select a function:')}
         <select size={9} value={current} onChange={(e) => setSel(e.target.value)} onDoubleClick={() => { if (current) { onClose(); onInsert(current) } }}>
           {list.map((n) => (
             <option key={n}>{n}</option>
@@ -416,7 +418,7 @@ export function InsertFunctionDialog({ onClose, onInsert }: P & { onInsert: (nam
         {meta && (
           <div className="fn-help">
             <strong>{signature(meta.name)}</strong>
-            <p>{meta.description}</p>
+            <p>{t(meta.description)}</p>
           </div>
         )}
       </div>
@@ -442,13 +444,13 @@ export function NameManagerDialog({ onClose }: P) {
     return `{${rangeName(rg)}}`
   }
   return (
-    <Modal title="Name Manager" onClose={onClose} width={640}>
+    <Modal title={t('Name Manager')} onClose={onClose} width={640}>
       <div className="dlg-inline">
         <button type="button" className="btn" onClick={() => app.dialog({ kind: 'defineName' })}>
-          New…
+          {t('New…')}
         </button>
         <button type="button" className="btn" disabled={!current} onClick={() => current && setEdit({ name: current.name, ref: current.ref, comment: current.comment ?? '' })}>
-          Edit…
+          {t('Edit…')}
         </button>
         <button
           type="button"
@@ -461,18 +463,18 @@ export function NameManagerDialog({ onClose }: P) {
             force((n) => n + 1)
           }}
         >
-          Delete
+          {t('Delete')}
         </button>
       </div>
       <div className="find-results names-table">
         <table>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Value</th>
-              <th>Refers To</th>
-              <th>Scope</th>
-              <th>Comment</th>
+              <th>{t('Name')}</th>
+              <th>{t('Value')}</th>
+              <th>{t('Refers To')}</th>
+              <th>{t('Scope')}</th>
+              <th>{t('Comment')}</th>
             </tr>
           </thead>
           <tbody>
@@ -481,24 +483,24 @@ export function NameManagerDialog({ onClose }: P) {
                 <td>{n.name}</td>
                 <td>{valueOf(n.ref)}</td>
                 <td>={n.ref}</td>
-                <td>{n.scope !== undefined ? doc.wb.sheetById(n.scope)?.name : 'Workbook'}</td>
+                <td>{n.scope !== undefined ? doc.wb.sheetById(n.scope)?.name : t('Workbook')}</td>
                 <td>{n.comment}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        {!names.length && <div className="dlg-hint">No names are defined. Use New… to create one.</div>}
+        {!names.length && <div className="dlg-hint">{t('No names are defined. Use New… to create one.')}</div>}
       </div>
       {edit && current && (
         <div className="dlg-stack name-edit">
           <label className="dlg-inline">
-            Name: <input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+            {t('Name:')}{' '}<input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
           </label>
           <label className="dlg-inline">
-            Refers to: <input value={edit.ref} onChange={(e) => setEdit({ ...edit, ref: e.target.value })} />
+            {t('Refers to:')}{' '}<input value={edit.ref} onChange={(e) => setEdit({ ...edit, ref: e.target.value })} />
           </label>
           <label className="dlg-inline">
-            Comment: <input value={edit.comment} onChange={(e) => setEdit({ ...edit, comment: e.target.value })} />
+            {t('Comment:')}{' '}<input value={edit.comment} onChange={(e) => setEdit({ ...edit, comment: e.target.value })} />
           </label>
           <div className="dlg-inline">
             <button
@@ -512,10 +514,10 @@ export function NameManagerDialog({ onClose }: P) {
                 setSelName(`${current.scope ?? ''}!${edit.name}`)
               }}
             >
-              Save
+              {t('Save')}
             </button>
             <button type="button" className="btn" onClick={() => setEdit(null)}>
-              Cancel
+              {t('Cancel')}
             </button>
           </div>
         </div>
@@ -542,15 +544,15 @@ export function DefineNameDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title="New Name" onClose={onClose} width={420} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('New Name')} onClose={onClose} width={420} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="dlg-stack">
         <label className="dlg-inline find-field">
-          Name: <input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+          {t('Name:')}{' '}<input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <label className="dlg-inline">
-          Scope:
+          {t('Scope:')}
           <select value={scope} onChange={(e) => setScope(e.target.value === 'wb' ? 'wb' : Number(e.target.value))}>
-            <option value="wb">Workbook</option>
+            <option value="wb">{t('Workbook')}</option>
             {doc.wb.sheets.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -559,11 +561,11 @@ export function DefineNameDialog({ onClose }: P) {
           </select>
         </label>
         <label className="dlg-stack">
-          Comment:
+          {t('Comment:')}
           <textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
         </label>
         <label className="dlg-inline find-field">
-          Refers to: <input value={ref} onChange={(e) => setRef(e.target.value)} />
+          {t('Refers to:')}{' '}<input value={ref} onChange={(e) => setRef(e.target.value)} />
         </label>
       </div>
     </Modal>
@@ -575,7 +577,7 @@ export function CreateNamesDialog({ onClose }: P) {
   const [o, setO] = useState({ top: true, left: true, bottom: false, right: false })
   return (
     <Modal
-      title="Create Names from Selection"
+      title={t('Create Names from Selection')}
       onClose={onClose}
       width={320}
       footer={
@@ -589,10 +591,10 @@ export function CreateNamesDialog({ onClose }: P) {
       }
     >
       <fieldset className="dlg-fieldset">
-        <legend>Create names from values in the:</legend>
+        <legend>{t('Create names from values in the:')}</legend>
         {(['top', 'left', 'bottom', 'right'] as const).map((k) => (
           <label key={k} className="check-item">
-            <input type="checkbox" checked={o[k]} onChange={(e) => setO({ ...o, [k]: e.target.checked })} /> {k === 'top' ? 'Top row' : k === 'left' ? 'Left column' : k === 'bottom' ? 'Bottom row' : 'Right column'}
+            <input type="checkbox" checked={o[k]} onChange={(e) => setO({ ...o, [k]: e.target.checked })} /> {k === 'top' ? t('Top row') : k === 'left' ? t('Left column') : k === 'bottom' ? t('Bottom row') : t('Right column')}
           </label>
         ))}
       </fieldset>
@@ -613,8 +615,8 @@ export function SortDialog({ onClose }: P) {
   const [levels, setLevels] = useState<SortKey[]>([{ index: byColumns ? initial.r1 : initial.c1, desc: false, by: 'value' }])
   const columns = byColumns ? Array.from({ length: initial.r2 - initial.r1 + 1 }, (_, i) => initial.r1 + i) : Array.from({ length: initial.c2 - initial.c1 + 1 }, (_, i) => initial.c1 + i)
   const label = (i: number) => {
-    if (byColumns) return header ? String(doc.value(i, initial.c1) ?? `Row ${i + 1}`) : `Row ${i + 1}`
-    return header ? String(doc.value(initial.r1, i) ?? `Column ${colName(i)}`) : `Column ${colName(i)}`
+    if (byColumns) return header ? String(doc.value(i, initial.c1) ?? t('Row {n}', { n: i + 1 })) : t('Row {n}', { n: i + 1 })
+    return header ? String(doc.value(initial.r1, i) ?? t('Column {name}', { name: colName(i) })) : t('Column {name}', { name: colName(i) })
   }
   const ok = () => {
     sortRange(doc, initial, levels, { header, caseSensitive, byColumns })
@@ -622,35 +624,36 @@ export function SortDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title="Sort" onClose={onClose} width={600} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Sort')} onClose={onClose} width={600} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="dlg-inline">
         <button type="button" className="btn" onClick={() => setLevels([...levels, { index: columns[0], desc: false, by: 'value' }])}>
-          + Add Level
+          {t('+ Add Level')}
         </button>
         <button type="button" className="btn" disabled={levels.length < 2} onClick={() => setLevels(levels.slice(0, -1))}>
-          Delete Level
+          {t('Delete Level')}
         </button>
         <button type="button" className="btn" onClick={() => setLevels([...levels, { ...levels[levels.length - 1] }])}>
-          Copy Level
+          {t('Copy Level')}
         </button>
         <span className="spacer" />
         <label className="check-item">
-          <input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} /> My data has headers
+          <input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} />{' '}{t('My data has headers')}
         </label>
       </div>
       <table className="sort-levels">
         <thead>
           <tr>
             <th />
-            <th>Column</th>
-            <th>Sort On</th>
-            <th>Order</th>
+            {/* The plain word: the key "Column" alone means the column chart type. */}
+            <th>{t('Column {name}', { name: '' }).trim()}</th>
+            <th>{t('Sort On')}</th>
+            <th>{t('Order')}</th>
           </tr>
         </thead>
         <tbody>
           {levels.map((lv, i) => (
             <tr key={i}>
-              <td>{i === 0 ? 'Sort by' : 'Then by'}</td>
+              <td>{i === 0 ? t('Sort by') : t('Then by')}</td>
               <td>
                 <select value={lv.index} onChange={(e) => setLevels(levels.map((x, j) => (j === i ? { ...x, index: Number(e.target.value) } : x)))}>
                   {columns.map((c) => (
@@ -662,9 +665,9 @@ export function SortDialog({ onClose }: P) {
               </td>
               <td>
                 <select value={lv.by ?? 'value'} onChange={(e) => setLevels(levels.map((x, j) => (j === i ? { ...x, by: e.target.value as SortKey['by'] } : x)))}>
-                  <option value="value">Cell Values</option>
-                  <option value="fill">Cell Color</option>
-                  <option value="color">Font Color</option>
+                  <option value="value">{t('Cell Values')}</option>
+                  <option value="fill">{t('Cell Color')}</option>
+                  <option value="color">{t('Font Color')}</option>
                 </select>
               </td>
               <td>
@@ -682,8 +685,8 @@ export function SortDialog({ onClose }: P) {
                   {CUSTOM_LISTS.map((l, k) => (
                     <option key={`r${k}`} value={`list${k}r`}>{[...l].reverse().slice(0, 3).join(', ')}, …</option>
                   ))}
-                  <option value="asc">A to Z / Smallest to Largest</option>
-                  <option value="desc">Z to A / Largest to Smallest</option>
+                  <option value="asc">{t('A to Z / Smallest to Largest')}</option>
+                  <option value="desc">{t('Z to A / Largest to Smallest')}</option>
                 </select>
               </td>
             </tr>
@@ -692,7 +695,7 @@ export function SortDialog({ onClose }: P) {
       </table>
       <div className="dlg-inline">
         <label className="check-item">
-          <input type="checkbox" checked={caseSensitive} onChange={(e) => setCaseSensitive(e.target.checked)} /> Case sensitive
+          <input type="checkbox" checked={caseSensitive} onChange={(e) => setCaseSensitive(e.target.checked)} />{' '}{t('Case sensitive')}
         </label>
         <label className="check-item">
           <input
@@ -703,7 +706,7 @@ export function SortDialog({ onClose }: P) {
               setLevels([{ index: e.target.checked ? initial.r1 : initial.c1, desc: false, by: 'value' }])
             }}
           />{' '}
-          Sort left to right
+          {t('Sort left to right')}
         </label>
       </div>
     </Modal>
@@ -717,7 +720,7 @@ export function SeriesDialog({ onClose }: P) {
   const [stop, setStop] = useState('')
   return (
     <Modal
-      title="Series"
+      title={t('Series')}
       onClose={onClose}
       width={440}
       footer={
@@ -732,24 +735,24 @@ export function SeriesDialog({ onClose }: P) {
     >
       <div className="fc-two">
         <fieldset className="dlg-fieldset">
-          <legend>Series in</legend>
+          <legend>{t('Series in')}</legend>
           <label className="check-item">
-            <input type="radio" checked={o.byRows} onChange={() => setO({ ...o, byRows: true })} /> Rows
+            <input type="radio" checked={o.byRows} onChange={() => setO({ ...o, byRows: true })} />{' '}{t('Rows')}
           </label>
           <label className="check-item">
-            <input type="radio" checked={!o.byRows} onChange={() => setO({ ...o, byRows: false })} /> Columns
+            <input type="radio" checked={!o.byRows} onChange={() => setO({ ...o, byRows: false })} />{' '}{t('Columns')}
           </label>
         </fieldset>
         <fieldset className="dlg-fieldset">
-          <legend>Type</legend>
-          {(['linear', 'growth', 'date', 'autofill'] as const).map((t) => (
-            <label key={t} className="check-item">
-              <input type="radio" checked={o.type === t} onChange={() => setO({ ...o, type: t })} /> {t === 'autofill' ? 'AutoFill' : t[0].toUpperCase() + t.slice(1)}
+          <legend>{t('Type')}</legend>
+          {(['linear', 'growth', 'date', 'autofill'] as const).map((type) => (
+            <label key={type} className="check-item">
+              <input type="radio" checked={o.type === type} onChange={() => setO({ ...o, type })} /> {{ linear: t('Linear'), growth: t('Growth'), date: t('Date'), autofill: t('AutoFill') }[type]}
             </label>
           ))}
         </fieldset>
         <fieldset className="dlg-fieldset" disabled={o.type !== 'date'}>
-          <legend>Date unit</legend>
+          <legend>{t('Date unit')}</legend>
           {(['day', 'weekday', 'month', 'year'] as const).map((u) => (
             <label key={u} className="check-item">
               <input type="radio" checked={o.unit === u} onChange={() => setO({ ...o, unit: u })} /> {u[0].toUpperCase() + u.slice(1)}
@@ -758,10 +761,10 @@ export function SeriesDialog({ onClose }: P) {
         </fieldset>
         <div className="dlg-stack">
           <label className="dlg-inline">
-            Step value: <input value={o.step} onChange={(e) => setO({ ...o, step: Number(e.target.value) || 0 })} />
+            {t('Step value:')}{' '}<input value={o.step} onChange={(e) => setO({ ...o, step: Number(e.target.value) || 0 })} />
           </label>
           <label className="dlg-inline">
-            Stop value: <input value={stop} onChange={(e) => setStop(e.target.value)} />
+            {t('Stop value:')}{' '}<input value={stop} onChange={(e) => setStop(e.target.value)} />
           </label>
         </div>
       </div>
@@ -780,19 +783,19 @@ export function MoveCopyDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title="Move or Copy" onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Move or Copy')} onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="dlg-stack">
-        Move selected sheets before sheet:
+        {t('Move selected sheets before sheet:')}
         <select size={8} value={before} onChange={(e) => setBefore(Number(e.target.value))}>
           {doc.wb.sheets.map((s, i) => (
             <option key={s.id} value={i}>
               {s.name}
             </option>
           ))}
-          <option value={doc.wb.sheets.length}>(move to end)</option>
+          <option value={doc.wb.sheets.length}>{t('(move to end)')}</option>
         </select>
         <label className="check-item">
-          <input type="checkbox" checked={copyIt} onChange={(e) => setCopyIt(e.target.checked)} /> Create a copy
+          <input type="checkbox" checked={copyIt} onChange={(e) => setCopyIt(e.target.checked)} />{' '}{t('Create a copy')}
         </label>
       </div>
     </Modal>
@@ -806,7 +809,7 @@ export function UnhideSheetDialog({ onClose }: P) {
   const [sel, setSel] = useState(hidden[0]?.i ?? -1)
   return (
     <Modal
-      title="Unhide"
+      title={t('Unhide')}
       onClose={onClose}
       width={320}
       footer={
@@ -820,7 +823,7 @@ export function UnhideSheetDialog({ onClose }: P) {
       }
     >
       <div className="dlg-stack">
-        Unhide sheet:
+        {t('Unhide sheet:')}
         <select size={6} value={sel} onChange={(e) => setSel(Number(e.target.value))}>
           {hidden.map(({ s, i }) => (
             <option key={s.id} value={i}>
@@ -840,22 +843,22 @@ export function ZoomDialog({ onClose }: P) {
   const presets = [200, 100, 75, 50, 25]
   const ok = () => {
     const n = Number(z)
-    if (!(n >= 10 && n <= 400)) return app.alert('Enter a value between 10 and 400.')
+    if (!(n >= 10 && n <= 400)) return app.alert(t('Enter a value between 10 and 400.'))
     doc.sheet.zoom = Math.round(n)
     doc.emit()
     onClose()
   }
   return (
-    <Modal title="Zoom" onClose={onClose} width={280} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Zoom')} onClose={onClose} width={280} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <fieldset className="dlg-fieldset">
-        <legend>Magnification</legend>
+        <legend>{t('Magnification')}</legend>
         {presets.map((p) => (
           <label key={p} className="check-item">
             <input type="radio" checked={Number(z) === p} onChange={() => setZ(String(p))} /> {p}%
           </label>
         ))}
         <label className="dlg-inline">
-          Custom: <input value={z} onChange={(e) => setZ(e.target.value)} />%
+          {t('Custom:')}{' '}<input value={z} onChange={(e) => setZ(e.target.value)} />%
         </label>
       </fieldset>
     </Modal>
@@ -875,18 +878,18 @@ export function RemoveDuplicatesDialog({ onClose }: P) {
   const ok = () => {
     const res = removeDuplicates(doc, rg, [...checked], header)
     onClose()
-    app.alert(res.removed ? `${res.removed} duplicate values found and removed; ${res.remaining} unique values remain.` : 'No duplicate values found.')
+    app.alert(res.removed ? t('{removed} duplicate values found and removed; {remaining} unique values remain.', { removed: res.removed, remaining: res.remaining }) : t('No duplicate values found.'))
   }
   return (
-    <Modal title="Remove Duplicates" onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Remove Duplicates')} onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="dlg-stack">
-        <p className="dlg-hint">To delete duplicate values, select one or more columns that contain duplicates.</p>
+        <p className="dlg-hint">{t('To delete duplicate values, select one or more columns that contain duplicates.')}</p>
         <div className="dlg-inline">
-          <button type="button" className="btn" onClick={() => setChecked(new Set(cols))}>Select All</button>
-          <button type="button" className="btn" onClick={() => setChecked(new Set())}>Unselect All</button>
+          <button type="button" className="btn" onClick={() => setChecked(new Set(cols))}>{t('Select All')}</button>
+          <button type="button" className="btn" onClick={() => setChecked(new Set())}>{t('Unselect All')}</button>
           <span className="spacer" />
           <label className="check-item">
-            <input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} /> My data has headers
+            <input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} />{' '}{t('My data has headers')}
           </label>
         </div>
         <div className="dup-cols">
@@ -902,7 +905,7 @@ export function RemoveDuplicatesDialog({ onClose }: P) {
                   setChecked(n)
                 }}
               />{' '}
-              {header ? String(doc.value(rg.r1, c) ?? `Column ${colName(c)}`) : `Column ${colName(c)}`}
+              {header ? String(doc.value(rg.r1, c) ?? t('Column {name}', { name: colName(c) })) : t('Column {name}', { name: colName(c) })}
             </label>
           ))}
         </div>
@@ -921,23 +924,23 @@ export function StatsDialog({ onClose }: P) {
   for (const s of doc.wb.sheets) total += s.cells.size
   const u = sheet.used()
   return (
-    <Modal title="Workbook Statistics" onClose={onClose} width={360} footer={<><span className="spacer" /><button type="button" className="btn btn-primary" onClick={onClose}>OK</button></>}>
+    <Modal title={t('Workbook Statistics')} onClose={onClose} width={360} footer={<><span className="spacer" /><button type="button" className="btn btn-primary" onClick={onClose}>{t('OK')}</button></>}>
       <dl className="stats">
-        <dt>Current sheet</dt>
+        <dt>{t('Current sheet')}</dt>
         <dd>{sheet.name}</dd>
-        <dt>End of sheet</dt>
+        <dt>{t('End of sheet')}</dt>
         <dd>{u.r >= 0 ? cellName(u.r, u.c) : 'A1'}</dd>
-        <dt>Cells with data</dt>
+        <dt>{t('Cells with data')}</dt>
         <dd>{sheet.cells.size.toLocaleString('en-US')}</dd>
-        <dt>Merged ranges</dt>
+        <dt>{t('Merged ranges')}</dt>
         <dd>{sheet.merges.length}</dd>
-        <dt>Sheets</dt>
+        <dt>{t('Sheets')}</dt>
         <dd>{doc.wb.sheets.length}</dd>
-        <dt>Cells with data (workbook)</dt>
+        <dt>{t('Cells with data (workbook)')}</dt>
         <dd>{total.toLocaleString('en-US')}</dd>
-        <dt>Formulas</dt>
+        <dt>{t('Formulas')}</dt>
         <dd>{formulas.toLocaleString('en-US')}</dd>
-        <dt>Defined names</dt>
+        <dt>{t('Defined names')}</dt>
         <dd>{doc.wb.names.size}</dd>
       </dl>
     </Modal>
@@ -951,7 +954,7 @@ export function PageSetupDialog({ onClose, initialTab }: P & { initialTab?: stri
   const [tab, setTab] = useState<'page' | 'margins' | 'hf' | 'sheet'>((initialTab as 'page') ?? 'page')
   const [p, setP] = useState(structuredClone(sheet.page))
   const ok = () => {
-    doc.transact('Page Setup', () => {
+    doc.transact(tx('Page Setup'), () => {
       doc.noteProps(sheet)
       sheet.page = p
     })
@@ -960,28 +963,32 @@ export function PageSetupDialog({ onClose, initialTab }: P & { initialTab?: stri
   const m = p.margins
   const num = (v: number, set: (n: number) => void) => <input type="number" step={0.05} min={0} value={v} onChange={(e) => set(Number(e.target.value) || 0)} />
   return (
-    <Modal title="Page Setup" onClose={onClose} width={520} footer={<OkCancel onOk={ok} onCancel={onClose} extra={<button type="button" className="btn" onClick={() => { ok(); app.print() }}>Print…</button>} />}>
-      <DialogTabs tabs={[{ id: 'page', label: 'Page' }, { id: 'margins', label: 'Margins' }, { id: 'hf', label: 'Header/Footer' }, { id: 'sheet', label: 'Sheet' }]} active={tab} onChange={setTab} />
+    <Modal title={t('Page Setup')} onClose={onClose} width={520} footer={<OkCancel onOk={ok} onCancel={onClose} extra={<button type="button" className="btn" onClick={() => { ok(); app.print() }}>{t('Print…')}</button>} />}>
+      <DialogTabs tabs={[{ id: 'page', label: t('Page') }, { id: 'margins', label: t('Margins') }, { id: 'hf', label: t('Header/Footer') }, { id: 'sheet', label: t('Sheet') }]} active={tab} onChange={setTab} />
       {tab === 'page' && (
         <div className="dlg-stack">
           <fieldset className="dlg-fieldset">
-            <legend>Orientation</legend>
+            <legend>{t('Orientation')}</legend>
             <div className="dlg-inline">
-              <label className="check-item"><input type="radio" checked={p.orientation === 'portrait'} onChange={() => setP({ ...p, orientation: 'portrait' })} /> Portrait</label>
-              <label className="check-item"><input type="radio" checked={p.orientation === 'landscape'} onChange={() => setP({ ...p, orientation: 'landscape' })} /> Landscape</label>
+              <label className="check-item"><input type="radio" checked={p.orientation === 'portrait'} onChange={() => setP({ ...p, orientation: 'portrait' })} />{' '}{t('Portrait')}</label>
+              <label className="check-item"><input type="radio" checked={p.orientation === 'landscape'} onChange={() => setP({ ...p, orientation: 'landscape' })} />{' '}{t('Landscape')}</label>
             </div>
           </fieldset>
           <fieldset className="dlg-fieldset">
-            <legend>Scaling</legend>
-            <label className="check-item"><input type="radio" checked={!p.fitToPage} onChange={() => setP({ ...p, fitToPage: false })} /> Adjust to: <input type="number" min={10} max={400} value={p.scale} onChange={(e) => setP({ ...p, scale: Number(e.target.value) || 100 })} />% normal size</label>
-            <label className="check-item"><input type="radio" checked={p.fitToPage} onChange={() => setP({ ...p, fitToPage: true })} /> Fit to 1 page wide</label>
+            <legend>{t('Scaling')}</legend>
+            <label className="check-item"><input type="radio" checked={!p.fitToPage} onChange={() => setP({ ...p, fitToPage: false })} />{' '}{t('Adjust to:')}{' '}<input type="number" min={10} max={400} value={p.scale} onChange={(e) => setP({ ...p, scale: Number(e.target.value) || 100 })} />{t('% normal size')}</label>
+            <label className="check-item">
+              <input type="radio" checked={p.fitToPage} onChange={() => setP({ ...p, fitToPage: true })} /> {t('Fit to:')}{' '}
+              <input type="number" min={0} max={99} value={p.fitWide ?? 1} onChange={(e) => setP({ ...p, fitToPage: true, fitWide: Math.max(0, Number(e.target.value) || 0) })} /> {t('page(s) wide by')}{' '}
+              <input type="number" min={0} max={99} value={p.fitTall ?? 0} onChange={(e) => setP({ ...p, fitToPage: true, fitTall: Math.max(0, Number(e.target.value) || 0) })} /> {t('tall (0 = automatic)')}
+            </label>
           </fieldset>
           <label className="dlg-inline">
-            Paper size:
+            {t('Paper size:')}
             <select value={p.paper} onChange={(e) => setP({ ...p, paper: e.target.value as typeof p.paper })}>
-              <option value="letter">Letter</option>
-              <option value="legal">Legal</option>
-              <option value="tabloid">Tabloid</option>
+              <option value="letter">{t('Letter')}</option>
+              <option value="legal">{t('Legal')}</option>
+              <option value="tabloid">{t('Tabloid')}</option>
               <option value="a4">A4</option>
               <option value="a3">A3</option>
             </select>
@@ -991,38 +998,38 @@ export function PageSetupDialog({ onClose, initialTab }: P & { initialTab?: stri
       {tab === 'margins' && (
         <div className="dlg-stack">
           <div className="margin-grid">
-            <label>Top {num(m.top, (n) => setP({ ...p, margins: { ...m, top: n } }))}</label>
-            <label>Header {num(m.header, (n) => setP({ ...p, margins: { ...m, header: n } }))}</label>
-            <label>Left {num(m.left, (n) => setP({ ...p, margins: { ...m, left: n } }))}</label>
-            <label>Right {num(m.right, (n) => setP({ ...p, margins: { ...m, right: n } }))}</label>
-            <label>Bottom {num(m.bottom, (n) => setP({ ...p, margins: { ...m, bottom: n } }))}</label>
-            <label>Footer {num(m.footer, (n) => setP({ ...p, margins: { ...m, footer: n } }))}</label>
+            <label>{t('Top')}{' '}{num(m.top, (n) => setP({ ...p, margins: { ...m, top: n } }))}</label>
+            <label>{t('Header')}{' '}{num(m.header, (n) => setP({ ...p, margins: { ...m, header: n } }))}</label>
+            <label>{t('Left')}{' '}{num(m.left, (n) => setP({ ...p, margins: { ...m, left: n } }))}</label>
+            <label>{t('Right')}{' '}{num(m.right, (n) => setP({ ...p, margins: { ...m, right: n } }))}</label>
+            <label>{t('Bottom')}{' '}{num(m.bottom, (n) => setP({ ...p, margins: { ...m, bottom: n } }))}</label>
+            <label>{t('Footer')}{' '}{num(m.footer, (n) => setP({ ...p, margins: { ...m, footer: n } }))}</label>
           </div>
           <fieldset className="dlg-fieldset">
-            <legend>Center on page</legend>
-            <label className="check-item"><input type="checkbox" checked={p.centerH} onChange={(e) => setP({ ...p, centerH: e.target.checked })} /> Horizontally</label>
-            <label className="check-item"><input type="checkbox" checked={p.centerV} onChange={(e) => setP({ ...p, centerV: e.target.checked })} /> Vertically</label>
+            <legend>{t('Center on page')}</legend>
+            <label className="check-item"><input type="checkbox" checked={p.centerH} onChange={(e) => setP({ ...p, centerH: e.target.checked })} />{' '}{t('Horizontally')}</label>
+            <label className="check-item"><input type="checkbox" checked={p.centerV} onChange={(e) => setP({ ...p, centerV: e.target.checked })} />{' '}{t('Vertically')}</label>
           </fieldset>
         </div>
       )}
       {tab === 'hf' && (
         <div className="dlg-stack">
-          <label className="dlg-stack">Header: <input value={p.header ?? ''} onChange={(e) => setP({ ...p, header: e.target.value || undefined })} placeholder="(none)" /></label>
-          <label className="dlg-stack">Footer: <input value={p.footer ?? ''} onChange={(e) => setP({ ...p, footer: e.target.value || undefined })} placeholder="(none)" /></label>
+          <label className="dlg-stack">{t('Header:')}{' '}<input value={p.header ?? ''} onChange={(e) => setP({ ...p, header: e.target.value || undefined })} placeholder={t('(none)')} /></label>
+          <label className="dlg-stack">{t('Footer:')}{' '}<input value={p.footer ?? ''} onChange={(e) => setP({ ...p, footer: e.target.value || undefined })} placeholder={t('(none)')} /></label>
         </div>
       )}
       {tab === 'sheet' && (
         <div className="dlg-stack">
-          <label className="dlg-inline find-field">Print area: <input value={p.printArea ?? ''} onChange={(e) => setP({ ...p, printArea: e.target.value || undefined })} placeholder="e.g. A1:F40" /></label>
+          <label className="dlg-inline find-field">{t('Print area:')}{' '}<input value={p.printArea ?? ''} onChange={(e) => setP({ ...p, printArea: e.target.value || undefined })} placeholder={t('e.g. A1:F40')} /></label>
           <fieldset className="dlg-fieldset">
-            <legend>Print titles</legend>
-            <label className="dlg-inline find-field">Rows to repeat at top: <input value={p.printTitleRows ?? ''} onChange={(e) => setP({ ...p, printTitleRows: e.target.value || undefined })} placeholder="e.g. $1:$1" /></label>
-            <label className="dlg-inline find-field">Columns to repeat at left: <input value={p.printTitleCols ?? ''} onChange={(e) => setP({ ...p, printTitleCols: e.target.value || undefined })} placeholder="e.g. $A:$A" /></label>
+            <legend>{t('Print titles')}</legend>
+            <label className="dlg-inline find-field">{t('Rows to repeat at top:')}{' '}<input value={p.printTitleRows ?? ''} onChange={(e) => setP({ ...p, printTitleRows: e.target.value || undefined })} placeholder={t('e.g. $1:$1')} /></label>
+            <label className="dlg-inline find-field">{t('Columns to repeat at left:')}{' '}<input value={p.printTitleCols ?? ''} onChange={(e) => setP({ ...p, printTitleCols: e.target.value || undefined })} placeholder={t('e.g. $A:$A')} /></label>
           </fieldset>
           <fieldset className="dlg-fieldset">
-            <legend>Print</legend>
-            <label className="check-item"><input type="checkbox" checked={p.printGridlines} onChange={(e) => setP({ ...p, printGridlines: e.target.checked })} /> Gridlines</label>
-            <label className="check-item"><input type="checkbox" checked={p.printHeadings} onChange={(e) => setP({ ...p, printHeadings: e.target.checked })} /> Row and column headings</label>
+            <legend>{t('Print')}</legend>
+            <label className="check-item"><input type="checkbox" checked={p.printGridlines} onChange={(e) => setP({ ...p, printGridlines: e.target.checked })} />{' '}{t('Gridlines')}</label>
+            <label className="check-item"><input type="checkbox" checked={p.printHeadings} onChange={(e) => setP({ ...p, printHeadings: e.target.checked })} />{' '}{t('Row and column headings')}</label>
           </fieldset>
         </div>
       )}
@@ -1047,7 +1054,7 @@ export function SymbolDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title="Symbol" onClose={onClose} width={440}>
+    <Modal title={t('Symbol')} onClose={onClose} width={440}>
       <div className="symbol-grid symbol-grid-wide">
         {SYMBOLS.map((s) => (
           <button key={s} type="button" title={`U+${s.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`} onClick={() => insert(s)}>
@@ -1069,18 +1076,18 @@ export function GoalSeekDialog({ onClose }: P) {
   const ok = () => {
     const s = parseCell(setCell.replace(/\$/g, ''))
     const ch = parseCell(changing.replace(/\$/g, ''))
-    const t = Number(target)
+    const goal = Number(target)
     const sheet = doc.sheet
-    if (!s || !ch || !Number.isFinite(t)) return app.alert('Enter a cell, a target value and a changing cell.')
-    if (sheet.get(s.r, s.c)?.f === undefined) return app.alert('The "Set cell" must contain a formula.')
-    if (sheet.get(ch.r, ch.c)?.f !== undefined) return app.alert('The "By changing cell" must contain a value.')
+    if (!s || !ch || !Number.isFinite(goal)) return app.alert(t('Enter a cell, a target value and a changing cell.'))
+    if (sheet.get(s.r, s.c)?.f === undefined) return app.alert(t('The "Set cell" must contain a formula.'))
+    if (sheet.get(ch.r, ch.c)?.f !== undefined) return app.alert(t('The "By changing cell" must contain a value.'))
     const orig = sheet.get(ch.r, ch.c)
     const evalAt = (x: number) => {
       sheet.setRaw(cellKey(ch.r, ch.c), { ...orig, v: x })
       doc.engine.cellsChanged(sheet, [cellKey(ch.r, ch.c)])
       doc.engine.recalc(true)
       const v = doc.engine.display(sheet, s.r, s.c)
-      return typeof v === 'number' ? v - t : NaN
+      return typeof v === 'number' ? v - goal : NaN
     }
     let x0 = typeof orig?.v === 'number' ? orig.v : 0
     let x1 = x0 === 0 ? 1 : x0 * 1.1
@@ -1104,16 +1111,16 @@ export function GoalSeekDialog({ onClose }: P) {
     doc.engine.cellsChanged(sheet, [cellKey(ch.r, ch.c)])
     doc.engine.recalc(true)
     onClose()
-    if (found === null) return app.alert(`Goal Seek with cell ${setCell} may not have found a solution.`)
-    doc.transact('Goal Seek', () => doc.write(sheet, ch.r, ch.c, { ...(orig ?? {}), v: Number(found!.toPrecision(15)) }))
-    app.alert(`Goal Seeking with cell ${setCell} found a solution.\nTarget value: ${t}`)
+    if (found === null) return app.alert(t('Goal Seek with cell {cell} may not have found a solution.', { cell: setCell }))
+    doc.transact(tx('Goal Seek'), () => doc.write(sheet, ch.r, ch.c, { ...(orig ?? {}), v: Number(found!.toPrecision(15)) }))
+    app.alert(t('Goal Seeking with cell {cell} found a solution.\nTarget value: {value}', { cell: setCell, value: goal }))
   }
   return (
-    <Modal title="Goal Seek" onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Goal Seek')} onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label>Set cell: <input value={setCell} onChange={(e) => setSetCell(e.target.value)} /></label>
-        <label>To value: <input autoFocus value={target} onChange={(e) => setTarget(e.target.value)} /></label>
-        <label>By changing cell: <input value={changing} onChange={(e) => setChanging(e.target.value)} /></label>
+        <label>{t('Set cell:')}{' '}<input value={setCell} onChange={(e) => setSetCell(e.target.value)} /></label>
+        <label>{t('To value:')}{' '}<input autoFocus value={target} onChange={(e) => setTarget(e.target.value)} /></label>
+        <label>{t('By changing cell:')}{' '}<input value={changing} onChange={(e) => setChanging(e.target.value)} /></label>
       </div>
     </Modal>
   )
@@ -1153,53 +1160,82 @@ export function TextToColumnsDialog({ onClose }: P) {
     return s.split(re)
   }
   const preview = Array.from({ length: Math.min(5, rg.r2 - rg.r1 + 1) }, (_, i) => split(String(doc.value(rg.r1 + i, rg.c1) ?? '')))
+  const [formats, setFormats] = useState<Record<number, ColumnFormat>>({})
+  const [dest, setDest] = useState(cellName(rg.r1, rg.c1))
   const ok = () => {
-    if (rg.c1 !== rg.c2) return app.alert('Text to Columns works on one column at a time.')
+    if (rg.c1 !== rg.c2) return app.alert(t('Text to Columns works on one column at a time.'))
+    const start = parseCell(dest.replace(/\$/g, ''))
+    if (!start) return app.alert(t('Enter a valid destination cell.'))
     const sheet = doc.sheet
-    doc.transact('Text to Columns', () => {
+    doc.transact(tx('Text to Columns'), () => {
       for (let r = rg.r1; r <= rg.r2; r++) {
         const v = doc.value(r, rg.c1)
         if (typeof v !== 'string') continue
+        let c = start.c
         split(v).forEach((part, j) => {
-          const c = rg.c1 + j
-          if (c >= MAX_COLS) return
-          const p = parseInput(part)
-          const old = sheet.get(r, c)
-          if (p.kind === 'value') doc.write(sheet, r, c, { ...(old?.s ? { s: old.s } : {}), v: p.v ?? undefined })
-          else doc.write(sheet, r, c, { s: old?.s, v: part })
+          const format = formats[j] ?? 'general'
+          if (format === 'skip' || c >= MAX_COLS) return
+          const row = start.r + (r - rg.r1)
+          const p = convertPart(part, format)
+          const old = sheet.get(row, c)
+          const s = p.fmt && p.fmt !== 'General' ? doc.wb.styles.patch(old?.s, { fmt: p.fmt }) : old?.s
+          doc.write(sheet, row, c, { ...(s ? { s } : {}), v: p.v === null ? undefined : p.v })
+          c++
         })
       }
     })
     onClose()
   }
+  const columnCount = Math.max(1, ...preview.map((row) => row.length))
   void MAX_ROWS
   return (
-    <Modal title="Convert Text to Columns" onClose={onClose} width={520} footer={<OkCancel onOk={ok} onCancel={onClose} okLabel="Finish" />}>
+    <Modal title={t('Convert Text to Columns')} onClose={onClose} width={520} footer={<OkCancel onOk={ok} onCancel={onClose} okLabel={t('Finish')} />}>
       <div className="dlg-inline">
-        <label className="check-item"><input type="radio" checked={mode === 'delimited'} onChange={() => setMode('delimited')} /> Delimited</label>
-        <label className="check-item"><input type="radio" checked={mode === 'fixed'} onChange={() => setMode('fixed')} /> Fixed width</label>
+        <label className="check-item"><input type="radio" checked={mode === 'delimited'} onChange={() => setMode('delimited')} />{' '}{t('Delimited')}</label>
+        <label className="check-item"><input type="radio" checked={mode === 'fixed'} onChange={() => setMode('fixed')} />{' '}{t('Fixed width')}</label>
       </div>
       {mode === 'fixed' && (
         <label className="dlg-inline">
-          Break lines after character positions: <input value={breaks} onChange={(e) => setBreaks(e.target.value)} placeholder="e.g. 10, 18" />
+          {t('Break lines after character positions:')}{' '}<input value={breaks} onChange={(e) => setBreaks(e.target.value)} placeholder={t('e.g. 10, 18')} />
         </label>
       )}
       <fieldset className="dlg-fieldset dlg-two" disabled={mode === 'fixed'}>
-        <legend>Delimiters</legend>
+        <legend>{t('Delimiters')}</legend>
         {(['tab', 'semicolon', 'comma', 'space'] as const).map((k) => (
           <label key={k} className="check-item">
             <input type="checkbox" checked={delims[k]} onChange={(e) => setDelims({ ...delims, [k]: e.target.checked })} /> {k[0].toUpperCase() + k.slice(1)}
           </label>
         ))}
         <label className="check-item">
-          Other: <input maxLength={1} value={other} onChange={(e) => setOther(e.target.value)} style={{ width: 30 }} />
+          {t('Other:')}{' '}<input maxLength={1} value={other} onChange={(e) => setOther(e.target.value)} style={{ width: 30 }} />
         </label>
         <label className="check-item">
-          <input type="checkbox" checked={consecutive} onChange={(e) => setConsecutive(e.target.checked)} /> Treat consecutive delimiters as one
+          <input type="checkbox" checked={consecutive} onChange={(e) => setConsecutive(e.target.checked)} />{' '}{t('Treat consecutive delimiters as one')}
         </label>
       </fieldset>
+      <label className="dlg-inline">
+        {t('Destination:')} <input value={dest} onChange={(e) => setDest(e.target.value)} style={{ width: 80 }} />
+      </label>
       <div className="find-results">
         <table>
+          <thead>
+            <tr>
+              {Array.from({ length: columnCount }, (_, j) => (
+                <th key={j}>
+                  <select aria-label={t('Column data format')} value={formats[j] ?? 'general'} onChange={(e) => setFormats({ ...formats, [j]: e.target.value as ColumnFormat })}>
+                    <option value="general">{t('General')}</option>
+                    <option value="text">{t('Text')}</option>
+                    {DATE_ORDERS.map((o) => (
+                      <option key={o} value={o}>
+                        {t('Date: {order}', { order: o })}
+                      </option>
+                    ))}
+                    <option value="skip">{t('Do not import column (skip)')}</option>
+                  </select>
+                </th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
             {preview.map((row, i) => (
               <tr key={i}>
@@ -1217,18 +1253,18 @@ export function TextToColumnsDialog({ onClose }: P) {
 
 export function ShortcutsDialog({ onClose }: P) {
   const rows: [string, string][] = [
-    ['Ctrl+N / Ctrl+O / Ctrl+S / F12', 'New, open, save, save as'], ['Ctrl+P', 'Print'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo (F4 repeats)'], ['Ctrl+C / Ctrl+X / Ctrl+V', 'Copy, cut, paste'],
-    ['Ctrl+Alt+V', 'Paste Special'], ['Ctrl+F / Ctrl+H', 'Find / replace'], ['Ctrl+G or F5', 'Go To'], ['Ctrl+1', 'Format Cells'], ['Ctrl+B / I / U / 5', 'Bold, italic, underline, strikethrough'],
-    ['Ctrl+Shift+$ % # @ ! ~ ^', 'Currency, percent, date, time, number, general, scientific'], ['Ctrl+Shift+& / Ctrl+Shift+_', 'Outline border / remove borders'],
-    ['F2', 'Edit the active cell'], ['Alt+Enter', 'New line in a cell'], ['Ctrl+Enter', 'Fill the selection with the entry'], ['Esc', 'Cancel the entry'],
-    ['F4 (while editing)', 'Toggle absolute/relative references'], ['Shift+F3', 'Insert Function'], ['Alt+=', 'AutoSum'], ['Ctrl+; / Ctrl+Shift+;', 'Insert current date / time'],
-    ["Ctrl+'", 'Copy the formula from the cell above'], ['Ctrl+`', 'Show formulas'], ['Ctrl+D / Ctrl+R', 'Fill down / right'], ['Ctrl+Shift++ / Ctrl+-', 'Insert / delete cells'],
-    ['Ctrl+9 / Ctrl+0', 'Hide rows / columns'], ['Ctrl+Shift+( / Ctrl+Shift+)', 'Unhide rows / columns'], ['Ctrl+Space / Shift+Space', 'Select column / row'], ['Ctrl+A', 'Select current region, then all'],
-    ['Ctrl+Arrow', 'Jump to the edge of the data'], ['Ctrl+Home / Ctrl+End', 'First cell / last used cell'], ['Ctrl+PgUp / Ctrl+PgDn', 'Previous / next sheet'], ['Shift+F11', 'Insert a sheet'],
-    ['F9', 'Calculate now'], ['Ctrl+Shift+U', 'Expand the formula bar'], ['Ctrl+F1', 'Collapse the ribbon'], ['Ctrl+K', 'Insert link'], ['Ctrl+F3', 'Name Manager'],
+    ['Ctrl+N / Ctrl+O / Ctrl+S / F12', t('New, open, save, save as')], ['Ctrl+P', t('Print')], ['Ctrl+Z / Ctrl+Y', t('Undo / redo (F4 repeats)')], ['Ctrl+C / Ctrl+X / Ctrl+V', t('Copy, cut, paste')],
+    ['Ctrl+Alt+V', t('Paste Special')], ['Ctrl+F / Ctrl+H', t('Find / replace')], ['Ctrl+G or F5', t('Go To')], ['Ctrl+1', t('Format Cells')], ['Ctrl+B / I / U / 5', t('Bold, italic, underline, strikethrough')],
+    ['Ctrl+Shift+$ % # @ ! ~ ^', t('Currency, percent, date, time, number, general, scientific')], ['Ctrl+Shift+& / Ctrl+Shift+_', t('Outline border / remove borders')],
+    ['F2', t('Edit the active cell')], ['Alt+Enter', t('New line in a cell')], ['Ctrl+Enter', t('Fill the selection with the entry')], ['Esc', t('Cancel the entry')],
+    [t('F4 (while editing)'), t('Toggle absolute/relative references')], ['Shift+F3', t('Insert Function')], ['Alt+=', t('AutoSum')], ['Ctrl+; / Ctrl+Shift+;', t('Insert current date / time')],
+    ["Ctrl+'", t('Copy the formula from the cell above')], ['Ctrl+`', t('Show formulas')], ['Ctrl+D / Ctrl+R', t('Fill down / right')], ['Ctrl+Shift++ / Ctrl+-', t('Insert / delete cells')],
+    ['Ctrl+9 / Ctrl+0', t('Hide rows / columns')], ['Ctrl+Shift+( / Ctrl+Shift+)', t('Unhide rows / columns')], ['Ctrl+Space / Shift+Space', t('Select column / row')], ['Ctrl+A', t('Select current region, then all')],
+    ['Ctrl+Arrow', t('Jump to the edge of the data')], ['Ctrl+Home / Ctrl+End', t('First cell / last used cell')], ['Ctrl+PgUp / Ctrl+PgDn', t('Previous / next sheet')], ['Shift+F11', t('Insert a sheet')],
+    ['F9', t('Calculate now')], ['Ctrl+Shift+U', t('Expand the formula bar')], ['Ctrl+F1', t('Collapse the ribbon')], ['Ctrl+K', t('Insert link')], ['Ctrl+F3', t('Name Manager')],
   ]
   return (
-    <Modal title="Keyboard Shortcuts" onClose={onClose} width={560}>
+    <Modal title={t('Keyboard Shortcuts')} onClose={onClose} width={560}>
       <table className="shortcut-table">
         <tbody>
           {rows.map(([k, v]) => (
@@ -1241,18 +1277,18 @@ export function ShortcutsDialog({ onClose }: P) {
           ))}
         </tbody>
       </table>
-      <p className="dlg-hint">On a Mac, use Cmd instead of Ctrl.</p>
+      <p className="dlg-hint">{t('On a Mac, use Cmd instead of Ctrl.')}</p>
     </Modal>
   )
 }
 
 export function AboutDialog({ onClose }: P) {
   return (
-    <Modal title={`About ${APP_NAME}`} onClose={onClose} width={380} footer={<><span className="spacer" /><button type="button" className="btn btn-primary" onClick={onClose}>OK</button></>}>
+    <Modal title={t('About {app}', { app: APP_NAME })} onClose={onClose} width={380} footer={<><span className="spacer" /><button type="button" className="btn btn-primary" onClick={onClose}>{t('OK')}</button></>}>
       <p>
-        <strong>{APP_NAME}</strong> is a free, open-source spreadsheet that runs in your browser. It opens and saves .xlsx workbooks and CSV files and calculates {[...FN_META.keys()].length} worksheet functions.
+        {t('{app} is a free, open-source spreadsheet that runs in your browser. It opens and saves .xlsx workbooks and CSV files and calculates {n} worksheet functions.', { app: APP_NAME, n: [...FN_META.keys()].length })}
       </p>
-      <p className="dlg-hint">Built with React, Vite and ExcelJS. Your data stays in this browser.</p>
+      <p className="dlg-hint">{t('Built with React, Vite and ExcelJS. Your data stays in this browser.')}</p>
     </Modal>
   )
 }

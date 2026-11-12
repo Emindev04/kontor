@@ -7,6 +7,7 @@ import { acceptSuggestion, definedNames, handleEditKey } from './editKeys'
 import { runStyle, type RichRun } from '../commands/richText'
 import type { Style } from '../model/style'
 import { autoCorrect, prefs } from '../model/prefs'
+import { t } from '../i18n'
 
 /** AutoComplete: the rest of the only text in the column that starts with what was typed. */
 function completeFromColumn(doc: Doc, r: number, c: number, typed: string): string {
@@ -125,7 +126,7 @@ export function FormulaAssist({ doc, anchor }: { doc: Doc; anchor: HTMLElement |
               {s.name}
             </button>
           ))}
-          {sug.items[index] && <div className="fx-list-desc">{sug.items[index].description}</div>}
+          {sug.items[index] && <div className="fx-list-desc">{t(sug.items[index].description)}</div>}
         </div>
       )}
     </div>,
@@ -199,7 +200,7 @@ export function CellEditor({ doc, rect, font, color, background, wrap, zoom, ale
         style={{ ...textStyle, color: isFormula || (e.rich && !isFormula) ? 'transparent' : color, caretColor: '#000' }}
         value={e.text}
         spellCheck={false}
-        aria-label="Cell contents"
+        aria-label={t('Cell contents')}
         onChange={(ev) => {
           const before = e.text
           let text = ev.target.value

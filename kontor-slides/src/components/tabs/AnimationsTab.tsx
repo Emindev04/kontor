@@ -7,9 +7,10 @@ import { findElement } from '../../model/factory'
 import * as AA from '../../store/animActions'
 import { MenuButton, NumberField, PopoverButton, RibbonButton, RibbonGroup, cls, keepFocus, type MenuItem } from '../ui'
 import { preview } from './TransitionsTab'
+import { t, tx } from '../../i18n'
 
 export function effectLabel(e: Pick<AnimEntry, 'name' | 'effect'>) {
-  return animationDef(e.name)?.label ?? MOTION_PATHS[e.name]?.label ?? (e.name === 'custom' ? 'Custom Path' : e.name)
+  return t(animationDef(e.name)?.label ?? MOTION_PATHS[e.name]?.label ?? (e.name === 'custom' ? tx('Custom Path') : e.name))
 }
 
 function EffectIcon({ effect }: { effect: AnimEntry['effect'] }) {
@@ -25,10 +26,10 @@ function EffectIcon({ effect }: { effect: AnimEntry['effect'] }) {
 }
 
 const GROUPS: { effect: AnimEntry['effect']; title: string }[] = [
-  { effect: 'entrance', title: 'Entrance' },
-  { effect: 'emphasis', title: 'Emphasis' },
-  { effect: 'exit', title: 'Exit' },
-  { effect: 'path', title: 'Motion Paths' },
+  { effect: 'entrance', title: tx('Entrance') },
+  { effect: 'emphasis', title: tx('Emphasis') },
+  { effect: 'exit', title: tx('Exit') },
+  { effect: 'path', title: tx('Motion Paths') },
 ]
 
 function EffectGallery({ onPick, current }: { onPick: (d: AnimationDef) => void; current?: string }) {
@@ -36,12 +37,12 @@ function EffectGallery({ onPick, current }: { onPick: (d: AnimationDef) => void;
     <div className="anim-full-gallery">
       {GROUPS.map((g) => (
         <div key={g.effect}>
-          <div className="palette-heading">{g.title}</div>
+          <div className="palette-heading">{t(g.title)}</div>
           <div className="effect-gallery wrap">
             {ANIMATIONS.filter((a) => a.effect === g.effect).map((a) => (
-              <button key={a.name} type="button" className={cls('effect-item', current === a.name && 'is-active')} title={`${a.label} (${g.title})`} onMouseDown={keepFocus} onClick={() => onPick(a)}>
+              <button key={a.name} type="button" className={cls('effect-item', current === a.name && 'is-active')} title={`${t(a.label)} (${t(g.title)})`} onMouseDown={keepFocus} onClick={() => onPick(a)}>
                 <EffectIcon effect={a.effect} />
-                <span>{a.label}</span>
+                <span>{t(a.label)}</span>
               </button>
             ))}
           </div>
@@ -51,11 +52,11 @@ function EffectGallery({ onPick, current }: { onPick: (d: AnimationDef) => void;
   )
 }
 
-const DIRS: { id: NonNullable<AnimEntry['direction']>; label: string }[] = [
-  { id: 'down', label: 'From Bottom' },
-  { id: 'left', label: 'From Left' },
-  { id: 'right', label: 'From Right' },
-  { id: 'up', label: 'From Top' },
+const DIRS: { id: NonNullable<AnimEntry['direction']>; label: string; exitLabel: string }[] = [
+  { id: 'down', label: tx('From Bottom'), exitLabel: tx('To Bottom') },
+  { id: 'left', label: tx('From Left'), exitLabel: tx('To Left') },
+  { id: 'right', label: tx('From Right'), exitLabel: tx('To Right') },
+  { id: 'up', label: tx('From Top'), exitLabel: tx('To Top') },
 ]
 
 function effectOptions(e: AnimEntry | undefined): MenuItem[] {
@@ -63,20 +64,20 @@ function effectOptions(e: AnimEntry | undefined): MenuItem[] {
   if (e.effect === 'path') {
     const group = Object.entries(PATH_OPTIONS).find(([, v]) => v.includes(e.name))?.[1] ?? []
     return [
-      ...group.map((id) => ({ label: MOTION_PATHS[id].label, active: e.name === id, onClick: () => AA.updateEntries({ name: id, path: MOTION_PATHS[id].d }) })),
+      ...group.map((id) => ({ label: t(MOTION_PATHS[id].label), active: e.name === id, onClick: () => AA.updateEntries({ name: id, path: MOTION_PATHS[id].d }) })),
       'separator',
-      { label: 'Reverse Path Direction', onClick: () => AA.updateEntries({ path: reversePath(e.path ?? '') }) },
+      { label: t('Reverse Path Direction'), onClick: () => AA.updateEntries({ path: reversePath(e.path ?? '') }) },
     ]
   }
   const exit = e.effect === 'exit'
-  const dirs: MenuItem[] = animationDef(e.name)?.directional ? [{ heading: 'Direction' }, ...DIRS.map((d) => ({ label: exit ? d.label.replace('From', 'To') : d.label, active: (e.direction ?? 'down') === d.id, onClick: () => AA.updateEntries({ direction: d.id }) }))] : []
+  const dirs: MenuItem[] = animationDef(e.name)?.directional ? [{ heading: t('Direction') }, ...DIRS.map((d) => ({ label: t(exit ? d.exitLabel : d.label), active: (e.direction ?? 'down') === d.id, onClick: () => AA.updateEntries({ direction: d.id }) }))] : []
   const target = findElement(currentSlide().elements, e.targetId)
   const text = target?.type === 'shape' && target.text && target.text.doc.content.some((p) => p.content?.length)
   const seq: MenuItem[] = text
     ? [
-        { heading: 'Sequence' },
-        { label: 'As One Object', active: !e.textBuild, onClick: () => AA.updateEntries({ textBuild: null }) },
-        { label: 'By Paragraph', active: e.textBuild === 'paragraph', onClick: () => AA.updateEntries({ textBuild: 'paragraph' }) },
+        { heading: t('Sequence') },
+        { label: t('As One Object'), active: !e.textBuild, onClick: () => AA.updateEntries({ textBuild: null }) },
+        { label: t('By Paragraph'), active: e.textBuild === 'paragraph', onClick: () => AA.updateEntries({ textBuild: 'paragraph' }) },
       ]
     : []
   return [...dirs, ...seq]
@@ -107,14 +108,14 @@ export function AnimationsTab() {
   const opts = effectOptions(first)
   return (
     <>
-      <RibbonGroup label="Preview">
-        <RibbonButton icon={Play} label="Preview" large onClick={() => preview('animations')} disabled={!slideHas} />
+      <RibbonGroup label={t('Preview')}>
+        <RibbonButton icon={Play} label={t('Preview')} large onClick={() => preview('animations')} disabled={!slideHas} />
       </RibbonGroup>
-      <RibbonGroup label="Animation">
+      <RibbonGroup label={t('Animation')}>
         <div className="effect-gallery anim-gallery">
           <button type="button" className={cls('effect-item', has && !entries.length && 'is-active')} disabled={!has} onMouseDown={keepFocus} onClick={() => AA.removeAnimation()}>
             <span className="anim-icon anim-none" aria-hidden="true" />
-            <span>None</span>
+            <span>{t('None')}</span>
           </button>
           {ANIMATIONS.filter((a) => a.effect === 'entrance').slice(0, 9).map((a) => (
             <button
@@ -122,7 +123,7 @@ export function AnimationsTab() {
               type="button"
               className={cls('effect-item', first?.name === a.name && 'is-active')}
               disabled={!has}
-              title={`${a.label} (Entrance)`}
+              title={t('{name} (Entrance)', { name: t(a.label) })}
               onMouseDown={keepFocus}
               onClick={() => {
                 AA.applyAnimation(a.name)
@@ -130,10 +131,10 @@ export function AnimationsTab() {
               }}
             >
               <EffectIcon effect={a.effect} />
-              <span>{a.label}</span>
+              <span>{t(a.label)}</span>
             </button>
           ))}
-          <PopoverButton icon={Sparkle} label="More Effects" disabled={!has} panelClass="menu-wide">
+          <PopoverButton icon={Sparkle} label={t('More Effects')} disabled={!has} panelClass="menu-wide">
             {(close) => (
               <EffectGallery
                 current={first?.name}
@@ -146,10 +147,10 @@ export function AnimationsTab() {
             )}
           </PopoverButton>
         </div>
-        <MenuButton icon={Sparkle} label="Effect Options" large disabled={!opts.length} items={opts} />
+        <MenuButton icon={Sparkle} label={t('Effect Options')} large disabled={!opts.length} items={opts} />
       </RibbonGroup>
-      <RibbonGroup label="Advanced Animation">
-        <PopoverButton icon={Plus} label="Add Animation" large disabled={!has} panelClass="menu-wide">
+      <RibbonGroup label={t('Advanced Animation')}>
+        <PopoverButton icon={Plus} label={t('Add Animation')} large disabled={!has} panelClass="menu-wide">
           {(close) => (
             <EffectGallery
               onPick={(a) => {
@@ -161,44 +162,44 @@ export function AnimationsTab() {
           )}
         </PopoverButton>
         <div className="col">
-          <RibbonButton icon={PanelRight} label="Animation Pane" showLabel active={pane === 'animation'} onClick={() => store.set({ pane: pane === 'animation' ? null : 'animation' })} />
+          <RibbonButton icon={PanelRight} label={t('Animation Pane')} showLabel active={pane === 'animation'} onClick={() => store.set({ pane: pane === 'animation' ? null : 'animation' })} />
           <MenuButton
             icon={Zap}
-            label="Trigger"
+            label={t('Trigger')}
             showLabel
             disabled={!first}
             items={() => [
-              { heading: 'On Click of' },
-              { label: 'None (part of the click sequence)', active: !first?.triggerId, onClick: () => AA.updateEntries({ triggerId: null }) },
+              { heading: t('On Click of') },
+              { label: t('None (part of the click sequence)'), active: !first?.triggerId, onClick: () => AA.updateEntries({ triggerId: null }) },
               ...shapes.filter((e) => e.id !== first?.targetId).map((e) => ({ label: e.name, active: first?.triggerId === e.id, onClick: () => AA.updateEntries({ triggerId: e.id, trigger: 'click' }) })),
             ]}
           />
-          <RibbonButton icon={Paintbrush} label="Animation Painter" showLabel active={!!painter} disabled={!first && !painter} onClick={() => (painter ? store.set({ animPainter: null }) : AA.startAnimationPainter())} />
+          <RibbonButton icon={Paintbrush} label={t('Animation Painter')} showLabel active={!!painter} disabled={!first && !painter} onClick={() => (painter ? store.set({ animPainter: null }) : AA.startAnimationPainter())} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Timing">
+      <RibbonGroup label={t('Timing')}>
         <div className="col timing">
           <label className="field-row">
-            <span>Start:</span>
+            <span>{t('Start:')}</span>
             <select value={first?.trigger ?? 'click'} disabled={!first} onChange={(e) => AA.updateEntries({ trigger: e.target.value as AnimEntry['trigger'] })}>
-              <option value="click">On Click</option>
-              <option value="with">With Previous</option>
-              <option value="after">After Previous</option>
+              <option value="click">{t('On Click')}</option>
+              <option value="with">{t('With Previous')}</option>
+              <option value="after">{t('After Previous')}</option>
             </select>
           </label>
           <label className="field-row">
-            <span>Duration:</span>
-            <NumberField label="Animation duration" value={first?.duration ?? 0.5} step={0.25} min={0.01} max={59} suffix=" s" disabled={!first} onChange={(v) => AA.updateEntries({ duration: v })} />
+            <span>{t('Duration:')}</span>
+            <NumberField label={t('Animation duration')} value={first?.duration ?? 0.5} step={0.25} min={0.01} max={59} suffix={t(' s')} disabled={!first} onChange={(v) => AA.updateEntries({ duration: v })} />
           </label>
           <label className="field-row">
-            <span>Delay:</span>
-            <NumberField label="Animation delay" value={first?.delay ?? 0} step={0.25} min={0} max={59} suffix=" s" disabled={!first} onChange={(v) => AA.updateEntries({ delay: v })} />
+            <span>{t('Delay:')}</span>
+            <NumberField label={t('Animation delay')} value={first?.delay ?? 0} step={0.25} min={0} max={59} suffix={t(' s')} disabled={!first} onChange={(v) => AA.updateEntries({ delay: v })} />
           </label>
         </div>
         <div className="col timing">
-          <span className="field-caption">Reorder Animation</span>
-          <RibbonButton icon={ArrowUp} label="Move Earlier" showLabel disabled={!first} onClick={() => AA.moveEntry(-1)} />
-          <RibbonButton icon={ArrowDown} label="Move Later" showLabel disabled={!first} onClick={() => AA.moveEntry(1)} />
+          <span className="field-caption">{t('Reorder Animation')}</span>
+          <RibbonButton icon={ArrowUp} label={t('Move Earlier')} showLabel disabled={!first} onClick={() => AA.moveEntry(-1)} />
+          <RibbonButton icon={ArrowDown} label={t('Move Later')} showLabel disabled={!first} onClick={() => AA.moveEntry(1)} />
         </div>
       </RibbonGroup>
     </>
@@ -220,22 +221,22 @@ export function AnimationPane({ onClose }: { onClose: () => void }) {
   const maxEnd = Math.max(1, ...list.map((a) => a.delay + a.duration))
   const pick = (a: AnimEntry) => store.set({ animSel: a.id, selection: [a.targetId], focus: 'canvas' })
   return (
-    <aside className="task-pane anim-pane" aria-label="Animation Pane">
+    <aside className="task-pane anim-pane" aria-label={t('Animation Pane')}>
       <div className="tp-title">
-        <span>Animation Pane</span>
-        <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
+        <span>{t('Animation Pane')}</span>
+        <button type="button" className="modal-close" aria-label={t('Close')} onClick={onClose}>
           ×
         </button>
       </div>
       <div className="tp-actions">
         <button type="button" className="btn btn-small" disabled={!list.length} onClick={() => preview('animations')}>
-          <Play size={12} /> {animSel ? 'Play From' : 'Play All'}
+          <Play size={12} /> {animSel ? t('Play From') : t('Play All')}
         </button>
         <span className="spacer" />
-        <button type="button" className="btn btn-icon" aria-label="Move Earlier" title="Move Earlier" disabled={!animSel} onClick={() => AA.moveEntry(-1, animSel ?? undefined)}>
+        <button type="button" className="btn btn-icon" aria-label={t('Move Earlier')} title={t('Move Earlier')} disabled={!animSel} onClick={() => AA.moveEntry(-1, animSel ?? undefined)}>
           <ArrowUp size={14} />
         </button>
-        <button type="button" className="btn btn-icon" aria-label="Move Later" title="Move Later" disabled={!animSel} onClick={() => AA.moveEntry(1, animSel ?? undefined)}>
+        <button type="button" className="btn btn-icon" aria-label={t('Move Later')} title={t('Move Later')} disabled={!animSel} onClick={() => AA.moveEntry(1, animSel ?? undefined)}>
           <ArrowDown size={14} />
         </button>
       </div>
@@ -264,7 +265,7 @@ export function AnimationPane({ onClose }: { onClose: () => void }) {
             }}
           >
             <span className="al-num">{numbers[i] ? numbers[i] : ''}</span>
-            <span className="al-trigger" title={a.triggerId ? `On click of ${name(a.triggerId)}` : a.trigger === 'click' ? 'On Click' : a.trigger === 'with' ? 'With Previous' : 'After Previous'}>
+            <span className="al-trigger" title={a.triggerId ? t('On click of {name}', { name: name(a.triggerId) }) : a.trigger === 'click' ? t('On Click') : a.trigger === 'with' ? t('With Previous') : t('After Previous')}>
               {a.triggerId ? <Zap size={12} /> : a.trigger === 'click' ? <MousePointerClick size={12} /> : a.trigger === 'after' ? <Clock size={12} /> : null}
             </span>
             <EffectIcon effect={a.effect} />
@@ -278,28 +279,28 @@ export function AnimationPane({ onClose }: { onClose: () => void }) {
           </li>
         ))}
       </ul>
-      {!list.length && <p className="tp-hint">Select an object on the slide and choose an effect in Animations to add an animation.</p>}
+      {!list.length && <p className="tp-hint">{t('Select an object on the slide and choose an effect in Animations to add an animation.')}</p>}
       {menu && (
         <div className="menu context-menu" style={{ position: 'fixed', left: menu.x, top: menu.y }} onMouseLeave={() => setMenu(null)}>
           {(
             [
-              ['Start On Click', { trigger: 'click' }],
-              ['Start With Previous', { trigger: 'with' }],
-              ['Start After Previous', { trigger: 'after' }],
+              [tx('Start On Click'), { trigger: 'click' }],
+              [tx('Start With Previous'), { trigger: 'with' }],
+              [tx('Start After Previous'), { trigger: 'after' }],
             ] as [string, Partial<AnimEntry>][]
           ).map(([label, patch]) => (
             <button key={label} type="button" className="menu-item" onClick={() => (AA.updateEntries(patch, [menu.id]), setMenu(null))}>
               <span className="menu-icon-space" />
-              {label}
+              {t(label)}
             </button>
           ))}
           <div className="menu-sep" />
           <button type="button" className="menu-item" onClick={() => (window.dispatchEvent(new CustomEvent('kontor:dialog', { detail: 'effectOptions' })), setMenu(null))}>
             <span className="menu-icon-space" />
-            Effect Options…
+            {t('Effect Options…')}
           </button>
           <button type="button" className="menu-item" onClick={() => (AA.removeAnimation([menu.id]), setMenu(null))}>
-            <Trash2 size={16} /> Remove
+            <Trash2 size={16} /> {t('Remove')}
           </button>
         </div>
       )}
@@ -315,11 +316,11 @@ export function EffectOptionsDialogBody({ entry, onChange }: { entry: AnimEntry;
     <div className="form">
       {def?.directional && (
         <label className="field-row form-row">
-          <span>Direction:</span>
+          <span>{t('Direction:')}</span>
           <select value={entry.direction ?? 'down'} onChange={(e) => onChange({ direction: e.target.value as AnimEntry['direction'] })}>
             {DIRS.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.label}
+                {t(d.label)}
               </option>
             ))}
           </select>
@@ -331,52 +332,52 @@ export function EffectOptionsDialogBody({ entry, onChange }: { entry: AnimEntry;
         return (
           <>
             <label className="field-row form-row">
-              <span>Group text:</span>
+              <span>{t('Group text:')}</span>
               <select value={entry.textBuild ?? ''} onChange={(e) => onChange({ textBuild: e.target.value === 'paragraph' ? 'paragraph' : null })}>
-                <option value="">As One Object</option>
-                <option value="paragraph">By Paragraph</option>
+                <option value="">{t('As One Object')}</option>
+                <option value="paragraph">{t('By Paragraph')}</option>
               </select>
             </label>
             <label className="field-row form-row">
-              <span>Animate text:</span>
+              <span>{t('Animate text:')}</span>
               <select value={entry.textUnit ?? ''} onChange={(e) => onChange({ textUnit: (e.target.value || null) as AnimEntry['textUnit'] })}>
-                <option value="">All at once</option>
-                <option value="word">By word</option>
-                <option value="letter">By letter</option>
+                <option value="">{t('All at once')}</option>
+                <option value="word">{t('By word')}</option>
+                <option value="letter">{t('By letter')}</option>
               </select>
             </label>
           </>
         )
       })()}
       <label className="field-row form-row">
-        <span>Start:</span>
+        <span>{t('Start:')}</span>
         <select value={entry.trigger} onChange={(e) => onChange({ trigger: e.target.value as AnimEntry['trigger'] })}>
-          <option value="click">On Click</option>
-          <option value="with">With Previous</option>
-          <option value="after">After Previous</option>
+          <option value="click">{t('On Click')}</option>
+          <option value="with">{t('With Previous')}</option>
+          <option value="after">{t('After Previous')}</option>
         </select>
       </label>
       <label className="field-row form-row">
-        <span>Delay:</span>
-        <NumberField label="Delay" value={entry.delay} step={0.25} min={0} max={59} suffix=" s" onChange={(v) => onChange({ delay: v })} />
+        <span>{t('Delay:')}</span>
+        <NumberField label={t('Delay')} value={entry.delay} step={0.25} min={0} max={59} suffix={t(' s')} onChange={(v) => onChange({ delay: v })} />
       </label>
       <label className="field-row form-row">
-        <span>Duration:</span>
-        <NumberField label="Duration" value={entry.duration} step={0.25} min={0.01} max={59} suffix=" s" onChange={(v) => onChange({ duration: v })} />
+        <span>{t('Duration:')}</span>
+        <NumberField label={t('Duration')} value={entry.duration} step={0.25} min={0.01} max={59} suffix={t(' s')} onChange={(v) => onChange({ duration: v })} />
       </label>
       <label className="field-row form-row">
-        <span>Repeat:</span>
-        <NumberField label="Repeat" value={entry.repeat ?? 1} step={1} min={1} max={99} decimals={0} onChange={(v) => onChange({ repeat: Math.round(v) })} />
+        <span>{t('Repeat:')}</span>
+        <NumberField label={t('Repeat')} value={entry.repeat ?? 1} step={1} min={1} max={99} decimals={0} onChange={(v) => onChange({ repeat: Math.round(v) })} />
       </label>
       <label className="field-row form-row">
-        <span>Triggers:</span>
+        <span>{t('Triggers:')}</span>
         <select value={entry.triggerId ?? ''} onChange={(e) => onChange({ triggerId: e.target.value || null })}>
-          <option value="">Animate as part of click sequence</option>
+          <option value="">{t('Animate as part of click sequence')}</option>
           {shapes
             .filter((e) => e.id !== entry.targetId)
             .map((e) => (
               <option key={e.id} value={e.id}>
-                Start effect on click of: {e.name}
+                {t('Start effect on click of: {name}', { name: e.name })}
               </option>
             ))}
         </select>

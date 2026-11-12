@@ -23,6 +23,7 @@ import { applyFilters } from '../../commands/filter'
 import { tokenize } from '../../engine/tokenizer'
 import { Modal, OkCancel, cls } from '../ui'
 import { useApp } from '../appContext'
+import { t, tx } from '../../i18n'
 
 type P = { onClose: () => void }
 
@@ -40,21 +41,21 @@ export function ProtectSheetDialog({ onClose }: P) {
   const [pw2, setPw2] = useState('')
   const [allow, setAllow] = useState<Partial<Record<SheetPermission, boolean>>>({ selectLocked: true, selectUnlocked: true })
   const ok = () => {
-    if (pw && pw2 !== pw) return app.alert('Confirmation password is not identical.')
+    if (pw && pw2 !== pw) return app.alert(t('Confirmation password is not identical.'))
     protectSheet(app.doc, pw, allow)
     onClose()
   }
   return (
-    <Modal title="Protect Sheet" onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Protect Sheet')} onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label className="check-item"><input type="checkbox" checked readOnly /> Protect worksheet and contents of locked cells</label>
-        <label>Password to unprotect sheet: <input type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} /></label>
-        {pw && <label>Reenter password to proceed: <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></label>}
-        <div className="dlg-hint">Allow all users of this worksheet to:</div>
+        <label className="check-item"><input type="checkbox" checked readOnly />{' '}{t('Protect worksheet and contents of locked cells')}</label>
+        <label>{t('Password to unprotect sheet:')}{' '}<input type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} /></label>
+        {pw && <label>{t('Reenter password to proceed:')}{' '}<input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></label>}
+        <div className="dlg-hint">{t('Allow all users of this worksheet to:')}</div>
         <div className="perm-list">
           {PERMISSIONS.map(([k, label]) => (
             <label key={k} className="check-item">
-              <input type="checkbox" checked={!!allow[k]} onChange={(e) => setAllow({ ...allow, [k]: e.target.checked })} /> {label}
+              <input type="checkbox" checked={!!allow[k]} onChange={(e) => setAllow({ ...allow, [k]: e.target.checked })} /> {t(label)}
             </label>
           ))}
         </div>
@@ -73,15 +74,15 @@ export function PasswordDialog({ onClose, kind }: P & { kind: 'sheet' | 'workboo
       return
     }
     const done = kind === 'sheet' ? unprotectSheet(app.doc, pw) : unprotectWorkbook(app.doc, pw)
-    if (!done) return app.alert('The password you supplied is not correct. Verify that the CAPS LOCK key is off and be sure to use the correct capitalization.')
+    if (!done) return app.alert(t('The password you supplied is not correct. Verify that the CAPS LOCK key is off and be sure to use the correct capitalization.'))
     onClose()
   }
-  const title = kind === 'sheet' ? 'Unprotect Sheet' : kind === 'workbook' ? 'Unprotect Workbook' : 'Protect Structure and Windows'
+  const title = kind === 'sheet' ? t('Unprotect Sheet') : kind === 'workbook' ? t('Unprotect Workbook') : t('Protect Structure and Windows')
   return (
     <Modal title={title} onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        {kind === 'protectWorkbook' && <label className="check-item"><input type="checkbox" checked readOnly /> Structure</label>}
-        <label>Password{kind === 'protectWorkbook' ? ' (optional)' : ''}: <input type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ok()} /></label>
+        {kind === 'protectWorkbook' && <label className="check-item"><input type="checkbox" checked readOnly />{' '}{t('Structure')}</label>}
+        <label>{kind === 'protectWorkbook' ? t('Password (optional):') : t('Password:')} <input type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ok()} /></label>
       </div>
     </Modal>
   )
@@ -96,7 +97,7 @@ export function AllowEditRangesDialog({ onClose }: P) {
   const [pw, setPw] = useState('')
   const add = () => {
     const r = ref(app, refText)
-    if (!r) return app.alert('The reference is not valid.')
+    if (!r) return app.alert(t('The reference is not valid.'))
     setList([...list, { title, range: r.range, hash: passwordHash(pw), pw }])
     setTitle(`Range${list.length + 2}`)
     setPw('')
@@ -107,28 +108,28 @@ export function AllowEditRangesDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title="Allow Users to Edit Ranges" onClose={onClose} width={480} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Allow Users to Edit Ranges')} onClose={onClose} width={480} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <table className="pane-table">
-        <thead><tr><th>Title</th><th>Refers to cells</th><th>Password</th><th /></tr></thead>
+        <thead><tr><th>{t('Title')}</th><th>{t('Refers to cells')}</th><th>{t('Password')}</th><th /></tr></thead>
         <tbody>
           {list.map((e, i) => (
             <tr key={i}>
               <td>{e.title}</td>
               <td>{absName(e.range)}</td>
-              <td>{e.hash ? '••••' : '(none)'}</td>
+              <td>{e.hash ? '••••' : t('(none)')}</td>
               <td><button type="button" className="icon-btn" onClick={() => setList(list.filter((_, j) => j !== i))}><Trash2 size={12} /></button></td>
             </tr>
           ))}
         </tbody>
       </table>
-      {!doc.sheet.x.protection && <p className="dlg-hint">Ranges unlocked when a sheet is protected. Protect the sheet to make them take effect.</p>}
+      {!doc.sheet.x.protection && <p className="dlg-hint">{t('Ranges unlocked when a sheet is protected. Protect the sheet to make them take effect.')}</p>}
       <fieldset className="dlg-fieldset">
-        <legend>New Range</legend>
+        <legend>{t('New Range')}</legend>
         <div className="form">
-          <label>Title: <input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-          <label>Refers to cells: <input value={refText} onChange={(e) => setRef(e.target.value)} /></label>
-          <label>Range password: <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
-          <button type="button" className="btn" onClick={add}>Add</button>
+          <label>{t('Title:')}{' '}<input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+          <label>{t('Refers to cells:')}{' '}<input value={refText} onChange={(e) => setRef(e.target.value)} /></label>
+          <label>{t('Range password:')}{' '}<input type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
+          <button type="button" className="btn" onClick={add}>{t('Add')}</button>
         </div>
       </fieldset>
     </Modal>
@@ -150,10 +151,10 @@ export function GroupDialog({ onClose, data }: P & { data?: unknown }) {
     onClose()
   }
   return (
-    <Modal title={isUngroup ? 'Ungroup' : 'Group'} onClose={onClose} width={260} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={isUngroup ? t('Ungroup') : t('Group')} onClose={onClose} width={260} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label className="check-item"><input type="radio" checked={axis === 'row'} onChange={() => setAxis('row')} /> Rows</label>
-        <label className="check-item"><input type="radio" checked={axis === 'col'} onChange={() => setAxis('col')} /> Columns</label>
+        <label className="check-item"><input type="radio" checked={axis === 'row'} onChange={() => setAxis('row')} />{' '}{t('Rows')}</label>
+        <label className="check-item"><input type="radio" checked={axis === 'col'} onChange={() => setAxis('col')} />{' '}{t('Columns')}</label>
       </div>
     </Modal>
   )
@@ -167,37 +168,37 @@ export function SubtotalDialog({ onClose }: P) {
     if (r.r1 === r.r2 && r.c1 === r.c2) r = currentRegion(doc, doc.sel.active)
     return doc.boundToUsed(r)
   }, [doc])
-  const headers = Array.from({ length: rg.c2 - rg.c1 + 1 }, (_, i) => String(doc.value(rg.r1, rg.c1 + i) ?? `Column ${colName(rg.c1 + i)}`))
+  const headers = Array.from({ length: rg.c2 - rg.c1 + 1 }, (_, i) => String(doc.value(rg.r1, rg.c1 + i) ?? t('Column {name}', { name: colName(rg.c1 + i) })))
   const [by, setBy] = useState(rg.c1)
   const [fn, setFn] = useState(9)
   const [cols, setCols] = useState<number[]>([rg.c2])
   const [replace, setReplace] = useState(true)
   const [below, setBelow] = useState(true)
   const ok = () => {
-    if (!detectHeader(doc, rg) && typeof doc.value(rg.r1, rg.c1) !== 'string') return app.alert('The first row of the selection must contain column labels.')
+    if (!detectHeader(doc, rg) && typeof doc.value(rg.r1, rg.c1) !== 'string') return app.alert(t('The first row of the selection must contain column labels.'))
     const err = subtotal(doc, rg, by, fn, cols, { replace, below })
     if (err) return app.alert(err)
     onClose()
   }
   return (
     <Modal
-      title="Subtotal"
+      title={t('Subtotal')}
       onClose={onClose}
       width={360}
-      footer={<OkCancel onOk={ok} onCancel={onClose} extra={<button type="button" className="btn" onClick={() => { removeSubtotals(doc, rg); onClose() }}>Remove All</button>} />}
+      footer={<OkCancel onOk={ok} onCancel={onClose} extra={<button type="button" className="btn" onClick={() => { removeSubtotals(doc, rg); onClose() }}>{t('Remove All')}</button>} />}
     >
       <div className="form">
-        <label>At each change in:
+        <label>{t('At each change in:')}
           <select value={by} onChange={(e) => setBy(Number(e.target.value))}>
             {headers.map((h, i) => <option key={i} value={rg.c1 + i}>{h}</option>)}
           </select>
         </label>
-        <label>Use function:
+        <label>{t('Use function:')}
           <select value={fn} onChange={(e) => setFn(Number(e.target.value))}>
-            {SUBTOTAL_FNS.map(([n, l]) => <option key={n} value={n}>{l}</option>)}
+            {SUBTOTAL_FNS.map(([n, l]) => <option key={n} value={n}>{t(l)}</option>)}
           </select>
         </label>
-        <div className="dlg-hint">Add subtotal to:</div>
+        <div className="dlg-hint">{t('Add subtotal to:')}</div>
         <div className="perm-list">
           {headers.map((h, i) => (
             <label key={i} className="check-item">
@@ -205,8 +206,8 @@ export function SubtotalDialog({ onClose }: P) {
             </label>
           ))}
         </div>
-        <label className="check-item"><input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} /> Replace current subtotals</label>
-        <label className="check-item"><input type="checkbox" checked={below} onChange={(e) => setBelow(e.target.checked)} /> Summary below data</label>
+        <label className="check-item"><input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} />{' '}{t('Replace current subtotals')}</label>
+        <label className="check-item"><input type="checkbox" checked={below} onChange={(e) => setBelow(e.target.checked)} />{' '}{t('Summary below data')}</label>
       </div>
     </Modal>
   )
@@ -241,8 +242,8 @@ export function DataTableDialog({ onClose }: P) {
   const ok = () => {
     const ri = rowIn ? parseCell(rowIn.replace(/\$/g, '')) : null
     const ci = colIn ? parseCell(colIn.replace(/\$/g, '')) : null
-    if (!ri && !ci) return app.alert('Enter a row input cell, a column input cell, or both.')
-    if (rg.r2 <= rg.r1 && rg.c2 <= rg.c1) return app.alert('Select the whole data table range first (formula and input values).')
+    if (!ri && !ci) return app.alert(t('Enter a row input cell, a column input cell, or both.'))
+    if (rg.r2 <= rg.r1 && rg.c2 <= rg.c1) return app.alert(t('Select the whole data table range first (formula and input values).'))
     const sheet = doc.sheet
     const results: { r: number; c: number; v: Scalar }[] = []
     const val = (r: number, c: number) => doc.value(r, c)
@@ -265,7 +266,7 @@ export function DataTableDialog({ onClose }: P) {
         vals.forEach((v, i) => results.push({ r: rg.r1 + 1 + i, c, v }))
       }
     }
-    doc.transact('Data Table', () => {
+    doc.transact(tx('Data Table'), () => {
       for (const x of results) {
         const old = sheet.get(x.r, x.c)
         doc.write(sheet, x.r, x.c, { ...(old?.s ? { s: old.s } : {}), v: x.v ?? undefined })
@@ -274,11 +275,11 @@ export function DataTableDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title="Data Table" onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Data Table')} onClose={onClose} width={340} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label>Row input cell: <input autoFocus value={rowIn} onChange={(e) => setRowIn(e.target.value)} /></label>
-        <label>Column input cell: <input value={colIn} onChange={(e) => setColIn(e.target.value)} /></label>
-        <p className="dlg-hint">Results are filled in as values. Recalculate by running Data Table again.</p>
+        <label>{t('Row input cell:')}{' '}<input autoFocus value={rowIn} onChange={(e) => setRowIn(e.target.value)} /></label>
+        <label>{t('Column input cell:')}{' '}<input value={colIn} onChange={(e) => setColIn(e.target.value)} /></label>
+        <p className="dlg-hint">{t('Results are filled in as values. Recalculate by running Data Table again.')}</p>
       </div>
     </Modal>
   )
@@ -301,14 +302,14 @@ export function ScenarioDialog({ onClose }: P) {
   }
   const save = (next: Scenario[]) => {
     setList(next)
-    doc.transact('Scenario Manager', () => {
+    doc.transact(tx('Scenario Manager'), () => {
       doc.noteProps(sheet)
       sheet.x.scenarios = next
     })
   }
   const show = (s: Scenario) => {
     const cells = cellsOf(s)
-    doc.transact(`Show Scenario "${s.name}"`, () => {
+    doc.transact(t('Show Scenario "{name}"', { name: s.name }), () => {
       cells.forEach((cell, i) => {
         const old = sheet.get(cell.r, cell.c)
         doc.write(sheet, cell.r, cell.c, { ...(old?.s ? { s: old.s } : {}), v: s.values[i] ?? undefined })
@@ -335,7 +336,7 @@ export function ScenarioDialog({ onClose }: P) {
     }
     addSheet(doc)
     const out = doc.sheet
-    doc.transact('Scenario Summary', () => {
+    doc.transact(tx('Scenario Summary'), () => {
       out.name = 'Scenario Summary'.slice(0, 31)
       rows.forEach((row, r) => row.forEach((v, c) => v !== null && doc.write(out, r + 1, c + 1, { v, ...(r === 0 ? { s: doc.wb.styles.intern({ bold: true, fill: '#DDEBF7' }) } : {}) })))
     })
@@ -343,17 +344,17 @@ export function ScenarioDialog({ onClose }: P) {
   }
   if (editing) {
     return (
-      <Modal title={sheet.x.scenarios.some((s) => s.name === editing.name) ? 'Edit Scenario' : 'Add Scenario'} onClose={() => setEditing(null)} width={420} footer={<OkCancel onOk={() => {
+      <Modal title={sheet.x.scenarios.some((s) => s.name === editing.name) ? t('Edit Scenario') : t('Add Scenario')} onClose={() => setEditing(null)} width={420} footer={<OkCancel onOk={() => {
         const cells = cellsOf(editing)
-        if (!editing.name || !cells.length) return app.alert('Enter a scenario name and changing cells.')
+        if (!editing.name || !cells.length) return app.alert(t('Enter a scenario name and changing cells.'))
         const values = cells.map((c, i) => editing.values[i] ?? doc.value(c.r, c.c))
         const idx = list.findIndex((s) => s.name === editing.name)
         save(idx >= 0 ? list.map((s, i) => (i === idx ? { ...editing, values } : s)) : [...list, { ...editing, values }])
         setEditing(null)
       }} onCancel={() => setEditing(null)} />}>
         <div className="form">
-          <label>Scenario name: <input autoFocus value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></label>
-          <label>Changing cells: <input value={editing.cells} onChange={(e) => setEditing({ ...editing, cells: e.target.value, values: [] })} /></label>
+          <label>{t('Scenario name:')}{' '}<input autoFocus value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></label>
+          <label>{t('Changing cells:')}{' '}<input value={editing.cells} onChange={(e) => setEditing({ ...editing, cells: e.target.value, values: [] })} /></label>
           {cellsOf(editing).slice(0, 32).map((c, i) => (
             <label key={i}>{cellName(c.r, c.c)}: <input value={String(editing.values[i] ?? doc.value(c.r, c.c) ?? '')} onChange={(e) => {
               const values = cellsOf(editing).map((cc, j) => editing.values[j] ?? doc.value(cc.r, cc.c))
@@ -362,27 +363,27 @@ export function ScenarioDialog({ onClose }: P) {
               setEditing({ ...editing, values })
             }} /></label>
           ))}
-          <label>Comment: <input value={editing.comment} onChange={(e) => setEditing({ ...editing, comment: e.target.value })} /></label>
+          <label>{t('Comment:')}{' '}<input value={editing.comment} onChange={(e) => setEditing({ ...editing, comment: e.target.value })} /></label>
         </div>
       </Modal>
     )
   }
   return (
-    <Modal title="Scenario Manager" onClose={onClose} width={460} footer={<><span className="spacer" /><button type="button" className="btn" onClick={onClose}>Close</button></>}>
+    <Modal title={t('Scenario Manager')} onClose={onClose} width={460} footer={<><span className="spacer" /><button type="button" className="btn" onClick={onClose}>{t('Close')}</button></>}>
       <div className="sd-cols">
         <select size={8} value={sel} onChange={(e) => setSel(Number(e.target.value))}>
           {list.map((s, i) => <option key={i} value={i}>{s.name}</option>)}
         </select>
         <div className="dlg-stack">
-          <button type="button" className="btn" onClick={() => setEditing({ name: `Scenario ${list.length + 1}`, cells: '=' + absName(doc.activeRange), values: [], comment: '' })}>Add…</button>
-          <button type="button" className="btn" disabled={!list[sel]} onClick={() => save(list.filter((_, i) => i !== sel))}>Delete</button>
-          <button type="button" className="btn" disabled={!list[sel]} onClick={() => setEditing({ ...list[sel] })}>Edit…</button>
-          <button type="button" className="btn" disabled={!list[sel]} onClick={() => show(list[sel])}>Show</button>
-          <input placeholder="Result cells, e.g. B10" value={results} onChange={(e) => setResults(e.target.value)} />
-          <button type="button" className="btn" disabled={!list.length} onClick={summary}>Summary…</button>
+          <button type="button" className="btn" onClick={() => setEditing({ name: t('Scenario {n}', { n: list.length + 1 }), cells: '=' + absName(doc.activeRange), values: [], comment: '' })}>{t('Add…')}</button>
+          <button type="button" className="btn" disabled={!list[sel]} onClick={() => save(list.filter((_, i) => i !== sel))}>{t('Delete')}</button>
+          <button type="button" className="btn" disabled={!list[sel]} onClick={() => setEditing({ ...list[sel] })}>{t('Edit…')}</button>
+          <button type="button" className="btn" disabled={!list[sel]} onClick={() => show(list[sel])}>{t('Show')}</button>
+          <input placeholder={t('Result cells, e.g. B10')} value={results} onChange={(e) => setResults(e.target.value)} />
+          <button type="button" className="btn" disabled={!list.length} onClick={summary}>{t('Summary…')}</button>
         </div>
       </div>
-      {list[sel] && <p className="dlg-hint">Changing cells: {list[sel].cells}{list[sel].comment ? ` — ${list[sel].comment}` : ''}</p>}
+      {list[sel] && <p className="dlg-hint">{t('Changing cells:')} {list[sel].cells}{list[sel].comment ? ` — ${list[sel].comment}` : ''}</p>}
     </Modal>
   )
 }
@@ -424,7 +425,7 @@ export function AdvancedFilterDialog({ onClose }: P) {
   const [unique, setUnique] = useState(false)
   const ok = () => {
     const L = ref(app, list)
-    if (!L) return app.alert('The list range is not valid.')
+    if (!L) return app.alert(t('The list range is not valid.'))
     const C = crit ? ref(app, crit) : null
     const sheet = doc.sheet
     const lr = L.range
@@ -457,8 +458,8 @@ export function AdvancedFilterDialog({ onClose }: P) {
     }
     if (copy) {
       const D = ref(app, dest)
-      if (!D) return app.alert('The Copy to reference is not valid.')
-      doc.transact('Advanced Filter', () => {
+      if (!D) return app.alert(t('The Copy to reference is not valid.'))
+      doc.transact(tx('Advanced Filter'), () => {
         const rows = [lr.r1, ...keep]
         rows.forEach((r, i) => {
           for (let c = lr.c1; c <= lr.c2; c++) {
@@ -468,7 +469,7 @@ export function AdvancedFilterDialog({ onClose }: P) {
         })
       })
     } else {
-      doc.transact('Advanced Filter', () => {
+      doc.transact(tx('Advanced Filter'), () => {
         doc.noteProps(sheet)
         const hide: number[] = []
         for (let r = lr.r1 + 1; r <= lr.r2; r++) if (!keep.includes(r)) hide.push(r)
@@ -481,14 +482,14 @@ export function AdvancedFilterDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title="Advanced Filter" onClose={onClose} width={400} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Advanced Filter')} onClose={onClose} width={400} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label className="check-item"><input type="radio" checked={!copy} onChange={() => setCopy(false)} /> Filter the list, in-place</label>
-        <label className="check-item"><input type="radio" checked={copy} onChange={() => setCopy(true)} /> Copy to another location</label>
-        <label>List range: <input value={list} onChange={(e) => setList(e.target.value)} /></label>
-        <label>Criteria range: <input value={crit} placeholder="Header row plus criteria rows" onChange={(e) => setCrit(e.target.value)} /></label>
-        {copy && <label>Copy to: <input value={dest} onChange={(e) => setDest(e.target.value)} /></label>}
-        <label className="check-item"><input type="checkbox" checked={unique} onChange={(e) => setUnique(e.target.checked)} /> Unique records only</label>
+        <label className="check-item"><input type="radio" checked={!copy} onChange={() => setCopy(false)} />{' '}{t('Filter the list, in-place')}</label>
+        <label className="check-item"><input type="radio" checked={copy} onChange={() => setCopy(true)} />{' '}{t('Copy to another location')}</label>
+        <label>{t('List range:')}{' '}<input value={list} onChange={(e) => setList(e.target.value)} /></label>
+        <label>{t('Criteria range:')}{' '}<input value={crit} placeholder={t('Header row plus criteria rows')} onChange={(e) => setCrit(e.target.value)} /></label>
+        {copy && <label>{t('Copy to:')}{' '}<input value={dest} onChange={(e) => setDest(e.target.value)} /></label>}
+        <label className="check-item"><input type="checkbox" checked={unique} onChange={(e) => setUnique(e.target.checked)} />{' '}{t('Unique records only')}</label>
       </div>
     </Modal>
   )
@@ -572,28 +573,28 @@ export function EvaluateFormulaDialog({ onClose }: P) {
   }
   return (
     <Modal
-      title="Evaluate Formula"
+      title={t('Evaluate Formula')}
       onClose={onClose}
       width={520}
       footer={
         <>
-          <button type="button" className="btn" disabled={done} onClick={step}>Evaluate</button>
-          <button type="button" className="btn" onClick={() => { setCur(start ?? ''); setDone(!start) }}>Restart</button>
+          <button type="button" className="btn" disabled={done} onClick={step}>{t('Evaluate')}</button>
+          <button type="button" className="btn" onClick={() => { setCur(start ?? ''); setDone(!start) }}>{t('Restart')}</button>
           <span className="spacer" />
-          <button type="button" className="btn" onClick={onClose}>Close</button>
+          <button type="button" className="btn" onClick={onClose}>{t('Close')}</button>
         </>
       }
     >
-      <p className="dlg-hint">Reference: {doc.sheet.name}!{cellName(a.r, a.c)}</p>
-      {start === undefined ? <p>The active cell does not contain a formula.</p> : <div className="eval-box mono">={cur}</div>}
-      <p className="dlg-hint">To show the result of the next part of the formula, click Evaluate.</p>
+      <p className="dlg-hint">{t('Reference:')} {doc.sheet.name}!{cellName(a.r, a.c)}</p>
+      {start === undefined ? <p>{t('The active cell does not contain a formula.')}</p> : <div className="eval-box mono">={cur}</div>}
+      <p className="dlg-hint">{t('To show the result of the next part of the formula, click Evaluate.')}</p>
     </Modal>
   )
 }
 
 // ---------- header & footer ----------
 
-const CODES: [string, string][] = [['&P', 'Page Number'], ['&N', 'Number of Pages'], ['&D', 'Current Date'], ['&T', 'Current Time'], ['&F', 'File Name'], ['&A', 'Sheet Name']]
+const CODES: [string, string][] = [['&P', tx('Page Number')], ['&N', tx('Number of Pages')], ['&D', tx('Current Date')], ['&T', tx('Current Time')], ['&F', tx('File Name')], ['&A', tx('Sheet Name')]]
 
 function splitHF(s: string | undefined): [string, string, string] {
   const out: [string, string, string] = ['', '', '']
@@ -627,7 +628,7 @@ export function HeaderFooterDialog({ onClose }: P) {
     else setFoot(foot.map((x, j) => (j === i ? x + code : x)) as [string, string, string])
   }
   const ok = () => {
-    doc.transact('Header & Footer', () => {
+    doc.transact(tx('Header & Footer'), () => {
       doc.noteProps(sheet)
       sheet.page = { ...sheet.page, header: joinHF(head) || undefined, footer: joinHF(foot) || undefined }
     })
@@ -635,7 +636,7 @@ export function HeaderFooterDialog({ onClose }: P) {
   }
   const row = (part: 'head' | 'foot', vals: [string, string, string], set: (v: [string, string, string]) => void) => (
     <div className="hf-row">
-      {(['Left section', 'Center section', 'Right section'] as const).map((l, i) => (
+      {([t('Left section'), t('Center section'), t('Right section')] as const).map((l, i) => (
         <label key={l}>
           {l}
           <textarea rows={3} value={vals[i]} onFocus={() => (focus.current = { part, i })} onChange={(e) => set(vals.map((x, j) => (j === i ? e.target.value : x)) as [string, string, string])} />
@@ -644,23 +645,23 @@ export function HeaderFooterDialog({ onClose }: P) {
     </div>
   )
   return (
-    <Modal title="Header & Footer" onClose={onClose} width={620} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Header & Footer')} onClose={onClose} width={620} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="dlg-inline">
-        <span>Insert:</span>
-        {CODES.map(([code, label]) => <button key={code} type="button" className="btn btn-small" onClick={() => ins(code)}>{label}</button>)}
+        <span>{t('Insert:')}</span>
+        {CODES.map(([code, label]) => <button key={code} type="button" className="btn btn-small" onClick={() => ins(code)}>{t(label)}</button>)}
       </div>
       <div className="dlg-inline">
-        <span>Presets:</span>
+        <span>{t('Presets:')}</span>
         <select onChange={(e) => { const v = e.target.value; if (v) setFoot(splitHF(v)) }} defaultValue="">
-          <option value="">(choose a footer)</option>
-          <option value="&CPage &P">Page 1</option>
-          <option value="&CPage &P of &N">Page 1 of ?</option>
-          <option value="&L&A&RPage &P">Sheet name, Page 1</option>
-          <option value="&L&F&R&D">File name, date</option>
+          <option value="">{t('(choose a footer)')}</option>
+          <option value="&CPage &P">{t('Page 1')}</option>
+          <option value="&CPage &P of &N">{t('Page 1 of ?')}</option>
+          <option value="&L&A&RPage &P">{t('Sheet name, Page 1')}</option>
+          <option value="&L&F&R&D">{t('File name, date')}</option>
         </select>
       </div>
-      <fieldset className="dlg-fieldset"><legend>Header</legend>{row('head', head, setHead)}</fieldset>
-      <fieldset className="dlg-fieldset"><legend>Footer</legend>{row('foot', foot, setFoot)}</fieldset>
+      <fieldset className="dlg-fieldset"><legend>{t('Header')}</legend>{row('head', head, setHead)}</fieldset>
+      <fieldset className="dlg-fieldset"><legend>{t('Footer')}</legend>{row('foot', foot, setFoot)}</fieldset>
     </Modal>
   )
 }
@@ -678,7 +679,7 @@ export function SparklinesDialog({ onClose, data }: P & { data?: unknown }) {
   const ok = () => {
     const S = ref(app, src)
     const L = ref(app, loc)
-    if (!S || !L) return app.alert('The data range or location reference is not valid.')
+    if (!S || !L) return app.alert(t('The data range or location reference is not valid.'))
     const sr = S.range
     const lr = L.range
     const cells: { r: number; c: number }[] = []
@@ -691,11 +692,11 @@ export function SparklinesDialog({ onClose, data }: P & { data?: unknown }) {
     if (count === 1) parts.push(sr)
     else if (vertical && rows === count) for (let i = 0; i < rows; i++) parts.push({ r1: sr.r1 + i, r2: sr.r1 + i, c1: sr.c1, c2: sr.c2 })
     else if (!vertical && cols === count) for (let i = 0; i < cols; i++) parts.push({ r1: sr.r1, r2: sr.r2, c1: sr.c1 + i, c2: sr.c1 + i })
-    else return app.alert('Location reference is not valid because the cells are not all in the same column or same row, or the data size does not match.')
+    else return app.alert(t('Location reference is not valid because the cells are not all in the same column or same row, or the data size does not match.'))
     const sheetName = S.sheet.name.replace(/'/g, "''")
     const group = doc.wb.newObjectId()
     const sheet = doc.sheet
-    doc.transact('Insert Sparklines', () => {
+    doc.transact(tx('Insert Sparklines'), () => {
       doc.noteProps(sheet)
       const list = sheet.x.sparklines.filter((sp) => !cells.some((c) => c.r === sp.r && c.c === sp.c))
       cells.forEach((cell, i) => {
@@ -722,10 +723,10 @@ export function SparklinesDialog({ onClose, data }: P & { data?: unknown }) {
     onClose()
   }
   return (
-    <Modal title="Create Sparklines" onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={t('Create Sparklines')} onClose={onClose} width={380} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="form">
-        <label>Data Range: <input value={src} onChange={(e) => setSrc(e.target.value)} /></label>
-        <label>Location Range: <input autoFocus value={loc} placeholder="e.g. $F$2:$F$10" onChange={(e) => setLoc(e.target.value)} /></label>
+        <label>{t('Data Range:')}{' '}<input value={src} onChange={(e) => setSrc(e.target.value)} /></label>
+        <label>{t('Location Range:')}{' '}<input autoFocus value={loc} placeholder={t('e.g. $F$2:$F$10')} onChange={(e) => setLoc(e.target.value)} /></label>
       </div>
     </Modal>
   )
@@ -744,7 +745,7 @@ export function NoteDialog({ onClose }: P) {
     onClose()
   }
   return (
-    <Modal title={existing ? `Edit Note – ${cellName(a.r, a.c)}` : `New Note – ${cellName(a.r, a.c)}`} onClose={onClose} width={360} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
+    <Modal title={existing ? t('Edit Note – {cell}', { cell: cellName(a.r, a.c) }) : t('New Note – {cell}', { cell: cellName(a.r, a.c) })} onClose={onClose} width={360} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <textarea className="note-edit" autoFocus rows={6} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) ok() }} />
     </Modal>
   )
@@ -756,8 +757,8 @@ export function AltTextDialog({ onClose, data }: P & { data?: unknown }) {
   const [text, setText] = useState(o && o.kind === 'picture' ? o.alt ?? '' : '')
   if (!o) return null
   return (
-    <Modal title="Alt Text" onClose={onClose} width={360} footer={<OkCancel onOk={() => { updateObject(app.doc, o.id, { alt: text || undefined } as never, 'Alt Text'); onClose() }} onCancel={onClose} />}>
-      <p className="dlg-hint">How would you describe this object and its context to someone who is blind or has low vision?</p>
+    <Modal title={t('Alt Text')} onClose={onClose} width={360} footer={<OkCancel onOk={() => { updateObject(app.doc, o.id, { alt: text || undefined } as never, tx('Alt Text')); onClose() }} onCancel={onClose} />}>
+      <p className="dlg-hint">{t('How would you describe this object and its context to someone who is blind or has low vision?')}</p>
       <textarea autoFocus rows={4} value={text} onChange={(e) => setText(e.target.value)} />
     </Modal>
   )
@@ -766,7 +767,7 @@ export function AltTextDialog({ onClose, data }: P & { data?: unknown }) {
 export function PromptDialog({ onClose, title, message, onText }: P & { title?: string; message?: string; onText?: (t: string) => void }) {
   const [text, setText] = useState('')
   return (
-    <Modal title={title ?? 'Enter a value'} onClose={onClose} width={340} footer={<OkCancel onOk={() => { onClose(); onText?.(text) }} onCancel={onClose} />}>
+    <Modal title={title ?? t('Enter a value')} onClose={onClose} width={340} footer={<OkCancel onOk={() => { onClose(); onText?.(text) }} onCancel={onClose} />}>
       <div className="form">
         <label>{message} <input autoFocus value={text} onChange={(e) => setText(e.target.value)} /></label>
       </div>
@@ -800,16 +801,16 @@ export function InsertIconDialog({ onClose }: P) {
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
     const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(clone.outerHTML)))
     const id = app.doc.wb.addImage(url)
-    addObject(app.doc, newPicture(app.doc, id, 96, 96, 'Graphic'), 'Insert Icon')
+    addObject(app.doc, newPicture(app.doc, id, 96, 96, 'Graphic'), tx('Insert Icon'))
     onClose()
     app.setTab('shapeFormat')
   }
   const names = Object.keys(ICONS).filter((n) => n.toLowerCase().includes(q.toLowerCase()))
   return (
-    <Modal title="Insert Icons" onClose={onClose} width={560} footer={<OkCancel onOk={() => ok()} onCancel={onClose} okLabel="Insert" />}>
+    <Modal title={t('Insert Icons')} onClose={onClose} width={560} footer={<OkCancel onOk={() => ok()} onCancel={onClose} okLabel={t('Insert')} />}>
       <div className="dlg-inline">
-        <input placeholder="Search icons" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
-        <label>Color <input type="color" value={color} onChange={(e) => setColor(e.target.value)} /></label>
+        <input placeholder={t('Search icons')} value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+        <label>{t('Color')}{' '}<input type="color" value={color} onChange={(e) => setColor(e.target.value)} /></label>
       </div>
       <div className="icon-grid" ref={grid}>
         {names.map((n) => {

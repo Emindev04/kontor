@@ -58,6 +58,10 @@ export interface EvalHost {
   formulaAt(sheet: Sheet, r: number, c: number): string | undefined
   /** Resolves a structured table reference ("Table1[Sales]", "[@Qty]"). */
   structRef(table: string, spec: string, ctx: Ctx): Value
+  /** Number format code of a cell (undefined = General). */
+  numFmt?(sheet: Sheet, r: number, c: number): string | undefined
+  /** PivotTables of the workbook (for GETPIVOTDATA). */
+  pivots?(): { sheet: Sheet; pivot: import('../model/extras').PivotDef }[]
 }
 
 export interface Ctx {

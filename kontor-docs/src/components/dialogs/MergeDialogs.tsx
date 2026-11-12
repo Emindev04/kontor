@@ -5,6 +5,7 @@ import { Modal, OkCancel } from '../ui'
 import { MATCH_FIELDS, fillRecord, includedRows, matchedColumn, mergeStore, toCsv } from '../../editor/MailMerge'
 import { downloadBlob, safeFilename } from '../../io/download'
 import type { AppApi } from '../tabs/types'
+import { t } from '../../i18n'
 
 const NEW_LIST_COLUMNS = ['Title', 'First Name', 'Last Name', 'Company Name', 'Address Line 1', 'City', 'State', 'ZIP Code', 'E-mail Address']
 
@@ -26,13 +27,13 @@ export function RecipientsDialog({ mode, onClose }: { mode: 'new' | 'edit'; onCl
   const set = (i: number, c: string, v: string) => setRows(rows.map((r, k) => (k === i ? { ...r, [c]: v } : r)))
   const save = () => {
     const kept = rows.filter((r) => columns.some((c) => (r[c] ?? '').trim()))
-    if (mode === 'new') mergeStore.set({ columns, rows: kept, record: 0, source: 'New list', excluded: [], fieldMap: {} })
+    if (mode === 'new') mergeStore.set({ columns, rows: kept, record: 0, source: t('New list'), excluded: [], fieldMap: {} })
     else mergeStore.set({ rows, excluded })
     onClose()
   }
   return (
     <Modal
-      title={mode === 'new' ? 'New Address List' : 'Mail Merge Recipients'}
+      title={mode === 'new' ? t('New Address List') : t('Mail Merge Recipients')}
       onClose={onClose}
       width={860}
       footer={
@@ -42,11 +43,9 @@ export function RecipientsDialog({ mode, onClose }: { mode: 'new' | 'edit'; onCl
           extra={
             <>
               <button type="button" className="btn" onClick={() => setRows([...rows, Object.fromEntries(columns.map((c) => [c, '']))])}>
-                <Plus size={14} /> New Entry
-              </button>
-              <button type="button" className="btn" onClick={() => downloadBlob(new Blob([toCsv(columns, rows)], { type: 'text/csv' }), `${safeFilename(data.source || 'Recipients')}.csv`)}>
-                Save List as CSV…
-              </button>
+                <Plus size={14} /> {t('New Entry')}</button>
+              <button type="button" className="btn" onClick={() => downloadBlob(new Blob([toCsv(columns, rows)], { type: 'text/csv' }), `${safeFilename(data.source || t('Recipients'))}.csv`)}>
+                {t('Save List as CSV…')}</button>
             </>
           }
         />
@@ -55,9 +54,9 @@ export function RecipientsDialog({ mode, onClose }: { mode: 'new' | 'edit'; onCl
       <div className="dlg-stack">
         {mode === 'edit' && (
           <div className="dlg-inline">
-            <span className="dlg-hint">Check the recipients who get a copy. Click a column heading to sort.</span>
+            <span className="dlg-hint">{t('Check the recipients who get a copy. Click a column heading to sort.')}</span>
             <span className="spacer" />
-            <input placeholder="Filter…" aria-label="Filter recipients" value={filter} onChange={(e) => setFilter(e.target.value)} />
+            <input placeholder={t('Filter…')} aria-label={t('Filter recipients')} value={filter} onChange={(e) => setFilter(e.target.value)} />
           </div>
         )}
         <div className="merge-table-wrap">
@@ -66,7 +65,7 @@ export function RecipientsDialog({ mode, onClose }: { mode: 'new' | 'edit'; onCl
               <tr>
                 {mode === 'edit' && (
                   <th>
-                    <input type="checkbox" aria-label="All recipients" checked={!excluded.length} onChange={(e) => setExcluded(e.target.checked ? [] : rows.map((_, i) => i))} />
+                    <input type="checkbox" aria-label={t('All recipients')} checked={!excluded.length} onChange={(e) => setExcluded(e.target.checked ? [] : rows.map((_, i) => i))} />
                   </th>
                 )}
                 {columns.map((c) => (
@@ -83,7 +82,7 @@ export function RecipientsDialog({ mode, onClose }: { mode: 'new' | 'edit'; onCl
                 <tr key={i}>
                   {mode === 'edit' && (
                     <td>
-                      <input type="checkbox" aria-label={`Include recipient ${i + 1}`} checked={!excluded.includes(i)} onChange={(e) => setExcluded(e.target.checked ? excluded.filter((x) => x !== i) : [...excluded, i])} />
+                      <input type="checkbox" aria-label={t('Include recipient {n}', { n: i + 1 })} checked={!excluded.includes(i)} onChange={(e) => setExcluded(e.target.checked ? excluded.filter((x) => x !== i) : [...excluded, i])} />
                     </td>
                   )}
                   {columns.map((c) => (
@@ -92,7 +91,7 @@ export function RecipientsDialog({ mode, onClose }: { mode: 'new' | 'edit'; onCl
                     </td>
                   ))}
                   <td>
-                    <button type="button" className="sb-btn" aria-label="Delete entry" onClick={() => (setRows(rows.filter((_, k) => k !== i)), setExcluded(excluded.filter((x) => x !== i).map((x) => (x > i ? x - 1 : x))))}>
+                    <button type="button" className="sb-btn" aria-label={t('Delete entry')} onClick={() => (setRows(rows.filter((_, k) => k !== i)), setExcluded(excluded.filter((x) => x !== i).map((x) => (x > i ? x - 1 : x))))}>
                       <Trash2 size={12} />
                     </button>
                   </td>
@@ -111,14 +110,14 @@ export function MatchFieldsDialog({ onClose }: { onClose: () => void }) {
   const data = useSyncExternalStore(mergeStore.subscribe, mergeStore.get)
   const [map, setMap] = useState<Record<string, string>>(() => Object.fromEntries(MATCH_FIELDS.map(([f]) => [f, matchedColumn(f) ?? ''])))
   return (
-    <Modal title="Match Fields" onClose={onClose} width={460} footer={<OkCancel onOk={() => (mergeStore.set({ fieldMap: Object.fromEntries(Object.entries(map).filter(([, v]) => v)) }), onClose())} onCancel={onClose} />}>
-      <p className="dlg-hint">Choose the column of your recipient list that matches each field.</p>
+    <Modal title={t('Match Fields')} onClose={onClose} width={460} footer={<OkCancel onOk={() => (mergeStore.set({ fieldMap: Object.fromEntries(Object.entries(map).filter(([, v]) => v)) }), onClose())} onCancel={onClose} />}>
+      <p className="dlg-hint">{t('Choose the column of your recipient list that matches each field.')}</p>
       <div className="match-grid">
         {MATCH_FIELDS.map(([f]) => (
           <label key={f} className="dlg-inline">
             <span className="match-label">{f}</span>
             <select value={map[f]} onChange={(e) => setMap({ ...map, [f]: e.target.value })}>
-              <option value="">(not matched)</option>
+              <option value="">{t('(not matched)')}</option>
               {data.columns.map((c) => (
                 <option key={c}>{c}</option>
               ))}
@@ -168,20 +167,19 @@ export function EmailMergeDialog({ editor, app, onClose }: { editor: Editor; app
     onClose()
   }
   return (
-    <Modal title="Merge to E-mail" onClose={onClose} width={460} footer={<OkCancel okLabel="Create Messages" onOk={run} onCancel={onClose} />}>
+    <Modal title={t('Merge to E-mail')} onClose={onClose} width={460} footer={<OkCancel okLabel={t('Create Messages')} onOk={run} onCancel={onClose} />}>
       <div className="dlg-stack">
         <label className="dlg-inline">
-          To:
-          <select value={to} onChange={(e) => setTo(e.target.value)}>
+          {t('To:')}<select value={to} onChange={(e) => setTo(e.target.value)}>
             {data.columns.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
         </label>
         <label className="dlg-inline">
-          Subject line: <input value={subject} onChange={(e) => setSubject(e.target.value)} />
+          {t('Subject line:')}{' '}<input value={subject} onChange={(e) => setSubject(e.target.value)} />
         </label>
-        <p className="dlg-hint">Creates {includedRows(data).length} messages as .eml files in a .zip. Open them with your mail program and send them from there.</p>
+        <p className="dlg-hint">{t('Creates {n} messages as .eml files in a .zip. Open them with your mail program and send them from there.', { n: includedRows(data).length })}</p>
       </div>
     </Modal>
   )

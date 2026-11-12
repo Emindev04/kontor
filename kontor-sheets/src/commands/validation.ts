@@ -7,6 +7,7 @@ import type { Sheet } from '../model/sheet'
 import { CellError, type Scalar } from '../model/types'
 import type { Doc } from './doc'
 import { shiftFormula } from '../engine/refs'
+import { t, tx } from '../i18n'
 
 export function validationAt(sheet: Sheet, r: number, c: number): Validation | undefined {
   for (let i = sheet.x.validations.length - 1; i >= 0; i--) {
@@ -100,7 +101,7 @@ export function isValid(doc: Doc, sheet: Sheet, v: Validation, r: number, c: num
 
 export type ValidationFailure = { style: 'stop' | 'warning' | 'information'; title: string; message: string }
 
-const DEFAULT_MESSAGE = 'This value doesn’t match the data validation restrictions defined for this cell.'
+const DEFAULT_MESSAGE = tx('This value doesn’t match the data validation restrictions defined for this cell.')
 
 /** Checks typed text for (r, c). Formulas are checked by their result after entry, like the original. */
 export function validateInput(doc: Doc, sheet: Sheet, r: number, c: number, text: string): ValidationFailure | null {
@@ -110,7 +111,7 @@ export function validateInput(doc: Doc, sheet: Sheet, r: number, c: number, text
   if (p.kind === 'formula') return null
   const value = p.v
   if (isValid(doc, sheet, v, r, c, value)) return null
-  return { style: v.errorStyle, title: v.errorTitle || 'Kontor Sheets', message: (v.errorMessage || DEFAULT_MESSAGE) + (v.errorStyle === 'warning' ? '\n\nContinue?' : v.errorStyle === 'information' ? '' : '') }
+  return { style: v.errorStyle, title: v.errorTitle || 'Kontor Sheets', message: (v.errorMessage || t(DEFAULT_MESSAGE)) + (v.errorStyle === 'warning' ? '\n\n' + t('Continue?') : '') }
 }
 
 /** Cells with values that break their validation rule (Circle Invalid Data). */
@@ -135,7 +136,7 @@ export function invalidCells(doc: Doc, sheet: Sheet, limit = 500): { r: number; 
 /** Removes the given ranges from every rule, then adds a new rule for them (or none). */
 export function setValidation(doc: Doc, ranges: Range[], rule: Omit<Validation, 'id' | 'ranges'> | null) {
   const sheet = doc.sheet
-  doc.transact(rule ? 'Data Validation' : 'Clear Validation', () => {
+  doc.transact(rule ? tx('Data Validation') : tx('Clear Validation'), () => {
     doc.noteProps(sheet)
     const list: Validation[] = []
     for (const v of sheet.x.validations) {

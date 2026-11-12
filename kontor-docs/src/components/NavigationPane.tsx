@@ -4,6 +4,7 @@ import type { Editor } from '@tiptap/react'
 import type { PaginationController } from '../editor/Pagination'
 import { findMatches } from '../editor/Search'
 import { cls } from './ui'
+import { t } from '../i18n'
 
 type Props = {
   editor: Editor
@@ -65,10 +66,10 @@ export function NavigationPane({ editor, controller, pages, onClose, onNavigate,
     return { k, start, text: editor.state.doc.textBetween(Math.min(start, editor.state.doc.content.size), Math.min(end, editor.state.doc.content.size), ' ', ' ').slice(0, 90) }
   })
   return (
-    <aside className="nav-pane" aria-label="Navigation">
+    <aside className="nav-pane" aria-label={t('Navigation')}>
       <div className="nav-head">
-        <strong>Navigation</strong>
-        <button type="button" className="sb-btn" aria-label="Close navigation pane" onClick={onClose}>
+        <strong>{t('Navigation')}</strong>
+        <button type="button" className="sb-btn" aria-label={t('Close navigation pane')} onClick={onClose}>
           <X size={14} />
         </button>
       </div>
@@ -80,7 +81,7 @@ export function NavigationPane({ editor, controller, pages, onClose, onNavigate,
           onSearch(query)
         }}
       >
-        <input placeholder="Search document" aria-label="Search document" value={query} onChange={(e) => (setQuery(e.target.value), e.target.value && setTab('results'))} />
+        <input placeholder={t('Search document')} aria-label={t('Search document')} value={query} onChange={(e) => (setQuery(e.target.value), e.target.value && setTab('results'))} />
         <Search size={14} />
       </form>
       <div className="nav-tabs" role="tablist">
@@ -100,7 +101,7 @@ export function NavigationPane({ editor, controller, pages, onClose, onNavigate,
                 draggable
                 className={cls('nav-item', current === h.pos && 'is-active', drag != null && drag !== h.pos && 'is-drop')}
                 style={{ paddingLeft: 10 + (h.level - 1) * 14 }}
-                title="Click to go to the heading; drag to move its section"
+                title={t('Click to go to the heading; drag to move its section')}
                 onClick={() => onNavigate(h.pos + 1)}
                 onDragStart={(e) => {
                   setDrag(h.pos)
@@ -119,19 +120,19 @@ export function NavigationPane({ editor, controller, pages, onClose, onNavigate,
               </button>
             ))
           ) : (
-            <p className="nav-empty">Your outline appears here once headings use the Heading styles from the Home tab. Click a heading to jump to it; drag it to move its section.</p>
+            <p className="nav-empty">{t('Your outline appears here once headings use the Heading styles from the Home tab. Click a heading to jump to it; drag it to move its section.')}</p>
           ))}
         {tab === 'pages' &&
           pageList.map((p) => (
             <button key={p.k} type="button" className={cls('nav-page-item', controller.pageOfPos(head) === p.k && 'is-active')} onClick={() => onNavigate(p.start)}>
               <span className="nav-page-thumb">{p.k + 1}</span>
-              <span className="nav-page-text">{p.text || '(empty page)'}</span>
+              <span className="nav-page-text">{p.text || t('(empty page)')}</span>
             </button>
           ))}
         {tab === 'results' &&
           (results.length ? (
             <>
-              <p className="nav-count">{results.length === 200 ? '200+' : results.length} result{results.length === 1 ? '' : 's'}</p>
+              <p className="nav-count">{results.length === 1 ? t('1 result') : t('{n} results', { n: results.length === 200 ? '200+' : results.length })}</p>
               {results.map((r) => (
                 <button key={r.from} type="button" className="nav-result" onClick={() => onNavigate(r.from)}>
                   {r.before}
@@ -141,7 +142,7 @@ export function NavigationPane({ editor, controller, pages, onClose, onNavigate,
               ))}
             </>
           ) : (
-            <p className="nav-empty">{query ? 'No results.' : 'Search for text in your document.'}</p>
+            <p className="nav-empty">{query ? t('No results.') : t('Search for text in your document.')}</p>
           ))}
       </div>
     </aside>

@@ -1,34 +1,36 @@
 // Charts: defaults, sample data, colors, axis scaling and data-sheet helpers.
 import type { ChartElement, ChartGrouping, ChartSeries, ChartType, ColorRef, ErrorBars, Trendline, TrendlineType } from './types'
+import { t, tx } from '../i18n'
 
 export const CHART_TYPES: { type: ChartType; label: string; groupings?: ChartGrouping[] }[] = [
-  { type: 'column', label: 'Column', groupings: ['clustered', 'stacked', 'percent'] },
-  { type: 'line', label: 'Line', groupings: ['clustered', 'stacked', 'percent'] },
-  { type: 'pie', label: 'Pie' },
-  { type: 'doughnut', label: 'Doughnut' },
-  { type: 'bar', label: 'Bar', groupings: ['clustered', 'stacked', 'percent'] },
-  { type: 'area', label: 'Area', groupings: ['clustered', 'stacked', 'percent'] },
-  { type: 'scatter', label: 'X Y (Scatter)' },
-  { type: 'combo', label: 'Combo' },
+  { type: 'column', label: tx('Column'), groupings: ['clustered', 'stacked', 'percent'] },
+  { type: 'line', label: tx('Line'), groupings: ['clustered', 'stacked', 'percent'] },
+  { type: 'pie', label: tx('Pie') },
+  { type: 'doughnut', label: tx('Doughnut') },
+  { type: 'bar', label: tx('Bar'), groupings: ['clustered', 'stacked', 'percent'] },
+  { type: 'area', label: tx('Area'), groupings: ['clustered', 'stacked', 'percent'] },
+  { type: 'scatter', label: tx('X Y (Scatter)') },
+  { type: 'combo', label: tx('Combo') },
 ]
 
 export function groupingLabel(type: ChartType, g: ChartGrouping) {
-  const base = CHART_TYPES.find((t) => t.type === type)?.label ?? type
-  if (type === 'line') return g === 'clustered' ? 'Line' : g === 'stacked' ? 'Stacked Line' : '100% Stacked Line'
-  if (type === 'area') return g === 'clustered' ? 'Area' : g === 'stacked' ? 'Stacked Area' : '100% Stacked Area'
-  return g === 'clustered' ? `Clustered ${base}` : g === 'stacked' ? `Stacked ${base}` : `100% Stacked ${base}`
+  if (type === 'line') return g === 'clustered' ? t('Line') : g === 'stacked' ? t('Stacked Line') : t('100% Stacked Line')
+  if (type === 'area') return g === 'clustered' ? t('Area') : g === 'stacked' ? t('Stacked Area') : t('100% Stacked Area')
+  if (type === 'bar') return g === 'clustered' ? t('Clustered Bar') : g === 'stacked' ? t('Stacked Bar') : t('100% Stacked Bar')
+  if (type === 'column') return g === 'clustered' ? t('Clustered Column') : g === 'stacked' ? t('Stacked Column') : t('100% Stacked Column')
+  return t(CHART_TYPES.find((ct) => ct.type === type)?.label ?? type)
 }
 
 /** The sample data the original inserts for a new chart. */
 export function sampleData(type: ChartType): { categories: string[]; series: ChartSeries[] } {
-  if (type === 'pie' || type === 'doughnut') return { categories: ['1st Qtr', '2nd Qtr', '3rd Qtr', '4th Qtr'], series: [{ name: 'Sales', values: [8.2, 3.2, 1.4, 1.2] }] }
-  if (type === 'scatter') return { categories: ['0.7', '1.8', '2.6'], series: [{ name: 'Y-Values', values: [2.7, 3.2, 0.8] }] }
+  if (type === 'pie' || type === 'doughnut') return { categories: [t('1st Qtr'), t('2nd Qtr'), t('3rd Qtr'), t('4th Qtr')], series: [{ name: t('Sales'), values: [8.2, 3.2, 1.4, 1.2] }] }
+  if (type === 'scatter') return { categories: ['0.7', '1.8', '2.6'], series: [{ name: t('Y-Values'), values: [2.7, 3.2, 0.8] }] }
   return {
-    categories: ['Category 1', 'Category 2', 'Category 3', 'Category 4'],
+    categories: [t('Category 1'), t('Category 2'), t('Category 3'), t('Category 4')],
     series: [
-      { name: 'Series 1', values: [4.3, 2.5, 3.5, 4.5] },
-      { name: 'Series 2', values: [2.4, 4.4, 1.8, 2.8], type: type === 'combo' ? 'column' : undefined },
-      { name: 'Series 3', values: [2, 2, 3, 5], type: type === 'combo' ? 'line' : undefined },
+      { name: t('Series 1'), values: [4.3, 2.5, 3.5, 4.5] },
+      { name: t('Series 2'), values: [2.4, 4.4, 1.8, 2.8], type: type === 'combo' ? 'column' : undefined },
+      { name: t('Series 3'), values: [2, 2, 3, 5], type: type === 'combo' ? 'line' : undefined },
     ],
   }
 }
@@ -46,7 +48,7 @@ export function createChart(type: ChartType, grouping: ChartGrouping, box: { x: 
     grouping,
     categories: data.categories,
     series: data.series,
-    title: { show: true, text: type === 'pie' || type === 'doughnut' ? 'Sales' : 'Chart Title' },
+    title: { show: true, text: type === 'pie' || type === 'doughnut' ? t('Sales') : t('Chart Title') },
     legend: { show: type !== 'scatter', pos: 'bottom' },
     dataLabels: false,
     axes: { cat: true, val: true },
@@ -82,25 +84,25 @@ export function seriesColor(chart: Pick<ChartElement, 'palette'>, index: number,
   return cycle === 0 ? slot : cycle % 2 ? `${slot}:d25` : `${slot}:l40`
 }
 
-export const CHART_PALETTES: { id: number; label: string }[] = [
-  { id: 0, label: 'Colorful Palette 1' },
-  { id: 7, label: 'Colorful Palette 2' },
-  { id: 8, label: 'Colorful Palette 3' },
-  { id: 9, label: 'Colorful Palette 4' },
-  ...ACCENTS.map((_, i) => ({ id: i + 1, label: `Monochromatic Palette ${i + 1}` })),
+export const CHART_PALETTES: { id: number; label: string; n?: number }[] = [
+  { id: 0, label: tx('Colorful Palette 1') },
+  { id: 7, label: tx('Colorful Palette 2') },
+  { id: 8, label: tx('Colorful Palette 3') },
+  { id: 9, label: tx('Colorful Palette 4') },
+  ...ACCENTS.map((_, i) => ({ id: i + 1, label: tx('Monochromatic Palette {n}'), n: i + 1 })),
 ]
 
 export type ChartStyleDef = { id: number; label: string; labels?: boolean; noGrid?: boolean; dark?: boolean; outline?: boolean; shadow?: boolean; gradient?: boolean; wide?: boolean }
 
 export const CHART_STYLES: ChartStyleDef[] = [
-  { id: 1, label: 'Style 1' },
-  { id: 2, label: 'Style 2', labels: true, noGrid: true, wide: true },
-  { id: 3, label: 'Style 3', gradient: true },
-  { id: 4, label: 'Style 4', outline: true, noGrid: true },
-  { id: 5, label: 'Style 5', shadow: true },
-  { id: 6, label: 'Style 6', dark: true },
-  { id: 7, label: 'Style 7', dark: true, gradient: true, labels: true },
-  { id: 8, label: 'Style 8', outline: true, wide: true, labels: true },
+  { id: 1, label: tx('Style 1') },
+  { id: 2, label: tx('Style 2'), labels: true, noGrid: true, wide: true },
+  { id: 3, label: tx('Style 3'), gradient: true },
+  { id: 4, label: tx('Style 4'), outline: true, noGrid: true },
+  { id: 5, label: tx('Style 5'), shadow: true },
+  { id: 6, label: tx('Style 6'), dark: true },
+  { id: 7, label: tx('Style 7'), dark: true, gradient: true, labels: true },
+  { id: 8, label: tx('Style 8'), outline: true, wide: true, labels: true },
 ]
 
 export function chartStyle(id: number) {
@@ -155,7 +157,7 @@ export function gridToChart(grid: string[][], prev: ChartSeries[]): { categories
   const body = grid.slice(1).filter((r) => r.some((v) => v.trim() !== ''))
   const series: ChartSeries[] = header.slice(1).map((name, i) => ({
     ...(prev[i] ?? {}),
-    name: name || `Series ${i + 1}`,
+    name: name || t('Series {n}', { n: i + 1 }),
     values: body.map((r) => {
       const v = parseFloat((r[i + 1] ?? '').replace(/,/g, ''))
       return Number.isFinite(v) ? v : null
@@ -276,7 +278,7 @@ export function fitTrend(points: [number, number][], t: Trendline): TrendFit | n
   }
 }
 
-export const TRENDLINE_LABELS: Record<TrendlineType, string> = { linear: 'Linear', exponential: 'Exponential', logarithmic: 'Logarithmic', polynomial: 'Polynomial', power: 'Power', movingAvg: 'Moving Average' }
+export const TRENDLINE_LABELS: Record<TrendlineType, string> = { linear: tx('Linear'), exponential: tx('Exponential'), logarithmic: tx('Logarithmic'), polynomial: tx('Polynomial'), power: tx('Power'), movingAvg: tx('Moving Average') }
 
 /** Charts that can be drawn with a 3-D look. */
 export const THREE_D_TYPES = new Set<ChartType>(['column', 'bar', 'pie'])
@@ -297,8 +299,8 @@ export function errorAmount(values: (number | null)[], i: number, eb: ErrorBars)
 }
 
 export const ERROR_BAR_PRESETS: { label: string; bars: ErrorBars | null }[] = [
-  { label: 'None', bars: null },
-  { label: 'Standard Error', bars: { type: 'stdErr', value: 1, dir: 'both' } },
-  { label: 'Percentage (5%)', bars: { type: 'percent', value: 5, dir: 'both' } },
-  { label: 'Standard Deviation', bars: { type: 'stdDev', value: 1, dir: 'both' } },
+  { label: tx('None'), bars: null },
+  { label: tx('Standard Error'), bars: { type: 'stdErr', value: 1, dir: 'both' } },
+  { label: tx('Percentage (5%)'), bars: { type: 'percent', value: 5, dir: 'both' } },
+  { label: tx('Standard Deviation'), bars: { type: 'stdDev', value: 1, dir: 'both' } },
 ]

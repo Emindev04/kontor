@@ -2,6 +2,7 @@
 // parameters "_xlpm.", the spill operator A1# becomes _xlfn.ANCHORARRAY(A1) and the implicit
 // intersection operator @ becomes _xlfn.SINGLE(...).
 import { tokenize, type Token } from '../engine/tokenizer'
+import { FUNCTIONS } from '../engine/registry'
 
 /** Functions added after the 2007 file format; they need the _xlfn. prefix inside files. */
 const MODERN = new Set([
@@ -58,8 +59,11 @@ function funcName(t: Token): string {
   return t.text.replace(/^(_xlfn\.|_xlws\.|_xludf\.)+/i, '')
 }
 
-/** Formula text (without "=") as it must appear inside a file. */
-export function exportFormula(f: string): string {
+/**
+ * Formula text (without "=") as it must appear inside a file. `names` are the workbook's defined
+ * names (upper case): a defined name that is also a function name stays a name.
+ */
+export function exportFormula(f: string, names?: ReadonlySet<string>): string {
   const toks = tokenize(f)
   const params = parameterNames(toks)
   const parts: string[] = []
@@ -104,9 +108,12 @@ export function exportFormula(f: string): string {
         parts.push(t.text)
         closeSingles()
         continue
-      case 'name':
-        parts.push(params.has((t.id ?? t.text).toUpperCase()) ? `_xlpm.${t.text}` : t.text)
+      case 'name': {
+        const up = (t.id ?? t.text).toUpperCase()
+        // a bare function name passed as an argument is an eta-reduced LAMBDA
+        parts.push(params.has(up) ? `_xlpm.${t.text}` : FUNCTIONS.has(up) && !t.sheet && !names?.has(up) ? `_xlfn._xleta.${up}` : t.text)
         break
+      }
       case 'ref':
         if (toks[i + 1]?.type === 'spill') {
           parts.push(`_xlfn.ANCHORARRAY(${t.text})`)
@@ -161,7 +168,7 @@ export function importFormula(f: string): string {
       continue
     }
     if (t.type === 'name') {
-      out.push(t.text.replace(/^_xlpm\./i, ''))
+      out.push(t.text.replace(/^_xlpm\./i, '').replace(/^_xlfn\._xleta\./i, ''))
       continue
     }
     out.push(t.text)

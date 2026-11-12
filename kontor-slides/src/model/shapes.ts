@@ -1,3 +1,4 @@
+import { t, tx } from '../i18n'
 // Preset shape geometry. Names follow the OOXML `prst` values so shapes survive .pptx round trips.
 // Each generator returns SVG paths for a box of w × h pixels.
 
@@ -585,82 +586,101 @@ Object.assign(GEN, ACTION_GEN)
 export const ACTION_LINKS: Record<string, string> = { actionButtonBackPrevious: '#prev', actionButtonForwardNext: '#next', actionButtonBeginning: '#first', actionButtonEnd: '#last', actionButtonHome: '#first', actionButtonReturn: '#prev' }
 
 export const SHAPE_PRESETS: ShapePreset[] = [
-  { id: 'line', prst: 'line', label: 'Line', category: 'Lines', open: true },
-  { id: 'lineArrow', prst: 'line', label: 'Line Arrow', category: 'Lines', open: true, tail: 'triangle' },
-  { id: 'lineDoubleArrow', prst: 'line', label: 'Line Arrow: Double', category: 'Lines', open: true, head: 'triangle', tail: 'triangle' },
-  { id: 'bentConnector3', prst: 'bentConnector3', label: 'Connector: Elbow', category: 'Lines', open: true },
-  { id: 'bentConnectorArrow', prst: 'bentConnector3', label: 'Connector: Elbow Arrow', category: 'Lines', open: true, tail: 'triangle' },
-  { id: 'curvedConnector3', prst: 'curvedConnector3', label: 'Connector: Curved', category: 'Lines', open: true },
-  { id: 'curvedConnectorArrow', prst: 'curvedConnector3', label: 'Connector: Curved Arrow', category: 'Lines', open: true, tail: 'triangle' },
-  { id: 'curve', prst: 'curve', label: 'Curve', category: 'Lines', open: true },
-  { id: 'freeform', prst: 'freeform', label: 'Freeform: Shape', category: 'Lines', open: true },
-  { id: 'scribble', prst: 'scribble', label: 'Freeform: Scribble', category: 'Lines', open: true },
-  { id: 'arc', prst: 'arc', label: 'Arc', category: 'Basic Shapes', open: true },
+  { id: 'line', prst: 'line', label: tx('Line'), category: 'Lines', open: true },
+  { id: 'lineArrow', prst: 'line', label: tx('Line Arrow'), category: 'Lines', open: true, tail: 'triangle' },
+  { id: 'lineDoubleArrow', prst: 'line', label: tx('Line Arrow: Double'), category: 'Lines', open: true, head: 'triangle', tail: 'triangle' },
+  { id: 'bentConnector3', prst: 'bentConnector3', label: tx('Connector: Elbow'), category: 'Lines', open: true },
+  { id: 'bentConnectorArrow', prst: 'bentConnector3', label: tx('Connector: Elbow Arrow'), category: 'Lines', open: true, tail: 'triangle' },
+  { id: 'curvedConnector3', prst: 'curvedConnector3', label: tx('Connector: Curved'), category: 'Lines', open: true },
+  { id: 'curvedConnectorArrow', prst: 'curvedConnector3', label: tx('Connector: Curved Arrow'), category: 'Lines', open: true, tail: 'triangle' },
+  { id: 'curve', prst: 'curve', label: tx('Curve'), category: 'Lines', open: true },
+  { id: 'freeform', prst: 'freeform', label: tx('Freeform: Shape'), category: 'Lines', open: true },
+  { id: 'scribble', prst: 'scribble', label: tx('Freeform: Scribble'), category: 'Lines', open: true },
+  { id: 'arc', prst: 'arc', label: tx('Arc'), category: 'Basic Shapes', open: true },
   ...(
     [
-      ['rect', 'Rectangle'], ['roundRect', 'Rectangle: Rounded Corners'], ['snip1Rect', 'Rectangle: Single Corner Snipped'], ['snip2SameRect', 'Rectangle: Top Corners Snipped'],
-      ['snip2DiagRect', 'Rectangle: Diagonal Corners Snipped'], ['snipRoundRect', 'Rectangle: Top Corners One Rounded and One Snipped'], ['round1Rect', 'Rectangle: Single Corner Rounded'],
-      ['round2SameRect', 'Rectangle: Top Corners Rounded'], ['round2DiagRect', 'Rectangle: Diagonal Corners Rounded'],
+      ['rect', tx('Rectangle')], ['roundRect', tx('Rectangle: Rounded Corners')], ['snip1Rect', tx('Rectangle: Single Corner Snipped')], ['snip2SameRect', tx('Rectangle: Top Corners Snipped')],
+      ['snip2DiagRect', tx('Rectangle: Diagonal Corners Snipped')], ['snipRoundRect', tx('Rectangle: Top Corners One Rounded and One Snipped')], ['round1Rect', tx('Rectangle: Single Corner Rounded')],
+      ['round2SameRect', tx('Rectangle: Top Corners Rounded')], ['round2DiagRect', tx('Rectangle: Diagonal Corners Rounded')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label, category: 'Rectangles' as const })),
   ...(
     [
-      ['ellipse', 'Oval'], ['triangle', 'Isosceles Triangle'], ['rtTriangle', 'Right Triangle'], ['parallelogram', 'Parallelogram'], ['trapezoid', 'Trapezoid'], ['diamond', 'Diamond'],
-      ['pentagon', 'Regular Pentagon'], ['hexagon', 'Hexagon'], ['heptagon', 'Heptagon'], ['octagon', 'Octagon'], ['decagon', 'Decagon'], ['dodecagon', 'Dodecagon'], ['pie', 'Partial Circle'],
-      ['chord', 'Chord'], ['teardrop', 'Teardrop'], ['frame', 'Frame'], ['halfFrame', 'Half Frame'], ['corner', 'L-Shape'], ['diagStripe', 'Diagonal Stripe'], ['plus', 'Cross'],
-      ['plaque', 'Plaque'], ['can', 'Cylinder'], ['cube', 'Cube'], ['bevel', 'Rectangle: Beveled'], ['donut', 'Circle: Hollow'], ['noSmoking', '"No" Symbol'], ['blockArc', 'Block Arc'],
-      ['foldedCorner', 'Rectangle: Folded Corner'], ['smileyFace', 'Smiley Face'], ['heart', 'Heart'], ['lightningBolt', 'Lightning Bolt'], ['sun', 'Sun'], ['moon', 'Moon'], ['cloud', 'Cloud'],
+      ['ellipse', tx('Oval')], ['triangle', tx('Isosceles Triangle')], ['rtTriangle', tx('Right Triangle')], ['parallelogram', tx('Parallelogram')], ['trapezoid', tx('Trapezoid')], ['diamond', tx('Diamond')],
+      ['pentagon', tx('Regular Pentagon')], ['hexagon', tx('Hexagon')], ['heptagon', tx('Heptagon')], ['octagon', tx('Octagon')], ['decagon', tx('Decagon')], ['dodecagon', tx('Dodecagon')], ['pie', tx('Partial Circle')],
+      ['chord', tx('Chord')], ['teardrop', tx('Teardrop')], ['frame', tx('Frame')], ['halfFrame', tx('Half Frame')], ['corner', tx('L-Shape')], ['diagStripe', tx('Diagonal Stripe')], ['plus', tx('Cross')],
+      ['plaque', tx('Plaque')], ['can', tx('Cylinder')], ['cube', tx('Cube')], ['bevel', tx('Rectangle: Beveled')], ['donut', tx('Circle: Hollow')], ['noSmoking', tx('"No" Symbol')], ['blockArc', tx('Block Arc')],
+      ['foldedCorner', tx('Rectangle: Folded Corner')], ['smileyFace', tx('Smiley Face')], ['heart', tx('Heart')], ['lightningBolt', tx('Lightning Bolt')], ['sun', tx('Sun')], ['moon', tx('Moon')], ['cloud', tx('Cloud')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label, category: 'Basic Shapes' as const })),
   ...(
     [
-      ['bracketPair', 'Double Bracket'], ['bracePair', 'Double Brace'], ['leftBracket', 'Left Bracket'], ['rightBracket', 'Right Bracket'], ['leftBrace', 'Left Brace'], ['rightBrace', 'Right Brace'],
+      ['bracketPair', tx('Double Bracket')], ['bracePair', tx('Double Brace')], ['leftBracket', tx('Left Bracket')], ['rightBracket', tx('Right Bracket')], ['leftBrace', tx('Left Brace')], ['rightBrace', tx('Right Brace')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label, category: 'Basic Shapes' as const, open: true })),
   ...(
     [
-      ['rightArrow', 'Arrow: Right'], ['leftArrow', 'Arrow: Left'], ['upArrow', 'Arrow: Up'], ['downArrow', 'Arrow: Down'], ['leftRightArrow', 'Arrow: Left-Right'], ['upDownArrow', 'Arrow: Up-Down'],
-      ['quadArrow', 'Arrow: Quad'], ['bentArrow', 'Arrow: Bent'], ['uturnArrow', 'Arrow: U-Turn'], ['stripedRightArrow', 'Arrow: Striped Right'], ['notchedRightArrow', 'Arrow: Notched Right'],
-      ['homePlate', 'Arrow: Pentagon'], ['chevron', 'Arrow: Chevron'],
+      ['rightArrow', tx('Arrow: Right')], ['leftArrow', tx('Arrow: Left')], ['upArrow', tx('Arrow: Up')], ['downArrow', tx('Arrow: Down')], ['leftRightArrow', tx('Arrow: Left-Right')], ['upDownArrow', tx('Arrow: Up-Down')],
+      ['quadArrow', tx('Arrow: Quad')], ['bentArrow', tx('Arrow: Bent')], ['uturnArrow', tx('Arrow: U-Turn')], ['stripedRightArrow', tx('Arrow: Striped Right')], ['notchedRightArrow', tx('Arrow: Notched Right')],
+      ['homePlate', tx('Arrow: Pentagon')], ['chevron', tx('Arrow: Chevron')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label, category: 'Block Arrows' as const })),
   ...(
     [
-      ['mathPlus', 'Plus Sign'], ['mathMinus', 'Minus Sign'], ['mathMultiply', 'Multiplication Sign'], ['mathDivide', 'Division Sign'], ['mathEqual', 'Equal'], ['mathNotEqual', 'Not Equal'],
+      ['mathPlus', tx('Plus Sign')], ['mathMinus', tx('Minus Sign')], ['mathMultiply', tx('Multiplication Sign')], ['mathDivide', tx('Division Sign')], ['mathEqual', tx('Equal')], ['mathNotEqual', tx('Not Equal')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label, category: 'Equation Shapes' as const })),
   ...(
     [
-      ['flowChartProcess', 'Process'], ['flowChartAlternateProcess', 'Alternate Process'], ['flowChartDecision', 'Decision'], ['flowChartInputOutput', 'Data'],
-      ['flowChartPredefinedProcess', 'Predefined Process'], ['flowChartInternalStorage', 'Internal Storage'], ['flowChartDocument', 'Document'], ['flowChartMultidocument', 'Multidocument'],
-      ['flowChartTerminator', 'Terminator'], ['flowChartPreparation', 'Preparation'], ['flowChartManualInput', 'Manual Input'], ['flowChartManualOperation', 'Manual Operation'],
-      ['flowChartConnector', 'Connector'], ['flowChartOffpageConnector', 'Off-page Connector'], ['flowChartPunchedCard', 'Card'], ['flowChartSummingJunction', 'Summing Junction'],
-      ['flowChartOr', 'Or'], ['flowChartCollate', 'Collate'], ['flowChartSort', 'Sort'], ['flowChartExtract', 'Extract'], ['flowChartMerge', 'Merge'], ['flowChartDelay', 'Delay'],
-      ['flowChartMagneticDisk', 'Magnetic Disk'], ['flowChartDisplay', 'Display'],
+      ['flowChartProcess', tx('Process')], ['flowChartAlternateProcess', tx('Alternate Process')], ['flowChartDecision', tx('Decision')], ['flowChartInputOutput', tx('Data')],
+      ['flowChartPredefinedProcess', tx('Predefined Process')], ['flowChartInternalStorage', tx('Internal Storage')], ['flowChartDocument', tx('Document')], ['flowChartMultidocument', tx('Multidocument')],
+      ['flowChartTerminator', tx('Terminator')], ['flowChartPreparation', tx('Preparation')], ['flowChartManualInput', tx('Manual Input')], ['flowChartManualOperation', tx('Manual Operation')],
+      ['flowChartConnector', tx('Connector')], ['flowChartOffpageConnector', tx('Off-page Connector')], ['flowChartPunchedCard', tx('Card')], ['flowChartSummingJunction', tx('Summing Junction')],
+      ['flowChartOr', tx('Or')], ['flowChartCollate', tx('Collate')], ['flowChartSort', tx('Sort')], ['flowChartExtract', tx('Extract')], ['flowChartMerge', tx('Merge')], ['flowChartDelay', tx('Delay')],
+      ['flowChartMagneticDisk', tx('Magnetic Disk')], ['flowChartDisplay', tx('Display')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label: `Flowchart: ${label}`, category: 'Flowchart' as const })),
   ...(
     [
-      ['irregularSeal1', 'Explosion'], ['star4', 'Star: 4 Points'], ['star5', 'Star: 5 Points'], ['star6', 'Star: 6 Points'], ['star7', 'Star: 7 Points'], ['star8', 'Star: 8 Points'],
-      ['star10', 'Star: 10 Points'], ['star12', 'Star: 12 Points'], ['star16', 'Star: 16 Points'], ['star24', 'Star: 24 Points'], ['star32', 'Star: 32 Points'], ['ribbon2', 'Ribbon: Tilted Up'],
-      ['wave', 'Wave'], ['doubleWave', 'Double Wave'],
+      ['irregularSeal1', tx('Explosion')], ['star4', tx('Star: 4 Points')], ['star5', tx('Star: 5 Points')], ['star6', tx('Star: 6 Points')], ['star7', tx('Star: 7 Points')], ['star8', tx('Star: 8 Points')],
+      ['star10', tx('Star: 10 Points')], ['star12', tx('Star: 12 Points')], ['star16', tx('Star: 16 Points')], ['star24', tx('Star: 24 Points')], ['star32', tx('Star: 32 Points')], ['ribbon2', tx('Ribbon: Tilted Up')],
+      ['wave', tx('Wave')], ['doubleWave', tx('Double Wave')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label, category: 'Stars and Banners' as const })),
   ...(
     [
-      ['wedgeRectCallout', 'Speech Bubble: Rectangle'], ['wedgeRoundRectCallout', 'Speech Bubble: Rectangle with Corners Rounded'], ['wedgeEllipseCallout', 'Speech Bubble: Oval'],
-      ['cloudCallout', 'Thought Bubble: Cloud'], ['borderCallout1', 'Callout: Line'],
+      ['wedgeRectCallout', tx('Speech Bubble: Rectangle')], ['wedgeRoundRectCallout', tx('Speech Bubble: Rectangle with Corners Rounded')], ['wedgeEllipseCallout', tx('Speech Bubble: Oval')],
+      ['cloudCallout', tx('Thought Bubble: Cloud')], ['borderCallout1', tx('Callout: Line')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label, category: 'Callouts' as const })),
   ...(
     [
-      ['actionButtonBackPrevious', 'Action Button: Go Back or Previous'], ['actionButtonForwardNext', 'Action Button: Go Forward or Next'], ['actionButtonBeginning', 'Action Button: Go to Beginning'],
-      ['actionButtonEnd', 'Action Button: Go to End'], ['actionButtonHome', 'Action Button: Go Home'], ['actionButtonReturn', 'Action Button: Return'], ['actionButtonBlank', 'Action Button: Blank'],
+      ['actionButtonBackPrevious', tx('Action Button: Go Back or Previous')], ['actionButtonForwardNext', tx('Action Button: Go Forward or Next')], ['actionButtonBeginning', tx('Action Button: Go to Beginning')],
+      ['actionButtonEnd', tx('Action Button: Go to End')], ['actionButtonHome', tx('Action Button: Go Home')], ['actionButtonReturn', tx('Action Button: Return')], ['actionButtonBlank', tx('Action Button: Blank')],
     ] as const
   ).map(([prst, label]) => ({ id: prst, prst, label, category: 'Action Buttons' as const })),
 ]
 
 export const SHAPE_CATEGORIES: ShapeCategory[] = ['Lines', 'Rectangles', 'Basic Shapes', 'Block Arrows', 'Equation Shapes', 'Flowchart', 'Stars and Banners', 'Callouts', 'Action Buttons']
+
+/** Gallery headings of the shape categories. */
+export const SHAPE_CATEGORY_LABELS: Record<ShapeCategory, string> = {
+  Lines: tx('Lines'),
+  Rectangles: tx('Rectangles'),
+  'Basic Shapes': tx('Basic Shapes'),
+  'Block Arrows': tx('Block Arrows'),
+  'Equation Shapes': tx('Equation Shapes'),
+  Flowchart: tx('Flowchart'),
+  'Stars and Banners': tx('Stars and Banners'),
+  Callouts: tx('Callouts'),
+  'Action Buttons': tx('Action Buttons'),
+}
+
+/** The shape's name in the interface language (as shown in the galleries). */
+export function presetTitle(preset: Pick<ShapePreset, 'label'>) {
+  const flow = /^Flowchart: (.*)$/.exec(preset.label)
+  return flow ? t('Flowchart: {name}', { name: t(flow[1]) }) : t(preset.label)
+}
 
 export const OPEN_SHAPES = new Set(['line', 'straightConnector1', 'bentConnector3', 'curvedConnector3', 'arc', 'bracketPair', 'bracePair', 'leftBracket', 'rightBracket', 'leftBrace', 'rightBrace'])
 

@@ -32,6 +32,8 @@ export interface ChartSeries {
 export interface ChartDef {
   kind: 'chart'
   id: number
+  /** Objects with the same group id move and select together (Group). */
+  group?: number
   name: string
   anchor: Anchor
   type: ChartType
@@ -63,6 +65,10 @@ export interface ChartDef {
   valueAxis?: { min?: number; max?: number; major?: number; log?: boolean; reverse?: boolean; fmt?: string }
   /** Error bars on every series. */
   errorBars?: { type: 'stdErr' | 'percent' | 'stdDev' | 'fixed'; value: number }
+  /** Format Data Point: fill colors of single points, keyed "series:point" (0-based). */
+  pointColors?: Record<string, string>
+  /** Chart Elements > Data Table: the values in a table under the plot area. */
+  dataTable?: boolean
 }
 
 // ---------- pictures, shapes and text boxes ----------
@@ -70,6 +76,8 @@ export interface ChartDef {
 export interface PictureObj {
   kind: 'picture'
   id: number
+  /** Objects with the same group id move and select together (Group). */
+  group?: number
   name: string
   anchor: Anchor
   /** Key into Workbook.images. */
@@ -82,6 +90,8 @@ export interface PictureObj {
 export interface ShapeObj {
   kind: 'shape'
   id: number
+  /** Objects with the same group id move and select together (Group). */
+  group?: number
   name: string
   anchor: Anchor
   /** Preset id from SHAPES (grid/shapes.ts). */
@@ -106,6 +116,8 @@ export interface ShapeObj {
 export interface SlicerObj {
   kind: 'slicer'
   id: number
+  /** Objects with the same group id move and select together (Group). */
+  group?: number
   name: string
   anchor: Anchor
   caption: string
@@ -196,7 +208,7 @@ export type CFCondition =
   | { type: 'errors' }
   | { type: 'noErrors' }
   | { type: 'expression'; formula: string }
-  | { type: 'dataBar'; color: string; gradient: boolean; min: CFValue; max: CFValue; showValue: boolean; border?: boolean }
+  | { type: 'dataBar'; color: string; gradient: boolean; min: CFValue; max: CFValue; showValue: boolean; border?: boolean; axis?: 'auto' | 'middle' | 'none'; negColor?: string; axisColor?: string }
   | { type: 'colorScale'; stops: { v: CFValue; color: string }[] }
   | { type: 'iconSet'; set: IconSetId; reverse: boolean; showValue: boolean; thresholds: CFValue[] }
 

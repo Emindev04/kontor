@@ -1,12 +1,13 @@
+import { tx } from './i18n'
 export type Template = { id: string; label: string; html: string }
 
 const today = () => new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
 export const TEMPLATES: Template[] = [
-  { id: 'blank', label: 'Blank document', html: '<p></p>' },
+  { id: 'blank', label: tx('Blank document'), html: '<p></p>' },
   {
     id: 'letter',
-    label: 'Business letter',
+    label: tx('Business letter'),
     html: `
       <p>Your Name<br>Street Address<br>City, ST ZIP Code</p>
       <p>${today()}</p>
@@ -20,7 +21,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: 'report',
-    label: 'Report',
+    label: tx('Report'),
     html: `
       <p data-style="title">Report Title</p>
       <p data-style="subtitle">Author · ${today()}</p>
@@ -35,7 +36,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: 'resume',
-    label: 'Resume',
+    label: tx('Resume'),
     html: `
       <p data-style="title">Your Name</p>
       <p>Street Address · City, ST ZIP · Phone · Email</p>
@@ -52,7 +53,7 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: 'notes',
-    label: 'Meeting notes',
+    label: tx('Meeting notes'),
     html: `
       <p data-style="title">Meeting Notes</p>
       <p data-style="subtitle">${today()}</p>

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { ChevronDown, ChevronUp, MoveDownRight, type LucideIcon } from 'lucide-react'
+import { t } from '../i18n'
 
 export const cls = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ')
 
@@ -117,8 +118,8 @@ export function RibbonGroup({
       body.style.top = `${r.bottom + 2}px`
     }
     const onDown = (e: MouseEvent) => {
-      const t = e.target as HTMLElement
-      if (!group?.contains(t) && !t.closest('.menu')) setOpen(false)
+      const target = e.target as HTMLElement
+      if (!group?.contains(target) && !target.closest('.menu')) setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
     document.addEventListener('mousedown', onDown)
@@ -144,7 +145,7 @@ export function RibbonGroup({
       <div className="rg-label">
         {label}
         {onLauncher && (
-          <button type="button" className="rg-launcher" title={launcherTitle ?? `${label} settings`} aria-label={launcherTitle ?? `${label} settings`} onMouseDown={keepFocus} onClick={onLauncher}>
+          <button type="button" className="rg-launcher" title={launcherTitle ?? t('{name} settings', { name: label })} aria-label={launcherTitle ?? t('{name} settings', { name: label })} onMouseDown={keepFocus} onClick={onLauncher}>
             <MoveDownRight size={10} />
           </button>
         )}
@@ -296,7 +297,7 @@ export function SplitButton(props: ButtonProps & { items?: MenuItem[]; children?
         <Icon size={large ? 30 : 16} strokeWidth={large ? 1.3 : 1.8} />
         {showLabel && !large && <span className="rb-text">{label}</span>}
       </button>
-      <button type="button" className={cls('rb split-arrow', large && 'split-arrow-large')} aria-label={`${label}: more options`} disabled={disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className={cls('rb split-arrow', large && 'split-arrow-large')} aria-label={t('{name}: more options', { name: label })} disabled={disabled} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         {large && <span className="rb-text">{label}</span>}
         <ChevronDown size={10} />
       </button>
@@ -382,7 +383,7 @@ export function ComboBox({
           }
         }}
       />
-      <button type="button" className="combo-btn" aria-label={`Choose ${title.toLowerCase()}`} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className="combo-btn" aria-label={t('Open the list: {name}', { name: title })} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <ChevronDown size={12} />
       </button>
       {open && (
@@ -427,7 +428,7 @@ export function ColorSplitButton({
         </span>
         {large && <span className="rb-text">{label}</span>}
       </button>
-      <button type="button" className="rb split-arrow" aria-label={`${label}: choose color`} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
+      <button type="button" className="rb split-arrow" aria-label={t('{name}: choose color', { name: label })} onMouseDown={keepFocus} onClick={() => setOpen(!open)}>
         <ChevronDown size={10} />
       </button>
       {open && (
@@ -500,10 +501,10 @@ export function Spinner({
           }}
         />
         <span className="spinner-arrows">
-          <button type="button" tabIndex={-1} aria-label={`Increase ${label}`} onMouseDown={keepFocus} onClick={() => onChange(clamp(value + step))}>
+          <button type="button" tabIndex={-1} aria-label={t('Increase {name}', { name: label })} onMouseDown={keepFocus} onClick={() => onChange(clamp(value + step))}>
             <ChevronUp size={9} />
           </button>
-          <button type="button" tabIndex={-1} aria-label={`Decrease ${label}`} onMouseDown={keepFocus} onClick={() => onChange(clamp(value - step))}>
+          <button type="button" tabIndex={-1} aria-label={t('Decrease {name}', { name: label })} onMouseDown={keepFocus} onClick={() => onChange(clamp(value - step))}>
             <ChevronDown size={9} />
           </button>
         </span>
@@ -548,7 +549,7 @@ export function Modal({
       <div className="modal" role="dialog" aria-modal="true" aria-label={title} style={width ? { width: `min(${width}px, calc(100vw - 32px))` } : undefined} onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-title">
           <span>{title}</span>
-          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="modal-close" aria-label={t('Close')} onClick={onClose}>
             ×
           </button>
         </div>
@@ -560,7 +561,7 @@ export function Modal({
 }
 
 /** Standard OK / Cancel footer. */
-export function OkCancel({ onOk, onCancel, okLabel = 'OK', extra, okDisabled }: { onOk: () => void; onCancel: () => void; okLabel?: string; extra?: ReactNode; okDisabled?: boolean }) {
+export function OkCancel({ onOk, onCancel, okLabel = t('OK'), extra, okDisabled }: { onOk: () => void; onCancel: () => void; okLabel?: string; extra?: ReactNode; okDisabled?: boolean }) {
   return (
     <>
       {extra}
@@ -569,8 +570,7 @@ export function OkCancel({ onOk, onCancel, okLabel = 'OK', extra, okDisabled }: 
         {okLabel}
       </button>
       <button type="button" className="btn" onClick={onCancel}>
-        Cancel
-      </button>
+        {t('Cancel')}</button>
     </>
   )
 }
@@ -578,9 +578,9 @@ export function OkCancel({ onOk, onCancel, okLabel = 'OK', extra, okDisabled }: 
 export function DialogTabs<T extends string>({ tabs, active, onChange }: { tabs: { id: T; label: string }[]; active: T; onChange: (id: T) => void }) {
   return (
     <div className="dlg-tabs" role="tablist">
-      {tabs.map((t) => (
-        <button key={t.id} type="button" role="tab" aria-selected={active === t.id} className={cls('dlg-tab', active === t.id && 'is-active')} onClick={() => onChange(t.id)}>
-          {t.label}
+      {tabs.map((tab) => (
+        <button key={tab.id} type="button" role="tab" aria-selected={active === tab.id} className={cls('dlg-tab', active === tab.id && 'is-active')} onClick={() => onChange(tab.id)}>
+          {tab.label}
         </button>
       ))}
     </div>

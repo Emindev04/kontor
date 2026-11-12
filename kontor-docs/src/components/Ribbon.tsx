@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
-import { cls, keepFocus } from './ui'
+import { ChevronDown, ChevronUp, Clapperboard, SquareMousePointer } from 'lucide-react'
+import { RibbonButton, RibbonGroup, cls, keepFocus } from './ui'
+import { customLabel, runCustomCommand, type CustomTab } from '../editor/macros'
+import { t, tx } from '../i18n'
 import { HomeTab } from './tabs/HomeTab'
 import type { TabProps } from './tabs/types'
 
@@ -24,18 +26,20 @@ export type TabId =
   | 'diagramDesign'
   | 'equation'
   | 'outlining'
+  /** Own tabs from Options › Customize Ribbon. */
+  | `custom:${string}`
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'home', label: 'Home' },
-  { id: 'insert', label: 'Insert' },
-  { id: 'draw', label: 'Draw' },
-  { id: 'design', label: 'Design' },
-  { id: 'layout', label: 'Layout' },
-  { id: 'references', label: 'References' },
-  { id: 'mailings', label: 'Mailings' },
-  { id: 'review', label: 'Review' },
-  { id: 'view', label: 'View' },
-  { id: 'help', label: 'Help' },
+  { id: 'home', label: tx('Home') },
+  { id: 'insert', label: tx('Insert') },
+  { id: 'draw', label: tx('Draw') },
+  { id: 'design', label: tx('Design') },
+  { id: 'layout', label: tx('Layout') },
+  { id: 'references', label: tx('References') },
+  { id: 'mailings', label: tx('Mailings') },
+  { id: 'review', label: tx('Review') },
+  { id: 'view', label: tx('View') },
+  { id: 'help', label: tx('Help') },
 ]
 
 /** KeyTips: press and release Alt, then a letter, to open a tab without the mouse. */
@@ -65,7 +69,7 @@ const TAB_MODULES = {
   diagramDesign: () => import('./tabs/DiagramTab').then((m) => m.DiagramDesignTab),
   equation: () => import('./tabs/EquationTab').then((m) => m.EquationTab),
   outlining: () => import('./tabs/OutlineTab').then((m) => m.OutlineTab),
-} satisfies Record<Exclude<TabId, 'home'>, () => Promise<unknown>>
+} satisfies Record<Exclude<TabId, 'home' | `custom:${string}`>, () => Promise<unknown>>
 
 /** Cost of each scaling level (compact, reduced, collapsed); added to the group's priority. */
 const SCALE_COST = [0, 0, 2, 4]
@@ -159,15 +163,44 @@ export function fitRibbon(panel: HTMLElement) {
   }
 }
 
+/** A tab made in Options › Customize Ribbon: its groups of ribbon commands and macros. */
+function CustomTabPanel({ editor, app, tab }: TabProps & { tab: CustomTab }) {
+  return (
+    <>
+      {tab.groups.map((g) => (
+        <RibbonGroup key={g.id} label={g.name}>
+          {g.items.length === 0 && <span className="rg-empty">{t('(empty group)')}</span>}
+          {g.items.map((c, i) => (
+            <RibbonButton
+              key={i}
+              large
+              icon={c.kind === 'macro' ? Clapperboard : SquareMousePointer}
+              label={customLabel(c)}
+              title={c.kind === 'macro' ? t('Run macro {name}', { name: c.name }) : [c.tab, c.label, c.item].filter(Boolean).join(' › ')}
+              onClick={async () => {
+                const ok = await runCustomCommand(c, editor)
+                // Come back to this tab when the command lives on another one.
+                Array.from(document.querySelectorAll<HTMLButtonElement>('.tabs [role="tab"]')).find((b) => b.textContent?.trim() === tab.name)?.click()
+                if (!ok) alert(t('This command is not available right now.'))
+              }}
+            />
+          ))}
+        </RibbonGroup>
+      ))}
+      {tab.groups.length === 0 && <span className="rg-empty">{t('Add groups and commands in File › Options › Customize the Ribbon.')}</span>}
+    </>
+  )
+}
+
 const lazyTab = (load: () => Promise<unknown>) => lazy(async () => ({ default: (await load()) as ComponentType<TabProps> }))
 
 export function prefetchTabs() {
   for (const load of Object.values(TAB_MODULES)) void load()
 }
 
-const PANELS: Record<TabId, ComponentType<TabProps>> = {
+const PANELS: Record<Exclude<TabId, `custom:${string}`>, ComponentType<TabProps>> = {
   home: HomeTab,
-  ...(Object.fromEntries(Object.entries(TAB_MODULES).map(([id, load]) => [id, lazyTab(load)])) as unknown as Record<Exclude<TabId, 'home'>, ComponentType<TabProps>>),
+  ...(Object.fromEntries(Object.entries(TAB_MODULES).map(([id, load]) => [id, lazyTab(load)])) as unknown as Record<Exclude<TabId, 'home' | `custom:${string}`>, ComponentType<TabProps>>),
 }
 
 type Props = TabProps & {
@@ -183,19 +216,19 @@ type Props = TabProps & {
 export function Ribbon({ active, setActive, onFile, collapsed, setCollapsed, imageSelected, selectedObject, ...tabProps }: Props) {
   const inTable = tabProps.editor.isActive('table')
   const contextual: { id: TabId; label: string; group: string }[] = [
-    ...(tabProps.app.viewMode === 'outline' ? [{ id: 'outlining' as const, label: 'Outlining', group: 'hf' }] : []),
-    ...(tabProps.app.hfEdit ? [{ id: 'hf' as const, label: 'Header & Footer', group: 'hf' }] : []),
+    ...(tabProps.app.viewMode === 'outline' ? [{ id: 'outlining' as const, label: t('Outlining'), group: 'hf' }] : []),
+    ...(tabProps.app.hfEdit ? [{ id: 'hf' as const, label: t('Header & Footer'), group: 'hf' }] : []),
     ...(inTable
       ? [
-          { id: 'tableDesign' as const, label: 'Table Design', group: 'table' },
-          { id: 'tableLayout' as const, label: 'Layout', group: 'table' },
+          { id: 'tableDesign' as const, label: t('Table Design'), group: 'table' },
+          { id: 'tableLayout' as const, label: t('Layout'), group: 'table' },
         ]
       : []),
-    ...(imageSelected ? [{ id: 'picture' as const, label: 'Picture Format', group: 'picture' }] : []),
-    ...(selectedObject === 'shape' || selectedObject === 'textBox' || selectedObject === 'signatureLine' ? [{ id: 'shapeFormat' as const, label: 'Shape Format', group: 'picture' }] : []),
-    ...(selectedObject === 'chart' ? [{ id: 'chartDesign' as const, label: 'Chart Design', group: 'picture' }] : []),
-    ...(selectedObject === 'diagram' ? [{ id: 'diagramDesign' as const, label: 'Diagram Design', group: 'picture' }] : []),
-    ...(selectedObject === 'equation' ? [{ id: 'equation' as const, label: 'Equation', group: 'hf' }] : []),
+    ...(imageSelected ? [{ id: 'picture' as const, label: t('Picture Format'), group: 'picture' }] : []),
+    ...(selectedObject === 'shape' || selectedObject === 'textBox' || selectedObject === 'signatureLine' ? [{ id: 'shapeFormat' as const, label: t('Shape Format'), group: 'picture' }] : []),
+    ...(selectedObject === 'chart' ? [{ id: 'chartDesign' as const, label: t('Chart Design'), group: 'picture' }] : []),
+    ...(selectedObject === 'diagram' ? [{ id: 'diagramDesign' as const, label: t('Diagram Design'), group: 'picture' }] : []),
+    ...(selectedObject === 'equation' ? [{ id: 'equation' as const, label: t('Equation'), group: 'hf' }] : []),
   ]
   const panelRef = useRef<HTMLDivElement>(null)
   const [keyTips, setKeyTips] = useState(false)
@@ -313,36 +346,37 @@ export function Ribbon({ active, setActive, onFile, collapsed, setCollapsed, ima
     if (panel && panel.scrollWidth > panel.clientWidth + 1) fitRibbon(panel)
   })
   const hiddenTabs = new Set(tabProps.app.settings.hiddenTabs ?? [])
-  const shownTabs = TABS.filter((t) => !hiddenTabs.has(t.id))
+  const customTabs = tabProps.app.settings.customTabs ?? []
+  const shownTabs: { id: TabId; label: string }[] = [...TABS.filter((t) => !hiddenTabs.has(t.id)), ...customTabs.map((c) => ({ id: `custom:${c.id}` as TabId, label: c.name }))]
   const available = new Set<TabId>([...shownTabs.map((t) => t.id), ...contextual.map((t) => t.id)])
   const current = available.has(active) ? active : 'home'
-  const Panel = PANELS[current]
+  const customTab = current.startsWith('custom:') ? customTabs.find((c) => `custom:${c.id}` === current) : null
+  const Panel = customTab ? null : PANELS[current as Exclude<TabId, `custom:${string}`>]
 
-  const tabButton = (t: { id: TabId; label: string; group?: string }) => (
+  const tabButton = (item: { id: TabId; label: string; group?: string }) => (
     <button
-      key={t.id}
+      key={item.id}
       type="button"
       role="tab"
-      aria-selected={current === t.id}
-      className={cls('tab', t.group && `tab-context tab-${t.group}`, current === t.id && 'is-active')}
+      aria-selected={current === item.id}
+      className={cls('tab', item.group && `tab-context tab-${item.group}`, current === item.id && 'is-active')}
       onMouseDown={keepFocus}
       onClick={() => {
-        setActive(t.id)
+        setActive(item.id)
         if (collapsed) setCollapsed(false)
       }}
       onDoubleClick={() => setCollapsed(!collapsed)}
     >
-      {t.label}
-      {keyTips && KEYTIPS[t.id] && <span className="keytip">{KEYTIPS[t.id]}</span>}
+      {t(item.label)}
+      {keyTips && KEYTIPS[item.id] && <span className="keytip">{KEYTIPS[item.id]}</span>}
     </button>
   )
 
   return (
     <div className="ribbon-wrap">
-      <nav className="tabs" role="tablist" aria-label="Ribbon">
+      <nav className="tabs" role="tablist" aria-label={t('Ribbon')}>
         <button type="button" className="tab tab-file" onMouseDown={keepFocus} onClick={onFile}>
-          File
-          {keyTips && <span className="keytip">F</span>}
+          {t('File')}{keyTips && <span className="keytip">F</span>}
         </button>
         {shownTabs.map(tabButton)}
         {contextual.map(tabButton)}
@@ -350,8 +384,8 @@ export function Ribbon({ active, setActive, onFile, collapsed, setCollapsed, ima
         <button
           type="button"
           className="tab ribbon-toggle"
-          title={collapsed ? 'Pin the ribbon (Ctrl+F1)' : 'Collapse the ribbon (Ctrl+F1)'}
-          aria-label={collapsed ? 'Show ribbon' : 'Collapse ribbon'}
+          title={collapsed ? t('Pin the ribbon (Ctrl+F1)') : t('Collapse the ribbon (Ctrl+F1)')}
+          aria-label={collapsed ? t('Show ribbon') : t('Collapse ribbon')}
           onMouseDown={keepFocus}
           onClick={() => setCollapsed(!collapsed)}
         >
@@ -361,7 +395,7 @@ export function Ribbon({ active, setActive, onFile, collapsed, setCollapsed, ima
       {!collapsed && (
         <div className="ribbon" role="tabpanel" ref={panelRef}>
           <Suspense fallback={<div className="ribbon-loading" />}>
-            <Panel {...tabProps} />
+            {customTab ? <CustomTabPanel {...tabProps} tab={customTab} /> : Panel && <Panel {...tabProps} />}
           </Suspense>
           {commandTips?.map((t) => (
             <span key={t.code} className="keytip keytip-command" style={{ left: t.left, top: t.top }}>

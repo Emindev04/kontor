@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core'
 import type { FieldKind } from '../editor/Fields'
+import { tx } from '../i18n'
 
 // Built-in header, footer and page number designs (the galleries of the Insert tab).
 
@@ -24,27 +25,27 @@ const placeholder = () => [text('[Type here]')]
 export type Preset = { id: string; label: string; content: () => JSONContent }
 
 export const HEADER_PRESETS: Preset[] = [
-  { id: 'blank', label: 'Blank', content: () => doc(para([])) },
-  { id: 'three', label: 'Blank (Three Columns)', content: () => doc(columns([placeholder(), placeholder(), placeholder()])) },
-  { id: 'title', label: 'Document Title', content: () => doc(para([field('title')], 'center')) },
-  { id: 'titleDate', label: 'Title and Date', content: () => doc(columns([[field('title')], [field('date')]])) },
-  { id: 'line', label: 'Title with Rule', content: () => doc({ ...para([field('title')], 'right'), attrs: { textAlign: 'right', borders: 'b' } }) },
+  { id: 'blank', label: tx('Blank'), content: () => doc(para([])) },
+  { id: 'three', label: tx('Blank (Three Columns)'), content: () => doc(columns([placeholder(), placeholder(), placeholder()])) },
+  { id: 'title', label: tx('Document Title'), content: () => doc(para([field('title')], 'center')) },
+  { id: 'titleDate', label: tx('Title and Date'), content: () => doc(columns([[field('title')], [field('date')]])) },
+  { id: 'line', label: tx('Title with Rule'), content: () => doc({ ...para([field('title')], 'right'), attrs: { textAlign: 'right', borders: 'b' } }) },
 ]
 
 export const FOOTER_PRESETS: Preset[] = [
-  { id: 'blank', label: 'Blank', content: () => doc(para([])) },
-  { id: 'three', label: 'Blank (Three Columns)', content: () => doc(columns([placeholder(), placeholder(), placeholder()])) },
-  { id: 'number', label: 'Page Number', content: () => doc(para([field('page')], 'center')) },
-  { id: 'pageOf', label: 'Page X of Y', content: () => doc(para([text('Page '), field('page'), text(' of '), field('numPages')], 'right')) },
-  { id: 'titlePage', label: 'Title and Page Number', content: () => doc(columns([[field('title')], [field('page')]])) },
+  { id: 'blank', label: tx('Blank'), content: () => doc(para([])) },
+  { id: 'three', label: tx('Blank (Three Columns)'), content: () => doc(columns([placeholder(), placeholder(), placeholder()])) },
+  { id: 'number', label: tx('Page Number'), content: () => doc(para([field('page')], 'center')) },
+  { id: 'pageOf', label: tx('Page X of Y'), content: () => doc(para([text('Page '), field('page'), text(' of '), field('numPages')], 'right')) },
+  { id: 'titlePage', label: tx('Title and Page Number'), content: () => doc(columns([[field('title')], [field('page')]])) },
 ]
 
 export const PAGE_NUMBER_PRESETS: { id: string; label: string; content: () => JSONContent }[] = [
-  { id: 'plain1', label: 'Plain Number 1 (left)', content: () => doc(para([field('page')], 'left')) },
-  { id: 'plain2', label: 'Plain Number 2 (center)', content: () => doc(para([field('page')], 'center')) },
-  { id: 'plain3', label: 'Plain Number 3 (right)', content: () => doc(para([field('page')], 'right')) },
-  { id: 'pageOf', label: 'Page X of Y', content: () => doc(para([text('Page '), field('page'), text(' of '), field('numPages')], 'right')) },
-  { id: 'bold', label: 'Bold Numbers', content: () => doc(para([field('page'), text(' | ', [{ type: 'bold' }]), text('Page')], 'right')) },
+  { id: 'plain1', label: tx('Plain Number 1 (left)'), content: () => doc(para([field('page')], 'left')) },
+  { id: 'plain2', label: tx('Plain Number 2 (center)'), content: () => doc(para([field('page')], 'center')) },
+  { id: 'plain3', label: tx('Plain Number 3 (right)'), content: () => doc(para([field('page')], 'right')) },
+  { id: 'pageOf', label: tx('Page X of Y'), content: () => doc(para([text('Page '), field('page'), text(' of '), field('numPages')], 'right')) },
+  { id: 'bold', label: tx('Bold Numbers'), content: () => doc(para([field('page'), text(' | ', [{ type: 'bold' }]), text('Page')], 'right')) },
 ]
 
 /** Removes page number fields from a header/footer. */
@@ -78,4 +79,20 @@ export function coverPage(kind: 'simple' | 'banded', title: string): JSONContent
     { type: 'paragraph', attrs: { textAlign: 'center' }, content: [text('Author name · ' + date)] },
     { type: 'pageBreak' },
   ]
+}
+
+/**
+ * The cover page at the start of a document: the blocks up to the first page break, when that page
+ * holds a Title paragraph (as the built-in cover pages do). Returns the document range or null.
+ */
+export function coverPageRange(doc: import('@tiptap/pm/model').Node): { from: number; to: number } | null {
+  let pos = 0
+  let hasTitle = false
+  for (let i = 0; i < doc.childCount && i < 60; i++) {
+    const child = doc.child(i)
+    if (child.type.name === 'pageBreak') return hasTitle ? { from: 0, to: pos + child.nodeSize } : null
+    if (child.attrs.pStyle === 'title') hasTitle = true
+    pos += child.nodeSize
+  }
+  return null
 }

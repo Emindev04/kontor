@@ -3,6 +3,7 @@ import type { Editor } from '@tiptap/react'
 import { Modal, OkCancel, cls } from '../ui'
 import type { TabAlign, TabLeader, TabStop } from '../../editor/TabStops'
 import { formatLength, parseLength, type Unit } from '../../units'
+import { t } from '../../i18n'
 
 /** Tabs dialog: set, change and clear the tab stops of the selected paragraphs. */
 export function TabsDialog({ editor, unit, onClose }: { editor: Editor; unit: Unit; onClose: () => void }) {
@@ -14,7 +15,7 @@ export function TabsDialog({ editor, unit, onClose }: { editor: Editor; unit: Un
   const [error, setError] = useState('')
   const set = () => {
     const pos = parseLength(text, unit)
-    if (pos == null || pos <= 0 || pos > 22) return setError('Enter a position, for example 1.5".')
+    if (pos == null || pos <= 0 || pos > 22) return setError(t('Enter a position, for example 1.5".'))
     setError('')
     setStops([...stops.filter((s) => Math.abs(s.pos - pos) > 0.005), { pos: Math.round(pos * 10000) / 10000, align, leader }].sort((a, b) => a.pos - b.pos))
   }
@@ -28,14 +29,13 @@ export function TabsDialog({ editor, unit, onClose }: { editor: Editor; unit: Un
     onClose()
   }
   return (
-    <Modal title="Tabs" onClose={onClose} width={440} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
+    <Modal title={t('Tabs')} onClose={onClose} width={440} footer={<OkCancel onOk={apply} onCancel={onClose} />}>
       <div className="tabs-dlg">
         <div className="dlg-stack">
           <label className="dlg-stack">
-            Tab stop position:
-            <input autoFocus value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && set()} />
+            {t('Tab stop position:')}<input autoFocus value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && set()} />
           </label>
-          <div className="tabs-list" role="listbox" aria-label="Tab stops">
+          <div className="tabs-list" role="listbox" aria-label={t('Tab stops')}>
             {stops.map((s) => (
               <button key={s.pos} type="button" role="option" aria-selected={formatLength(s.pos, unit) === text} className={cls('menu-item', formatLength(s.pos, unit) === text && 'is-active')} onClick={() => pick(s)}>
                 {formatLength(s.pos, unit)} – {s.align}
@@ -43,11 +43,11 @@ export function TabsDialog({ editor, unit, onClose }: { editor: Editor; unit: Un
               </button>
             ))}
           </div>
-          <p className="dlg-hint">Default tab stops: {formatLength(0.5, unit)}</p>
+          <p className="dlg-hint">{t('Default tab stops:')}{' '}{formatLength(0.5, unit)}</p>
         </div>
         <div className="dlg-stack">
           <fieldset className="dlg-fieldset">
-            <legend>Alignment</legend>
+            <legend>{t('Alignment')}</legend>
             {(['left', 'center', 'right', 'decimal', 'bar'] as const).map((a) => (
               <label key={a}>
                 <input type="radio" checked={align === a} onChange={() => setAlign(a)} /> {a[0].toUpperCase() + a.slice(1)}
@@ -55,10 +55,10 @@ export function TabsDialog({ editor, unit, onClose }: { editor: Editor; unit: Un
             ))}
           </fieldset>
           <fieldset className="dlg-fieldset">
-            <legend>Leader</legend>
+            <legend>{t('Leader')}</legend>
             {(['none', 'dot', 'dash', 'underline'] as const).map((l, i) => (
               <label key={l}>
-                <input type="radio" checked={leader === l} onChange={() => setLeader(l)} /> {i + 1} {l === 'none' ? 'None' : l === 'dot' ? '.......' : l === 'dash' ? '-------' : '_______'}
+                <input type="radio" checked={leader === l} onChange={() => setLeader(l)} /> {i + 1} {l === 'none' ? t('None') : l === 'dot' ? '.......' : l === 'dash' ? '-------' : '_______'}
               </label>
             ))}
           </fieldset>
@@ -67,14 +67,11 @@ export function TabsDialog({ editor, unit, onClose }: { editor: Editor; unit: Un
       {error && <p className="dlg-error">{error}</p>}
       <div className="dlg-inline">
         <button type="button" className="btn" onClick={set}>
-          Set
-        </button>
+          {t('Set')}</button>
         <button type="button" className="btn" onClick={() => setStops(stops.filter((s) => formatLength(s.pos, unit) !== text))}>
-          Clear
-        </button>
+          {t('Clear')}</button>
         <button type="button" className="btn" onClick={() => setStops([])}>
-          Clear All
-        </button>
+          {t('Clear All')}</button>
       </div>
     </Modal>
   )

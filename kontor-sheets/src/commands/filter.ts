@@ -9,6 +9,7 @@ import type { Doc } from './doc'
 import { currentRegion, sortRange } from './sort'
 import { tableAt } from './objects'
 import { tableRows } from '../engine/structured'
+import { t, tx } from '../i18n'
 
 export type FilterTarget = { kind: 'table'; table: TableDef } | { kind: 'auto'; af: AutoFilter }
 
@@ -220,11 +221,11 @@ export function setColumnFilter(doc: Doc, t: FilterTarget, col: number, spec: Fi
   const filters = { ...filterArea(t).filters }
   if (spec) filters[col] = spec
   else delete filters[col]
-  setFilters(doc, t, filters, spec ? 'Filter' : 'Clear Filter')
+  setFilters(doc, t, filters, spec ? tx('Filter') : tx('Clear Filter'))
 }
 
 export function clearFilters(doc: Doc, sheet = doc.sheet) {
-  doc.transact('Clear Filters', () => {
+  doc.transact(tx('Clear Filters'), () => {
     doc.noteProps(sheet)
     for (const t of sheet.x.tables) t.filters = {}
     if (sheet.x.autoFilter) sheet.x.autoFilter.filters = {}
@@ -233,7 +234,7 @@ export function clearFilters(doc: Doc, sheet = doc.sheet) {
 }
 
 export function reapplyFilters(doc: Doc, sheet = doc.sheet) {
-  doc.transact('Reapply', () => {
+  doc.transact(tx('Reapply'), () => {
     doc.noteProps(sheet)
     applyFilters(doc, sheet)
   })
@@ -249,7 +250,7 @@ export function toggleAutoFilter(doc: Doc): string | null {
   const a = doc.sel.active
   const table = tableAt(sheet, a.r, a.c)
   if (table) {
-    doc.transact('Filter', () => {
+    doc.transact(tx('Filter'), () => {
       doc.noteProps(sheet)
       const t = sheet.x.tables.find((x) => x.id === table.id)!
       t.filterButton = !t.filterButton
@@ -259,7 +260,7 @@ export function toggleAutoFilter(doc: Doc): string | null {
     return null
   }
   if (sheet.x.autoFilter) {
-    doc.transact('Filter', () => {
+    doc.transact(tx('Filter'), () => {
       doc.noteProps(sheet)
       sheet.x.autoFilter = null
       applyFilters(doc, sheet)
@@ -269,9 +270,9 @@ export function toggleAutoFilter(doc: Doc): string | null {
   let rg: Range = doc.activeRange
   if (rg.r1 === rg.r2 && rg.c1 === rg.c2) rg = currentRegion(doc, a)
   rg = doc.boundToUsed(rg)
-  if (rg.r1 === rg.r2 && rg.c1 === rg.c2 && !sheet.hasValue(rg.r1, rg.c1)) return 'Select a cell in the range you want to filter, then try again.'
+  if (rg.r1 === rg.r2 && rg.c1 === rg.c2 && !sheet.hasValue(rg.r1, rg.c1)) return t('Select a cell in the range you want to filter, then try again.')
   if (rg.r2 >= MAX_ROWS - 1) rg = { ...rg, r2: Math.max(rg.r1 + 1, sheet.used().r) }
-  doc.transact('Filter', () => {
+  doc.transact(tx('Filter'), () => {
     doc.noteProps(sheet)
     sheet.x.autoFilter = { range: rg, filters: {} }
   })
@@ -283,7 +284,7 @@ export function sortTarget(doc: Doc, t: FilterTarget, col: number, desc: boolean
   const a = filterArea(t)
   if (a.r2 <= a.r1) return
   const sheet = doc.sheet
-  doc.transact('Sort', () => {
+  doc.transact(tx('Sort'), () => {
     sortRange(doc, { r1: a.r1, c1: a.c1, r2: a.r2, c2: a.c2 }, [{ index: a.c1 + col, desc, by }], { header: false })
     doc.noteProps(sheet)
     if (t.kind === 'table') {

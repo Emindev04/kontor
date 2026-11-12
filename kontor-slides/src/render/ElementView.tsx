@@ -1,16 +1,18 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { patternTile } from '../model/patterns'
 import { normHandles, outlinePath, sampleOutline, scaleOutline, type Outline } from '../model/outline'
-import type { ArrowHead, RichDoc, ChartElement, DiagramElement, MediaElement, ZoomElement, Effects, Fill, GroupElement, ImageElement, InkElement, Line, ShapeElement, SlideElement, TableElement } from '../model/types'
+import type { ArrowHead, Mark, RichDoc, ChartElement, DiagramElement, MediaElement, ZoomElement, Effects, Fill, GroupElement, ImageElement, InkElement, Line, ShapeElement, SlideElement, TableElement } from '../model/types'
 import { ChartSvg } from './ChartView'
 import { diagramShapes } from '../model/diagram'
 import { fontStack } from '../model/themes'
 import { adjustLum, resolveColor, withAlpha, type ThemeColors } from '../model/color'
 import { geometry } from '../model/shapes'
-import { docToHtml, docToParagraphs, type TextCtx } from '../model/richtext'
+import { docToHtml, docToParagraphs, isDocEmpty, type TextCtx } from '../model/richtext'
 import { STYLE_DEFS } from '../model/layouts'
 import { fillToCss, styleKey, tableCellCtx, textCtxFor, type RenderCtx } from './context'
 import { cellLook, type CellRange } from '../model/table'
+import { effectiveEffects } from '../model/effectSchemes'
+import { t, t as translate, tx } from '../i18n'
 
 export type RenderMode = 'edit' | 'thumb' | 'show' | 'deco'
 
@@ -72,6 +74,88 @@ export function effectsFilter(effects: Effects | undefined, colors: ThemeColors)
 
 function reflection(effects: Effects | undefined): CSSProperties {
   return effects?.reflection ? ({ WebkitBoxReflect: 'below 2px linear-gradient(transparent 55%, rgba(255,255,255,0.35))' } as CSSProperties) : {}
+}
+
+/** Rotation plus the 3-D rotation of Shape Effects as a CSS transform. */
+export function elementTransform(rot: number, effects: Effects | undefined) {
+  const r = effects?.rot3d
+  const parts: string[] = []
+  if (r && (r.x || r.y)) parts.push(`perspective(${r.perspective ? 900 : 4000}px)`)
+  if (rot) parts.push(`rotate(${rot}deg)`)
+  if (r?.x) parts.push(`rotateY(${-r.x}deg)`)
+  if (r?.y) parts.push(`rotateX(${r.y}deg)`)
+  return parts.join(' ') || undefined
+}
+
+/** Bevel presets: blur radius (relative to the size) and specular exponent of the lighting filter. */
+const BEVELS: Record<string, { blur: number; exp: number; scale: number }> = {
+  circle: { blur: 4, exp: 18, scale: 1 },
+  relaxedInset: { blur: 6, exp: 12, scale: 0.8 },
+  cross: { blur: 2, exp: 30, scale: 1.2 },
+  coolSlant: { blur: 3, exp: 22, scale: 1 },
+  angle: { blur: 1.5, exp: 35, scale: 1.2 },
+  softRound: { blur: 8, exp: 10, scale: 0.8 },
+  convex: { blur: 10, exp: 8, scale: 1 },
+  slope: { blur: 5, exp: 16, scale: 1 },
+  divot: { blur: 2.5, exp: 26, scale: 1.1 },
+  riblet: { blur: 1.2, exp: 40, scale: 1.3 },
+  hardEdge: { blur: 1, exp: 45, scale: 1.4 },
+  artDeco: { blur: 3, exp: 28, scale: 1.2 },
+}
+
+/** SVG filter for an inner shadow and/or a bevel on the shape's fill. */
+function FillEffectsFilter({ id, effects, colors }: { id: string; effects: Effects; colors: ThemeColors }) {
+  const ins = effects.innerShadow
+  const bev = effects.bevel ? (BEVELS[effects.bevel] ?? BEVELS.circle) : null
+  const a = ins ? (ins.angle * Math.PI) / 180 : 0
+  const d = ins ? ins.dist * PT : 0
+  return (
+    <filter id={id} x="-10%" y="-10%" width="120%" height="120%" colorInterpolationFilters="sRGB">
+      {ins && (
+        <>
+          <feFlood floodColor={resolveColor(ins.color, colors)} floodOpacity={ins.alpha} result="isColor" />
+          <feComposite in="isColor" in2="SourceAlpha" operator="out" result="isOutside" />
+          <feOffset in="isOutside" dx={Math.cos(a) * d} dy={Math.sin(a) * d} result="isOffset" />
+          <feGaussianBlur in="isOffset" stdDeviation={Math.max(0.1, ins.blur * PT * 0.5)} result="isBlur" />
+          <feComposite in="isBlur" in2="SourceAlpha" operator="in" result="isInner" />
+        </>
+      )}
+      {bev && (
+        <>
+          <feGaussianBlur in="SourceAlpha" stdDeviation={bev.blur * PT} result="bvBlur" />
+          <feSpecularLighting in="bvBlur" surfaceScale={bev.scale * 4} specularConstant={0.9} specularExponent={bev.exp} lightingColor="#FFFFFF" result="bvSpec">
+            <feDistantLight azimuth={225} elevation={40} />
+          </feSpecularLighting>
+          <feComposite in="bvSpec" in2="SourceAlpha" operator="in" result="bvLit" />
+          <feDiffuseLighting in="bvBlur" surfaceScale={bev.scale * 3} diffuseConstant={1} lightingColor="#FFFFFF" result="bvDiff">
+            <feDistantLight azimuth={225} elevation={55} />
+          </feDiffuseLighting>
+          <feComposite in="SourceGraphic" in2="bvDiff" operator="arithmetic" k1={1} k2={0} k3={0} k4={0} result="bvShade" />
+          <feComposite in="bvShade" in2="SourceAlpha" operator="in" result="bvShaded" />
+          <feComposite in="bvLit" in2="bvShaded" operator="arithmetic" k1={0} k2={0.55} k3={1} k4={0} result="bvOut" />
+        </>
+      )}
+      <feMerge>
+        <feMergeNode in={bev ? 'bvOut' : 'SourceGraphic'} />
+        {ins && <feMergeNode in="isInner" />}
+      </feMerge>
+    </filter>
+  )
+}
+
+/** Gap strokes (black in a mask) that split one wide stroke into compound lines. */
+function compoundGaps(compound: NonNullable<Line>['compound'], lw: number): { w: number; color: string }[] {
+  switch (compound) {
+    case 'dbl':
+      return [{ w: lw / 3, color: 'black' }]
+    case 'thickThin':
+    case 'thinThick':
+      return [{ w: lw * 0.4, color: 'black' }, { w: lw * 0.12, color: 'white' }]
+    case 'tri':
+      return [{ w: lw * 0.6, color: 'black' }, { w: lw * 0.2, color: 'white' }]
+    default:
+      return []
+  }
 }
 
 let gradId = 0
@@ -187,31 +271,68 @@ function ShapeGeometry({ el, colors }: { el: ShapeElement; colors: ThemeColors }
   const flip = el.flipH || el.flipV ? `scale(${el.flipH ? -1 : 1}, ${el.flipV ? -1 : 1})` : undefined
   const needsDefs = el.fill.type === 'gradient' || el.fill.type === 'picture' || el.fill.type === 'pattern'
   const variants = needsDefs ? [...new Set(geo.paths.map((p) => (p.fill === 'none' ? 'norm' : p.fill)))] : []
+  const fillFx = !!(el.effects?.innerShadow || el.effects?.bevel) && el.fill.type !== 'none'
+  const gaps = line?.compound ? compoundGaps(line.compound, lw) : []
+  const sketch = line?.sketch
+  // Compound and sketched outlines are drawn separately from the fill.
+  const splitStroke = gaps.length > 0 || !!sketch || fillFx
+  const stroke = (p: { d: string }, i: number) => (
+    <path
+      key={`s${i}`}
+      d={p.d}
+      fill="none"
+      stroke={strokeColor}
+      strokeWidth={lw || undefined}
+      strokeDasharray={line ? dashArray(line) : undefined}
+      strokeLinejoin="round"
+      mask={gaps.length ? `url(#${id}-cm${i})` : undefined}
+      filter={sketch ? `url(#${id}-sk)` : undefined}
+    />
+  )
   return (
     <svg className="el-geo" width={Math.max(el.w, 1)} height={Math.max(el.h, 1)} overflow="visible" style={{ transform: flip, filter: effectsFilter(el.effects, colors) }} aria-hidden="true">
-      {needsDefs && (
+      {(needsDefs || splitStroke) && (
         <defs>
           {variants.map((v) => (
             <FillDefs key={v} id={`${id}-${v}`} fill={el.fill} colors={colors} variant={v} />
           ))}
+          {fillFx && <FillEffectsFilter id={`${id}-fx`} effects={el.effects!} colors={colors} />}
+          {sketch && (
+            <filter id={`${id}-sk`} x="-5%" y="-5%" width="110%" height="110%">
+              <feTurbulence type="fractalNoise" baseFrequency={sketch === 'curved' ? 0.02 : sketch === 'freehand' ? 0.04 : 0.08} numOctaves={2} seed={3} result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale={sketch === 'scribble' ? 6 : 4} xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+          )}
+          {gaps.length > 0 &&
+            geo.paths.map((p, i) => (
+              <mask key={i} id={`${id}-cm${i}`} maskUnits="userSpaceOnUse" x={-lw * 2} y={-lw * 2} width={el.w + lw * 4} height={el.h + lw * 4}>
+                <path d={p.d} fill="none" stroke="white" strokeWidth={lw} strokeLinejoin="round" />
+                {gaps.map((g, k) => (
+                  <path key={k} d={p.d} fill="none" stroke={g.color} strokeWidth={g.w} strokeLinejoin="round" />
+                ))}
+              </mask>
+            ))}
         </defs>
       )}
-      {geo.paths.map((p, i) => {
-        const pf = p.fill === 'none' ? { fill: 'none' } : paint(el.fill, colors, p.fill, `${id}-${p.fill}`)
-        return (
-          <path
-            key={i}
-            d={p.d}
-            fill={pf.fill}
-            fillOpacity={pf.opacity}
-            fillRule={p.evenOdd ? 'evenodd' : undefined}
-            stroke={strokeColor}
-            strokeWidth={lw || undefined}
-            strokeDasharray={line ? dashArray(line) : undefined}
-            strokeLinejoin="round"
-          />
-        )
-      })}
+      <g filter={fillFx ? `url(#${id}-fx)` : undefined}>
+        {geo.paths.map((p, i) => {
+          const pf = p.fill === 'none' ? { fill: 'none' } : paint(el.fill, colors, p.fill, `${id}-${p.fill}`)
+          return (
+            <path
+              key={i}
+              d={p.d}
+              fill={pf.fill}
+              fillOpacity={pf.opacity}
+              fillRule={p.evenOdd ? 'evenodd' : undefined}
+              stroke={splitStroke ? 'none' : strokeColor}
+              strokeWidth={splitStroke ? undefined : lw || undefined}
+              strokeDasharray={!splitStroke && line ? dashArray(line) : undefined}
+              strokeLinejoin="round"
+            />
+          )
+        })}
+      </g>
+      {splitStroke && line && geo.paths.filter((p) => p.stroke !== false).map(stroke)}
       {[head, tail].map((a, i) => a && <path key={`a${i}`} d={a.d} fill={a.filled ? strokeColor : 'none'} stroke={strokeColor} strokeWidth={a.filled ? lw * 0.5 : lw} strokeLinejoin="round" />)}
       {ends && geo.paths.map((p, i) => <path key={`h${i}`} className="hit" d={p.d} fill="none" stroke="transparent" strokeWidth={Math.max(12, lw + 8)} />)}
     </svg>
@@ -296,6 +417,60 @@ function unitHtml(html: string, unit: 'word' | 'letter', layer: AnimLayer | unde
   return root.innerHTML
 }
 
+/** Path along which warped text runs, for a w×h text area. */
+export function warpPath(warp: string, w: number, h: number): string | null {
+  switch (warp) {
+    case 'textArchUp':
+      return `M0 ${h} A${w / 2} ${h} 0 0 1 ${w} ${h}`
+    case 'textArchDown':
+      return `M0 0 A${w / 2} ${h} 0 0 0 ${w} 0`
+    case 'textCircle':
+      return `M${w / 2} ${h} A${w / 2} ${h / 2} 0 1 1 ${w / 2 + 0.1} ${h}`
+    case 'textWave1':
+      return `M0 ${h / 2} C${w / 4} ${-h * 0.1} ${w / 4} ${-h * 0.1} ${w / 2} ${h / 2} S${(w * 3) / 4} ${h * 1.1} ${w} ${h / 2}`
+    case 'textSlantUp':
+      return `M0 ${h * 0.85} L${w} ${h * 0.15}`
+    case 'textSlantDown':
+      return `M0 ${h * 0.15} L${w} ${h * 0.85}`
+    case 'textTriangle':
+      return `M0 ${h} L${w / 2} ${h * 0.2} L${w} ${h}`
+    default:
+      return null
+  }
+}
+
+/** WordArt text following a warp path (Text Effects > Transform); the first run's look is used. */
+function WarpedText({ el, ctx, w, h }: { el: ShapeElement; ctx: TextCtx; w: number; h: number }) {
+  const text = el.text!
+  const d = warpPath(text.warp!, w, h)
+  const idRef = useRef(`kw${++gradId}`)
+  const words = text.doc.content.map((p) => (p.content ?? []).map((n) => (n.type === 'text' ? n.text : ' ')).join('')).join(' ')
+  const first = text.doc.content.flatMap((p) => p.content ?? [])[0]
+  const attrs = first?.marks?.find((m): m is Extract<Mark, { type: 'textStyle' }> => m.type === 'textStyle')?.attrs ?? {}
+  const size = (attrs.fontSize ?? ctx.sizes[0]) * (text.fontScale ?? 1) * PT
+  const color = text.textFill ? resolveColor(text.textFill, ctx.colors) : attrs.color ? resolveColor(attrs.color, ctx.colors) : ctx.color
+  const bold = ctx.bold || !!first?.marks?.some((m) => m.type === 'bold')
+  if (!d) return null
+  return (
+    <svg className="warp-text" width={w} height={h} overflow="visible" aria-label={words}>
+      <path id={idRef.current} d={d} fill="none" />
+      <text
+        fontSize={size}
+        fontFamily={attrs.fontFamily ? fontStack(attrs.fontFamily) : ctx.font}
+        fontWeight={bold ? 700 : undefined}
+        fill={color}
+        stroke={text.textOutline ? resolveColor(text.textOutline.color, ctx.colors) : undefined}
+        strokeWidth={text.textOutline ? text.textOutline.width * PT : undefined}
+        dominantBaseline={text.warp === 'textArchDown' ? 'hanging' : 'auto'}
+      >
+        <textPath href={`#${idRef.current}`} startOffset="50%" textAnchor="middle">
+          {words}
+        </textPath>
+      </text>
+    </svg>
+  )
+}
+
 /** Static text drawn paragraph by paragraph so each one can play its own effect. */
 function AnimatedParagraphs({ doc, ctx, paras }: { doc: RichDoc; ctx: TextCtx; paras: TextAnimPara[] }) {
   const parts = docToParagraphs(doc, ctx)
@@ -326,7 +501,7 @@ function TextLayer({ el, rc, mode, editing, renderEditor, onAutofit, textAnim }:
   const tbRef = useRef<HTMLDivElement>(null)
   const rtRef = useRef<HTMLDivElement>(null)
   const key = styleKey(el)
-  const prompt = mode === 'edit' && el.placeholder ? STYLE_DEFS[key].prompt : undefined
+  const prompt = mode === 'edit' && el.placeholder && STYLE_DEFS[key].prompt ? translate(STYLE_DEFS[key].prompt) : undefined
   const html = editing ? '' : docToHtml(text.doc, ctx, prompt)
 
   useLayoutEffect(() => {
@@ -357,6 +532,7 @@ function TextLayer({ el, rc, mode, editing, renderEditor, onAutofit, textAnim }:
     '--fscale': text.fontScale ?? 1,
     '--lred': text.autofit === 'shrink' ? (text.lnSpcReduction ?? 0) : 0,
     WebkitTextStroke: text.textOutline ? `${text.textOutline.width * PT}px ${resolveColor(text.textOutline.color, rc.colors)}` : undefined,
+    WebkitBoxReflect: text.textReflection ? 'below -0.15em linear-gradient(transparent 55%, rgba(255, 255, 255, 0.45))' : undefined,
   } as CSSProperties
   return (
     <div ref={tbRef} className={`tb${text.wrap ? '' : ' nowrap'}`} style={style}>
@@ -368,6 +544,8 @@ function TextLayer({ el, rc, mode, editing, renderEditor, onAutofit, textAnim }:
         <div ref={rtRef} className="rt" style={rtStyle}>
           <AnimatedParagraphs doc={text.doc} ctx={ctx} paras={textAnim} />
         </div>
+      ) : text.warp && !isDocEmpty(text.doc) ? (
+        <WarpedText el={el} ctx={ctx} w={Math.max(1, tr[2] - tr[0] - l - r)} h={Math.max(1, tr[3] - tr[1] - t - b)} />
       ) : (
         <div ref={rtRef} className={`rt${prompt && html.includes('class="prompt"') ? ' has-prompt' : ''}`} style={rtStyle} dangerouslySetInnerHTML={{ __html: html }} />
       )}
@@ -376,7 +554,9 @@ function TextLayer({ el, rc, mode, editing, renderEditor, onAutofit, textAnim }:
 }
 
 function ShapeView(props: ElementProps & { el: ShapeElement; textAnim?: TextAnimPara[] }) {
-  const { el, rc, mode, editingId } = props
+  const { rc, mode, editingId } = props
+  const schemeFx = effectiveEffects(props.el, rc.effectScheme)
+  const el = schemeFx === props.el.effects ? props.el : { ...props.el, effects: schemeFx }
   const editing = editingId === el.id
   const isPic = el.placeholder?.style === 'pic'
   const emptyPh = mode === 'edit' && !!el.placeholder && el.fill.type === 'none' && !el.line
@@ -387,13 +567,13 @@ function ShapeView(props: ElementProps & { el: ShapeElement; textAnim?: TextAnim
       data-el={mode === 'edit' ? el.id : undefined}
       data-line={el.text ? undefined : 'true'}
       data-link={mode === 'show' ? el.link : undefined}
-      style={{ left: el.x, top: el.y, width: el.w, height: el.h, transform: el.rot ? `rotate(${el.rot}deg)` : undefined, ...reflection(el.effects) }}
+      style={{ left: el.x, top: el.y, width: el.w, height: el.h, transform: elementTransform(el.rot, el.effects), ...reflection(el.effects) }}
     >
       <ShapeGeometry el={el} colors={rc.colors} />
       {el.text && <TextLayer el={el} rc={rc} mode={mode} editing={editing} renderEditor={props.renderEditor} onAutofit={props.onAutofit} textAnim={props.textAnim} />}
       {contentPh && <ContentIcons id={el.id} />}
       {isPic && mode === 'edit' && (
-        <button type="button" className="ph-picture" aria-label="Insert picture" title="Pictures" onPointerDown={(e) => e.stopPropagation()} onClick={() => props.onPicturePlaceholder?.(el.id)}>
+        <button type="button" className="ph-picture" aria-label={t('Insert picture')} title={t('Pictures')} onPointerDown={(e) => e.stopPropagation()} onClick={() => props.onPicturePlaceholder?.(el.id)}>
           <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
             <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
             <circle cx="9" cy="10" r="2" fill="currentColor" />
@@ -406,12 +586,12 @@ function ShapeView(props: ElementProps & { el: ShapeElement; textAnim?: TextAnim
 }
 
 const CONTENT_ICONS: { kind: string; label: string; d: string }[] = [
-  { kind: 'table', label: 'Insert Table', d: 'M3 5h18v14H3zM3 10h18M3 15h18M9 5v14M15 5v14' },
-  { kind: 'chart', label: 'Insert Chart', d: 'M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7M2 20h20' },
-  { kind: 'diagram', label: 'Insert a Diagram', d: 'M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-4h12v4' },
-  { kind: 'picture', label: 'Pictures', d: 'M3 4h18v16H3zM3 17l5-5 4 4 3-3 6 6M9 9.5a1.5 1.5 0 1 0 0 .01' },
-  { kind: 'icons', label: 'Insert an Icon', d: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01' },
-  { kind: 'video', label: 'Insert Video', d: 'M3 6h13v12H3zM16 10l5-3v10l-5-3' },
+  { kind: 'table', label: tx('Insert Table'), d: 'M3 5h18v14H3zM3 10h18M3 15h18M9 5v14M15 5v14' },
+  { kind: 'chart', label: tx('Insert Chart'), d: 'M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7M2 20h20' },
+  { kind: 'diagram', label: tx('Insert a Diagram'), d: 'M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-4h12v4' },
+  { kind: 'picture', label: tx('Pictures'), d: 'M3 4h18v16H3zM3 17l5-5 4 4 3-3 6 6M9 9.5a1.5 1.5 0 1 0 0 .01' },
+  { kind: 'icons', label: tx('Insert an Icon'), d: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01' },
+  { kind: 'video', label: tx('Insert Video'), d: 'M3 6h13v12H3zM16 10l5-3v10l-5-3' },
 ]
 
 /** The insert icons shown in the middle of an empty content placeholder, as in the original. */
@@ -419,7 +599,7 @@ function ContentIcons({ id }: { id: string }) {
   return (
     <div className="ph-icons" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
       {CONTENT_ICONS.map((ic) => (
-        <button key={ic.kind} type="button" title={ic.label} aria-label={ic.label} onClick={() => window.dispatchEvent(new CustomEvent('kontor:ph-insert', { detail: { id, kind: ic.kind } }))}>
+        <button key={ic.kind} type="button" title={t(ic.label)} aria-label={t(ic.label)} onClick={() => window.dispatchEvent(new CustomEvent('kontor:ph-insert', { detail: { id, kind: ic.kind } }))}>
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path d={ic.d} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
           </svg>
@@ -497,7 +677,7 @@ function ImageView({ el, rc, mode }: ElementProps & { el: ImageElement }) {
       className="el el-image"
       data-el={mode === 'edit' ? el.id : undefined}
       data-link={mode === 'show' ? el.link : undefined}
-      style={{ left: el.x, top: el.y, width: el.w, height: el.h, transform: el.rot ? `rotate(${el.rot}deg)` : undefined, filter: effectsFilter(el.effects, rc.colors), ...reflection(el.effects) }}
+      style={{ left: el.x, top: el.y, width: el.w, height: el.h, transform: elementTransform(el.rot, el.effects), filter: effectsFilter(el.effects, rc.colors), ...reflection(el.effects) }}
     >
       {!!el.adjust?.sharpness && el.adjust.sharpness > 0 && (
         <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
@@ -720,7 +900,7 @@ function MediaView({ el, mode }: ElementProps & { el: MediaElement }) {
       )}
       {live && (mode === 'edit' || !el.autoPlay || el.kind === 'audio') && (
         <div className="media-bar" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-          <button type="button" aria-label={playing ? 'Pause' : 'Play'} onClick={toggle}>
+          <button type="button" aria-label={playing ? t('Pause') : t('Play')} onClick={toggle}>
             {playing ? '❚❚' : '▶'}
           </button>
           <input
@@ -729,7 +909,7 @@ function MediaView({ el, mode }: ElementProps & { el: MediaElement }) {
             max={Math.max(0.1, total)}
             step={0.05}
             value={Math.max(0, time - start)}
-            aria-label="Seek"
+            aria-label={t('Seek')}
             onChange={(e) => {
               const m = ref.current
               if (m) m.currentTime = start + Number(e.target.value)
@@ -759,7 +939,7 @@ function ZoomView({ el, rc, mode }: ElementProps & { el: ZoomElement }) {
           <ZoomSlide slide={target} index={pres.slides.indexOf(target)} scale={scale} />
         </div>
       ) : (
-        <div className="zoom-missing">Slide not found</div>
+        <div className="zoom-missing">{t('Slide not found')}</div>
       )}
     </div>
   )

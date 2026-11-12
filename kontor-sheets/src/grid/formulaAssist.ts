@@ -4,6 +4,7 @@ import { refArea } from '../engine/parser'
 import { FUNCTIONS } from '../engine/registry'
 import { FN_META } from '../engine/functions/meta'
 import { tokenize } from '../engine/tokenizer'
+import { tx } from '../i18n'
 
 export const REF_COLORS = ['#1f6fd0', '#d4373a', '#7e3fb2', '#1d8a4a', '#b8620b', '#0f8b8d', '#c2378b', '#5d6b00']
 
@@ -60,7 +61,7 @@ export function suggestions(text: string, caret: number, names: string[]): { sta
   const prefix = m[0].toUpperCase()
   const items: Suggestion[] = []
   for (const name of [...FUNCTIONS.keys()].sort()) if (name.startsWith(prefix)) items.push({ name, kind: 'function', description: FN_META.get(name)?.description ?? '' })
-  for (const n of names.sort()) if (n.toUpperCase().startsWith(prefix)) items.push({ name: n, kind: 'name', description: 'Defined name' })
+  for (const n of names.sort()) if (n.toUpperCase().startsWith(prefix)) items.push({ name: n, kind: 'name', description: tx('Defined name') })
   if (!items.length) return null
   return { start, items }
 }

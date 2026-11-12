@@ -2,36 +2,37 @@ import { useState, type ReactNode } from 'react'
 import { applyVariant, paletteVariants, SLOT_LABELS, THEME_SLOTS, type ThemeColors } from '../model/color'
 import type { ColorRef } from '../model/types'
 import { keepFocus } from './ui'
+import { t, tx } from '../i18n'
 
 export const STANDARD_COLORS: [string, string][] = [
-  ['#C00000', 'Dark Red'],
-  ['#FF0000', 'Red'],
-  ['#FFC000', 'Orange'],
-  ['#FFFF00', 'Yellow'],
-  ['#92D050', 'Light Green'],
-  ['#00B050', 'Green'],
-  ['#00B0F0', 'Light Blue'],
-  ['#0070C0', 'Blue'],
-  ['#002060', 'Dark Blue'],
-  ['#7030A0', 'Purple'],
+  ['#C00000', tx('Dark Red')],
+  ['#FF0000', tx('Red')],
+  ['#FFC000', tx('Orange')],
+  ['#FFFF00', tx('Yellow')],
+  ['#92D050', tx('Light Green')],
+  ['#00B050', tx('Green')],
+  ['#00B0F0', tx('Light Blue')],
+  ['#0070C0', tx('Blue')],
+  ['#002060', tx('Dark Blue')],
+  ['#7030A0', tx('Purple')],
 ]
 
 export const HIGHLIGHTS: [string, string][] = [
-  ['#FFFF00', 'Yellow'],
-  ['#00FF00', 'Bright Green'],
-  ['#00FFFF', 'Turquoise'],
-  ['#FF00FF', 'Pink'],
-  ['#0000FF', 'Blue'],
-  ['#FF0000', 'Red'],
-  ['#000080', 'Dark Blue'],
-  ['#008080', 'Teal'],
-  ['#008000', 'Green'],
-  ['#800080', 'Violet'],
-  ['#800000', 'Dark Red'],
-  ['#808000', 'Dark Yellow'],
-  ['#808080', 'Gray 50%'],
-  ['#C0C0C0', 'Gray 25%'],
-  ['#000000', 'Black'],
+  ['#FFFF00', tx('Yellow')],
+  ['#00FF00', tx('Bright Green')],
+  ['#00FFFF', tx('Turquoise')],
+  ['#FF00FF', tx('Pink')],
+  ['#0000FF', tx('Blue')],
+  ['#FF0000', tx('Red')],
+  ['#000080', tx('Dark Blue')],
+  ['#008080', tx('Teal')],
+  ['#008000', tx('Green')],
+  ['#800080', tx('Violet')],
+  ['#800000', tx('Dark Red')],
+  ['#808000', tx('Dark Yellow')],
+  ['#808080', tx('Gray 50%')],
+  ['#C0C0C0', tx('Gray 25%')],
+  ['#000000', tx('Black')],
 ]
 
 // Remembered custom colors ("Recent Colors" row).
@@ -69,29 +70,29 @@ export function ColorPalette({
           <span className="swatch" style={{ background: auto.color ?? '#000' }} /> {auto.label}
         </button>
       )}
-      <div className="palette-heading">Theme Colors</div>
+      <div className="palette-heading">{t('Theme Colors')}</div>
       <div className="palette-grid">
         {THEME_SLOTS.map((slot) => (
-          <Swatch key={slot} color={colors[slot]} name={`${SLOT_LABELS[slot]} (${colors[slot]})`} onPick={() => onPick(`theme:${slot}`)} />
+          <Swatch key={slot} color={colors[slot]} name={`${t(SLOT_LABELS[slot])} (${colors[slot]})`} onPick={() => onPick(`theme:${slot}`)} />
         ))}
       </div>
       <div className="palette-grid palette-variants">
         {[0, 1, 2, 3, 4].map((row) =>
           THEME_SLOTS.map((slot) => {
             const v = paletteVariants(colors[slot])[row]
-            return <Swatch key={`${slot}-${row}`} color={applyVariant(colors[slot], v.code)} name={`${SLOT_LABELS[slot]}, ${v.label}`} onPick={() => onPick(`theme:${slot}:${v.code}`)} />
+            return <Swatch key={`${slot}-${row}`} color={applyVariant(colors[slot], v.code)} name={`${t(SLOT_LABELS[slot])}, ${v.label}`} onPick={() => onPick(`theme:${slot}:${v.code}`)} />
           }),
         )}
       </div>
-      <div className="palette-heading">Standard Colors</div>
+      <div className="palette-heading">{t('Standard Colors')}</div>
       <div className="palette-grid">
         {STANDARD_COLORS.map(([c, name]) => (
-          <Swatch key={c} color={c} name={name} onPick={() => onPick(c)} />
+          <Swatch key={c} color={c} name={t(name)} onPick={() => onPick(c)} />
         ))}
       </div>
       {recent.length > 0 && (
         <>
-          <div className="palette-heading">Recent Colors</div>
+          <div className="palette-heading">{t('Recent Colors')}</div>
           <div className="palette-grid">
             {recent.map((c) => (
               <Swatch key={c} color={c} name={c} onPick={() => onPick(c)} />
@@ -105,7 +106,7 @@ export function ColorPalette({
         </button>
       )}
       <label className="menu-item palette-more" onMouseDown={(e) => e.stopPropagation()}>
-        <span className="palette-rainbow" /> More Colors…
+        <span className="palette-rainbow" /> {t('More Colors…')}
         <input type="color" onChange={(e) => pickCustom(e.target.value)} />
       </label>
       {extra}
@@ -118,11 +119,11 @@ export function HighlightPalette({ onPick, onNone }: { onPick: (c: string) => vo
     <div className="palette">
       <div className="palette-grid palette-grid-5">
         {HIGHLIGHTS.map(([c, name]) => (
-          <Swatch key={c} color={c} name={name} onPick={() => onPick(c)} />
+          <Swatch key={c} color={c} name={t(name)} onPick={() => onPick(c)} />
         ))}
       </div>
       <button type="button" className="menu-item" onMouseDown={keepFocus} onClick={onNone}>
-        No Color
+        {t('No Color')}
       </button>
     </div>
   )

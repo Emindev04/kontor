@@ -161,7 +161,14 @@ export function evaluate(n: Node, ctx: Ctx): Value {
       const target = n.sheet ? ctx.host.sheetNamed(n.sheet) : ctx.sheet
       if (!target) return ERR.ref
       const d = ctx.host.definedName(n.name, { ...ctx, sheet: target })
-      return d === undefined ? ERR.name : d
+      if (d !== undefined) return d
+      // a bare function name is an eta-reduced LAMBDA (GROUPBY(…, SUM), BYROW(…, MAX))
+      const def = !n.sheet ? FUNCTIONS.get(n.name.toUpperCase()) : undefined
+      if (def && def.name !== 'LAMBDA' && def.name !== 'LET') {
+        const params = Array.from({ length: Math.max(1, def.min) }, (_, i) => `\u0000eta${i}`)
+        return new LambdaV(params, { k: 'fn', name: def.name, args: params.map((p) => ({ k: 'name', name: p })) }, null)
+      }
+      return ERR.name
     }
     case 'fn': return callFunction(n, ctx)
     case 'call': {

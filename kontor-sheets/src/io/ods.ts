@@ -7,6 +7,7 @@ import { CellError, type ErrorCode } from '../model/types'
 import { classifyFormat } from '../model/numfmt'
 import { tokenize, type RefParts } from '../engine/tokenizer'
 import type { Engine } from '../engine/engine'
+import { t } from '../i18n'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const NS = {
@@ -184,7 +185,7 @@ function lengthPx(v: string | null): number | null {
 export async function importOds(data: ArrayBuffer): Promise<Workbook> {
   const zip = await JSZip.loadAsync(data)
   const xml = await zip.file('content.xml')?.async('string')
-  if (!xml) throw new Error('This is not an OpenDocument spreadsheet.')
+  if (!xml) throw new Error(t('This is not an OpenDocument spreadsheet.'))
   const doc = new DOMParser().parseFromString(xml, 'application/xml')
   const wb = new Workbook(true)
   const a = (el: Element, ns: keyof typeof NS, name: string) => el.getAttributeNS(NS[ns], name)

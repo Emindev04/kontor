@@ -2,7 +2,7 @@
 // the layouts with real placeholders, the theme and every relationship are under our control and the
 // file follows the ECMA-376 schema as closely as we can make it.
 import type JSZipType from 'jszip'
-import type { ChartElement, Fill, GroupElement, ImageElement, InkElement, LayoutId, MediaElement, PlaceholderStyle, Presentation, ShapeElement, Slide, SlideElement, TableElement, Transition } from '../model/types'
+import type { ChartElement, Fill, GroupElement, ImageElement, InkElement, LayoutId, MediaElement, PlaceholderStyle, Presentation, ShapeElement, Slide, SlideElement, TableElement, Transition, TransitionName } from '../model/types'
 import type { ThemeColors } from '../model/color'
 import { luminance } from '../model/color'
 import { CHART_CT, CHART_NS, CHART_REL, PACKAGE_REL, XLSX_CT, chartSpaceXml, chartWorkbook } from './chartXml'
@@ -13,6 +13,8 @@ import { textBody } from '../model/factory'
 import { makeRenderCtx, slideBackground, styleKey, tableCellCtx, textCtxFor, type RenderCtx } from '../render/context'
 import { cellLook, originOf } from '../model/table'
 import { diagramToGroup } from '../model/diagram'
+import { soundWav } from '../model/soundWav'
+import { effectiveEffects } from '../model/effectSchemes'
 import { timingXml } from './timingXml'
 import { custGeomXml, effectsXml, emu, escXml, fillXml, geomXml, graphicFrameXml, lineXml, tableCellXml, txBodyXml, xfrmXml, type TextExportCtx } from './drawingml'
 import { normHandles, segments } from '../model/outline'
@@ -20,6 +22,19 @@ import { hashString, KONTOR_PART, KONTOR_REL, MEDIA_REF, mapStrings } from './pa
 
 export { hashString, KONTOR_PART }
 export const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+
+/** The .pptx package flavors: a presentation, a show that opens in the slide show, or a template. */
+export type PptxKind = 'pptx' | 'ppsx' | 'potx'
+export const PPTX_KIND_MIME: Record<PptxKind, string> = {
+  pptx: PPTX_MIME,
+  ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+  potx: 'application/vnd.openxmlformats-officedocument.presentationml.template',
+}
+const MAIN_CT: Record<PptxKind, string> = {
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml',
+  ppsx: 'application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml',
+  potx: 'application/vnd.openxmlformats-officedocument.presentationml.template.main+xml',
+}
 
 const NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main'
 const NS_P = 'http://schemas.openxmlformats.org/presentationml/2006/main'
@@ -313,14 +328,24 @@ class ShapeWriter {
   }
 
   shapeXml(shape: ShapeElement, ph = shape.placeholder ? this.ph(shape.placeholder.style, shape.placeholder.idx) : '') {
+    if (shape.conn && !shape.text && !ph && this.partDir === 'slides') return this.connectorXml(shape)
     const id = this.id(shape.id)
     const lockAttrs = `${ph ? ' noGrp="1"' : ''}${shape.lockAspect ? ' noChangeAspect="1"' : ''}`
     const locks = lockAttrs ? `<a:spLocks${lockAttrs}/>` : ''
     const cNvSpPr = `<p:cNvSpPr${shape.textBox ? ' txBox="1"' : ''}>${locks}</p:cNvSpPr>`
     const geom = shape.prst === 'custom' && shape.rings ? ringsGeomXml(shape) : geomXml(shape.prst, shape.adj)
-    const spPr = `<p:spPr>${xfrmXml(shape)}${geom}${this.fill(shape.fill)}${lineXml(shape.line, this.colors)}${effectsXml(shape.effects, this.colors)}</p:spPr>`
+    const spPr = `<p:spPr>${xfrmXml(shape)}${geom}${this.fill(shape.fill)}${lineXml(shape.line, this.colors)}${effectsXml(effectiveEffects(shape, this.rc.effectScheme), this.colors)}</p:spPr>`
     const tx = shape.text ? txBodyXml(shape.text, this.textCtx(shape)) : ph ? '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr lang="en-US" dirty="0"/></a:p></p:txBody>' : ''
     return `<p:sp><p:nvSpPr>${this.cNvPr(id, shape)}${cNvSpPr}<p:nvPr>${ph}</p:nvPr></p:nvSpPr>${spPr}${tx}</p:sp>`
+  }
+
+  /** A glued connector; the ids of the shapes it is glued to are filled in when the slide is complete. */
+  private connectorXml(shape: ShapeElement) {
+    const id = this.id(shape.id)
+    const IDX_OF_SITE = [0, 3, 2, 1]
+    const cxn = (tag: string, g: { id: string; site: number } | null | undefined) => (g ? `<a:${tag} id="@@SPID:${g.id}@@" idx="${IDX_OF_SITE[g.site] ?? 0}"/>` : '')
+    const spPr = `<p:spPr>${xfrmXml(shape)}${geomXml(shape.prst, shape.adj)}${this.fill(shape.fill)}${lineXml(shape.line, this.colors)}${effectsXml(shape.effects, this.colors)}</p:spPr>`
+    return `<p:cxnSp><p:nvCxnSpPr>${this.cNvPr(id, shape)}<p:cNvCxnSpPr>${cxn('stCxn', shape.conn?.start)}${cxn('endCxn', shape.conn?.end)}</p:cNvCxnSpPr><p:nvPr/></p:nvCxnSpPr>${spPr}</p:cxnSp>`
   }
 
   async imageXml(img: ImageElement) {
@@ -527,12 +552,39 @@ const TRANSITION_XML: Record<string, (opt?: string) => string> = {
   morph: () => '<p:fade/>',
 }
 
-export function transitionXml(t: Transition | null | undefined) {
-  if (!t || (t.name === 'none' && t.advanceAfter === null && t.advanceOnClick)) return ''
+const NS_P14 = 'http://schemas.microsoft.com/office/powerpoint/2010/main'
+const MODERN_NS: Record<string, string> = { p15: 'http://schemas.microsoft.com/office/powerpoint/2012/main', p159: 'http://schemas.microsoft.com/office/powerpoint/2015/09/main' }
+const lr = (o: string | undefined) => (o === 'fromLeft' ? 'r' : 'l')
+
+/** Transitions that need the newer schema extensions: [namespace prefix, effect element]. */
+const MODERN_TRANSITIONS: Partial<Record<TransitionName, (o?: string) => [string, string]>> = {
+  flash: () => ['p14', '<p14:flash/>'],
+  flip: (o) => ['p14', `<p14:flip dir="${lr(o)}"/>`],
+  cube: (o) => ['p14', `<p14:prism dir="${lr(o)}"/>`],
+  gallery: (o) => ['p14', `<p14:gallery dir="${lr(o)}"/>`],
+  vortex: (o) => ['p14', `<p14:vortex dir="${lr(o)}"/>`],
+  fallOver: () => ['p15', '<p15:prstTrans prst="fallOver"/>'],
+  curtains: () => ['p15', '<p15:prstTrans prst="curtains"/>'],
+  morph: () => ['p159', '<p159:morph option="byObject"/>'],
+}
+
+export function transitionXml(t: Transition | null | undefined, soundRel?: string | null) {
+  if (!t || (t.name === 'none' && t.advanceAfter === null && t.advanceOnClick && !soundRel)) return ''
   const spd = t.duration < 0.6 ? 'fast' : t.duration < 0.9 ? 'med' : 'slow'
   const attrs = `spd="${spd}"${t.advanceOnClick ? '' : ' advClick="0"'}${t.advanceAfter !== null ? ` advTm="${Math.round(t.advanceAfter * 1000)}"` : ''}`
   const inner = t.name !== 'none' ? (TRANSITION_XML[t.name]?.(t.option) ?? '') : ''
-  return `<p:transition ${attrs}>${inner}</p:transition>`
+  const sound = soundRel && t.sound ? `<p:sndAc><p:stSnd><p:snd r:embed="${soundRel}" name="${escXml(t.sound)}.wav"/></p:stSnd></p:sndAc>` : ''
+  // Newer transitions: the exact effect for programs that know it, the closest basic one otherwise.
+  const modern = MODERN_TRANSITIONS[t.name]
+  if (modern) {
+    const [ns, xml] = modern(t.option)
+    const dur = ` p14:dur="${Math.round(t.duration * 1000)}"`
+    return (
+      `<mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"><mc:Choice xmlns:p14="${NS_P14}"${ns === 'p14' ? '' : ` xmlns:${ns}="${MODERN_NS[ns]}"`} Requires="${ns}">` +
+      `<p:transition ${attrs}${dur}>${xml}${sound}</p:transition></mc:Choice><mc:Fallback><p:transition ${attrs}>${inner}${sound}</p:transition></mc:Fallback></mc:AlternateContent>`
+    )
+  }
+  return `<p:transition ${attrs}>${inner}${sound}</p:transition>`
 }
 
 // ---------- Theme, master, layouts ----------
@@ -721,10 +773,19 @@ async function writeSlide(pkg: Pkg, n: number, slide: Slide, pres: Presentation,
   const bg = slide.background ? await w.backgroundXml(slideBackground(slide.background, rc)) : ''
   if (slide.notes) rels.add(REL.notesSlide, `../notesSlides/notesSlide${n}.xml`)
   const timing = timingXml(slide, (id) => w.spids.get(id), pres.size)
+  // Transition sounds are stored once per sound as WAV files.
+  let soundRel: string | null = null
+  const wav = slide.transition?.sound ? soundWav(slide.transition.sound) : null
+  if (wav && slide.transition?.sound) {
+    const part = `ppt/media/sound-${slide.transition.sound}.wav`
+    if (!pkg.files.has(part)) pkg.files.set(part, wav)
+    pkg.defaults.set('wav', 'audio/wav')
+    soundRel = rels.add('http://schemas.openxmlformats.org/officeDocument/2006/relationships/audio', `../media/sound-${slide.transition.sound}.wav`)
+  }
   const attrs = `${slide.hidden ? ' show="0"' : ''}${slide.hideBackgroundGraphics ? ' showMasterSp="0"' : ''}`
   const xml =
     `<p:sld ${XMLNS}${attrs}><p:cSld>${bg}<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>` +
-    `${shapes.join('')}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>${transitionXml(slide.transition)}${timing}</p:sld>`
+    `${shapes.join('').replace(/<a:(stCxn|endCxn) id="@@SPID:([^@]+)@@" idx="(\d+)"\/>/g, (_m, tag: string, elId: string, idx: string) => (w.spids.has(elId) ? `<a:${tag} id="${w.spids.get(elId)}" idx="${idx}"/>` : ''))}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>${transitionXml(slide.transition, soundRel)}${timing}</p:sld>`
   pkg.xml(`ppt/slides/slide${n}.xml`, xml, CT.slide)
   pkg.files.set(`ppt/slides/_rels/slide${n}.xml.rels`, rels.xml())
   if (slide.notes) writeNotesSlide(pkg, n, slide.notes, pres.lang)
@@ -801,7 +862,7 @@ function countWords(pres: Presentation) {
 }
 
 /** Builds every part of the package (path → content); used by exportPptx and the tests. */
-export async function buildPptxParts(pres: Presentation, title: string, JSZip: typeof JSZipType): Promise<Map<string, string | Uint8Array>> {
+export async function buildPptxParts(pres: Presentation, title: string, JSZip: typeof JSZipType, kind: PptxKind = 'pptx'): Promise<Map<string, string | Uint8Array>> {
   const pkg = new Pkg()
   const theme = getTheme(pres.themeId)
   const variant = getVariant(theme, pres.variant)
@@ -839,7 +900,7 @@ export async function buildPptxParts(pres: Presentation, title: string, JSZip: t
     `<p:presentation ${XMLNS} saveSubsetFonts="1"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="${masterRel}"/></p:sldMasterIdLst><p:notesMasterIdLst><p:notesMasterId r:id="${notesRel}"/></p:notesMasterIdLst>` +
       `${slideRels.length ? `<p:sldIdLst>${slideRels.map((r, i) => `<p:sldId id="${256 + i}" r:id="${r}"/>`).join('')}</p:sldIdLst>` : ''}${sldSz}<p:notesSz cx="6858000" cy="9144000"/>` +
       `${shows ? `<p:custShowLst>${shows}</p:custShowLst>` : ''}${defaultTextStyle()}</p:presentation>`,
-    CT.presentation,
+    MAIN_CT[kind],
   )
   pkg.files.set('ppt/_rels/presentation.xml.rels', presRels.xml())
   pkg.xml('ppt/presProps.xml', presPropsXml(pres), CT.presProps)
@@ -881,13 +942,13 @@ export async function buildPptxParts(pres: Presentation, title: string, JSZip: t
   return new Map([['[Content_Types].xml', pkg.contentTypes()], ...pkg.files])
 }
 
-export async function exportPptx(pres: Presentation, title: string): Promise<Blob> {
+export async function exportPptx(pres: Presentation, title: string, kind: PptxKind = 'pptx'): Promise<Blob> {
   const { default: JSZip } = await import('jszip')
-  const parts = await buildPptxParts(pres, title, JSZip)
+  const parts = await buildPptxParts(pres, title, JSZip, kind)
   const zip = new JSZip()
   // [Content_Types].xml comes first, like other writers, so streaming readers find it immediately.
   for (const [path, data] of parts) zip.file(path, data)
-  return zip.generateAsync({ type: 'blob', mimeType: PPTX_MIME, compression: 'DEFLATE' })
+  return zip.generateAsync({ type: 'blob', mimeType: PPTX_KIND_MIME[kind], compression: 'DEFLATE' })
 }
 
 export { emu, escXml }

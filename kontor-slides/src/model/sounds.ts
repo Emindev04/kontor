@@ -1,13 +1,14 @@
+import { tx } from '../i18n'
 // Transition sounds, synthesized with the Web Audio API (no sound files are bundled).
 
 export const TRANSITION_SOUNDS: { id: string; label: string }[] = [
-  { id: 'chime', label: 'Chime' },
-  { id: 'click', label: 'Click' },
-  { id: 'whoosh', label: 'Whoosh' },
-  { id: 'coin', label: 'Coin' },
-  { id: 'drum', label: 'Drum' },
-  { id: 'laser', label: 'Laser' },
-  { id: 'breeze', label: 'Breeze' },
+  { id: 'chime', label: tx('Chime') },
+  { id: 'click', label: tx('Click') },
+  { id: 'whoosh', label: tx('Whoosh') },
+  { id: 'coin', label: tx('Coin') },
+  { id: 'drum', label: tx('Drum') },
+  { id: 'laser', label: tx('Laser') },
+  { id: 'breeze', label: tx('Breeze') },
 ]
 
 let ctx: AudioContext | null = null

@@ -29,6 +29,7 @@ import type { CellSide, Dash, Line, TableElement, TextAlign } from '../../model/
 import { resolveColor, type ThemeColors } from '../../model/color'
 import {
   TABLE_STYLES,
+  tableStyleName,
   applyBorders,
   cellLook,
   deleteCols,
@@ -52,6 +53,7 @@ import { ColorPalette } from '../palettes'
 import { ColorSplitButton, MenuButton, NumberField, PopoverButton, RibbonButton, RibbonGroup, SplitMenuButton, cls, keepFocus, type MenuItem } from '../ui'
 import { ArrangeButtons, ArrangeExtraButtons, useThemeColors } from './common'
 import type { TabProps } from './types'
+import { t, tx, formatNumber } from '../../i18n'
 
 const IN = 96
 
@@ -106,6 +108,8 @@ export function TableStyleThumb({ style, opts, colors }: { style: TableStyleDef;
   )
 }
 
+const FAMILY_LABELS: Record<TableStyleDef['family'], string> = { Plain: tx('Plain'), Light: tx('Light'), Medium: tx('Medium'), Dark: tx('Dark') }
+
 function StyleGallery({ onPick, current, close }: { onPick: (id: string) => void; current?: string; close?: () => void }) {
   const colors = useThemeColors()
   const cur = useTable()
@@ -115,14 +119,14 @@ function StyleGallery({ onPick, current, close }: { onPick: (id: string) => void
     <div className="table-style-gallery">
       {families.map((f) => (
         <div key={f}>
-          <div className="palette-heading">{f}</div>
+          <div className="palette-heading">{t(FAMILY_LABELS[f])}</div>
           <div className="table-style-grid">
             {TABLE_STYLES.filter((s) => s.family === f).map((s) => (
               <button
                 key={s.id}
                 type="button"
-                title={s.name}
-                aria-label={s.name}
+                title={tableStyleName(s)}
+                aria-label={tableStyleName(s)}
                 className={cls('table-style-item', current === s.id && 'is-active')}
                 onMouseDown={keepFocus}
                 onClick={() => {
@@ -146,7 +150,7 @@ function StyleGallery({ onPick, current, close }: { onPick: (id: string) => void
           onPick('none')
         }}
       >
-        <span className="menu-icon-space" /> Clear Table
+        <span className="menu-icon-space" /> {t('Clear Table')}
       </button>
     </div>
   )
@@ -159,16 +163,16 @@ function setStyle(id: string) {
 // ---------- Borders ----------
 
 const BORDER_ITEMS: { kind: BorderKind; label: string }[] = [
-  { kind: 'none', label: 'No Border' },
-  { kind: 'all', label: 'All Borders' },
-  { kind: 'outside', label: 'Outside Borders' },
-  { kind: 'inside', label: 'Inside Borders' },
-  { kind: 'top', label: 'Top Border' },
-  { kind: 'bottom', label: 'Bottom Border' },
-  { kind: 'left', label: 'Left Border' },
-  { kind: 'right', label: 'Right Border' },
-  { kind: 'insideH', label: 'Inside Horizontal Border' },
-  { kind: 'insideV', label: 'Inside Vertical Border' },
+  { kind: 'none', label: tx('No Border') },
+  { kind: 'all', label: tx('All Borders') },
+  { kind: 'outside', label: tx('Outside Borders') },
+  { kind: 'inside', label: tx('Inside Borders') },
+  { kind: 'top', label: tx('Top Border') },
+  { kind: 'bottom', label: tx('Bottom Border') },
+  { kind: 'left', label: tx('Left Border') },
+  { kind: 'right', label: tx('Right Border') },
+  { kind: 'insideH', label: tx('Inside Horizontal Border') },
+  { kind: 'insideV', label: tx('Inside Vertical Border') },
 ]
 
 let lastBorder: BorderKind = 'all'
@@ -223,12 +227,12 @@ function BorderIcon({ kind }: { kind: BorderKind }) {
 }
 
 const DASHES: { dash: Dash; label: string }[] = [
-  { dash: 'solid', label: 'Solid' },
-  { dash: 'sysDot', label: 'Round Dot' },
-  { dash: 'sysDash', label: 'Square Dot' },
-  { dash: 'dash', label: 'Dash' },
-  { dash: 'dashDot', label: 'Dash Dot' },
-  { dash: 'lgDash', label: 'Long Dash' },
+  { dash: 'solid', label: tx('Solid') },
+  { dash: 'sysDot', label: tx('Round Dot') },
+  { dash: 'sysDash', label: tx('Square Dot') },
+  { dash: 'dash', label: tx('Dash') },
+  { dash: 'dashDot', label: tx('Dash Dot') },
+  { dash: 'lgDash', label: tx('Long Dash') },
 ]
 
 const WEIGHTS = [0.25, 0.5, 0.75, 1, 1.5, 2.25, 3, 4.5, 6]
@@ -240,100 +244,100 @@ export function TableDesignTab(_props: TabProps) {
   const colors = useThemeColors()
   const tablePen = useStore((s) => s.tablePen)
   const tool = useStore((s) => s.tool)
-  const t = cur?.t
-  const opts = t?.opts
+  const tbl = cur?.t
+  const opts = tbl?.opts
   const setOpt = (k: keyof TableElement['opts'], v: boolean) => A.updateTable((tt) => ({ ...tt, opts: { ...tt.opts, [k]: v } }))
-  const firstFill = t ? cellLook(t, cur!.range.r0, cur!.range.c0).fill : null
+  const firstFill = tbl ? cellLook(tbl, cur!.range.r0, cur!.range.c0).fill : null
   const shading = firstFill?.type === 'solid' ? resolveColor(firstFill.color, colors) : '#FFFFFF'
   const shade = (color: string | null) => A.updateTable((tt, rg) => mapCells(tt, rg, (c) => ({ ...c, fill: color ? { type: 'solid', color } : null })))
   const textFill = (color: string) => A.updateTable((tt, rg) => mapCells(tt, rg, (c) => ({ ...c, doc: setTextStyleAll(c.doc, { color }) })))
   const styleChoices = TABLE_STYLES.filter((s) => s.family === 'Medium').slice(0, 6)
   return (
     <>
-      <RibbonGroup label="Table Style Options">
+      <RibbonGroup label={t('Table Style Options')}>
         <div className="col checks">
           <label>
-            <input type="checkbox" checked={!!opts?.headerRow} disabled={!t} onChange={(e) => setOpt('headerRow', e.target.checked)} /> Header Row
+            <input type="checkbox" checked={!!opts?.headerRow} disabled={!tbl} onChange={(e) => setOpt('headerRow', e.target.checked)} /> {t('Header Row')}
           </label>
           <label>
-            <input type="checkbox" checked={!!opts?.totalRow} disabled={!t} onChange={(e) => setOpt('totalRow', e.target.checked)} /> Total Row
+            <input type="checkbox" checked={!!opts?.totalRow} disabled={!tbl} onChange={(e) => setOpt('totalRow', e.target.checked)} /> {t('Total Row')}
           </label>
           <label>
-            <input type="checkbox" checked={!!opts?.bandedRows} disabled={!t} onChange={(e) => setOpt('bandedRows', e.target.checked)} /> Banded Rows
+            <input type="checkbox" checked={!!opts?.bandedRows} disabled={!tbl} onChange={(e) => setOpt('bandedRows', e.target.checked)} /> {t('Banded Rows')}
           </label>
         </div>
         <div className="col checks">
           <label>
-            <input type="checkbox" checked={!!opts?.firstCol} disabled={!t} onChange={(e) => setOpt('firstCol', e.target.checked)} /> First Column
+            <input type="checkbox" checked={!!opts?.firstCol} disabled={!tbl} onChange={(e) => setOpt('firstCol', e.target.checked)} /> {t('First Column')}
           </label>
           <label>
-            <input type="checkbox" checked={!!opts?.lastCol} disabled={!t} onChange={(e) => setOpt('lastCol', e.target.checked)} /> Last Column
+            <input type="checkbox" checked={!!opts?.lastCol} disabled={!tbl} onChange={(e) => setOpt('lastCol', e.target.checked)} /> {t('Last Column')}
           </label>
           <label>
-            <input type="checkbox" checked={!!opts?.bandedCols} disabled={!t} onChange={(e) => setOpt('bandedCols', e.target.checked)} /> Banded Columns
+            <input type="checkbox" checked={!!opts?.bandedCols} disabled={!tbl} onChange={(e) => setOpt('bandedCols', e.target.checked)} /> {t('Banded Columns')}
           </label>
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Table Styles" icon={TableProperties}>
+      <RibbonGroup label={t('Table Styles')} icon={TableProperties}>
         <div className="inline-gallery">
           {styleChoices.map((s) => (
-            <button key={s.id} type="button" title={s.name} aria-label={s.name} className={cls('table-style-item', t?.styleId === s.id && 'is-active')} onMouseDown={keepFocus} onClick={() => setStyle(s.id)} disabled={!t}>
+            <button key={s.id} type="button" title={tableStyleName(s)} aria-label={tableStyleName(s)} className={cls('table-style-item', tbl?.styleId === s.id && 'is-active')} onMouseDown={keepFocus} onClick={() => setStyle(s.id)} disabled={!tbl}>
               <TableStyleThumb style={s} opts={opts ?? SAMPLE.opts} colors={colors} />
             </button>
           ))}
-          <PopoverButton icon={TableProperties} label="More Table Styles" panelClass="menu-wide" disabled={!t}>
-            {(close) => <StyleGallery current={t?.styleId} onPick={setStyle} close={close} />}
+          <PopoverButton icon={TableProperties} label={t('More Table Styles')} panelClass="menu-wide" disabled={!tbl}>
+            {(close) => <StyleGallery current={tbl?.styleId} onPick={setStyle} close={close} />}
           </PopoverButton>
         </div>
         <div className="col">
-          <ColorSplitButton icon={PaintBucket} label="Shading" color={shading} disabled={!t} onApply={() => shade(shading)}>
-            {(close) => <ColorPalette colors={colors} onPick={(c) => (close(), shade(c))} none={{ label: 'No Fill', onClick: () => (close(), shade(null)) }} />}
+          <ColorSplitButton icon={PaintBucket} label={t('Shading')} color={shading} disabled={!tbl} onApply={() => shade(shading)}>
+            {(close) => <ColorPalette colors={colors} onPick={(c) => (close(), shade(c))} none={{ label: t('No Fill'), onClick: () => (close(), shade(null)) }} />}
           </ColorSplitButton>
           <SplitMenuButton
             iconNode={<BorderIcon kind={lastBorder} />}
-            label="Borders"
-            disabled={!t}
+            label={t('Borders')}
+            disabled={!tbl}
             onClick={() => applyBorderKind(lastBorder)}
-            items={BORDER_ITEMS.map((b) => ({ label: b.label, onClick: () => applyBorderKind(b.kind) }))}
+            items={BORDER_ITEMS.map((b) => ({ label: t(b.label), onClick: () => applyBorderKind(b.kind) }))}
           />
           <MenuButton
             icon={Sparkles}
-            label="Effects"
-            disabled={!t}
+            label={t('Effects')}
+            disabled={!tbl}
             items={[
-              { label: 'No Shadow', onClick: () => A.updateTable((tt) => ({ ...tt, effects: { ...tt.effects, shadow: null } })) },
-              { label: 'Outer Shadow', onClick: () => A.updateTable((tt) => ({ ...tt, effects: { ...tt.effects, shadow: { color: '#000000', alpha: 0.4, blur: 4, dist: 3, angle: 45 } } })) },
-              { label: 'Reflection', active: !!t?.effects?.reflection, onClick: () => A.updateTable((tt) => ({ ...tt, effects: { ...tt.effects, reflection: !tt.effects?.reflection } })) },
+              { label: t('No Shadow'), onClick: () => A.updateTable((tt) => ({ ...tt, effects: { ...tt.effects, shadow: null } })) },
+              { label: t('Outer Shadow'), onClick: () => A.updateTable((tt) => ({ ...tt, effects: { ...tt.effects, shadow: { color: '#000000', alpha: 0.4, blur: 4, dist: 3, angle: 45 } } })) },
+              { label: t('Reflection'), active: !!tbl?.effects?.reflection, onClick: () => A.updateTable((tt) => ({ ...tt, effects: { ...tt.effects, reflection: !tt.effects?.reflection } })) },
             ]}
           />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="WordArt Styles">
+      <RibbonGroup label={t('WordArt Styles')}>
         <div className="col">
-          <ColorSplitButton icon={Baseline} label="Text Fill" color="#000000" disabled={!t} onApply={() => textFill('theme:tx1')}>
+          <ColorSplitButton icon={Baseline} label={t('Text Fill')} color="#000000" disabled={!tbl} onApply={() => textFill('theme:tx1')}>
             {(close) => <ColorPalette colors={colors} onPick={(c) => (close(), textFill(c))} />}
           </ColorSplitButton>
-          <RibbonButton icon={Type} label="Bold Text" showLabel disabled={!t} onClick={() => A.updateTable((tt, rg) => mapCells(tt, rg, (c) => ({ ...c, doc: toggleBoldDoc(c.doc) })))} />
+          <RibbonButton icon={Type} label={t('Bold Text')} showLabel disabled={!tbl} onClick={() => A.updateTable((tt, rg) => mapCells(tt, rg, (c) => ({ ...c, doc: toggleBoldDoc(c.doc) })))} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Draw Borders">
+      <RibbonGroup label={t('Draw Borders')}>
         <div className="col">
           <label className="field-row">
-            <select aria-label="Pen Style" value={tablePen.dash} onChange={(e) => store.set({ tablePen: { ...tablePen, dash: e.target.value as Dash } })}>
+            <select aria-label={t('Pen Style')} value={tablePen.dash} onChange={(e) => store.set({ tablePen: { ...tablePen, dash: e.target.value as Dash } })}>
               {DASHES.map((d) => (
                 <option key={d.dash} value={d.dash}>
-                  {d.label}
+                  {t(d.label)}
                 </option>
               ))}
             </select>
           </label>
-          <MenuButton icon={PenLine} label={`${tablePen.width} pt`} title="Pen Weight" showLabel items={WEIGHTS.map((w) => ({ label: `${w} pt`, active: tablePen.width === w, onClick: () => store.set({ tablePen: { ...tablePen, width: w } }) }))} />
-          <PopoverButton iconNode={<span className="pen-color-swatch" style={{ background: resolveColor(tablePen.color, colors) }} />} label="Pen Color" showLabel panelClass="palette-menu">
+          <MenuButton icon={PenLine} label={t('{n} pt', { n: formatNumber(tablePen.width) })} title={t('Pen Weight')} showLabel items={WEIGHTS.map((w) => ({ label: t('{n} pt', { n: formatNumber(w) }), active: tablePen.width === w, onClick: () => store.set({ tablePen: { ...tablePen, width: w } }) }))} />
+          <PopoverButton iconNode={<span className="pen-color-swatch" style={{ background: resolveColor(tablePen.color, colors) }} />} label={t('Pen Color')} showLabel panelClass="palette-menu">
             {(close) => <ColorPalette colors={colors} onPick={(c) => (close(), store.set({ tablePen: { ...tablePen, color: c } }))} />}
           </PopoverButton>
         </div>
-        <RibbonButton icon={PenLine} label="Draw Table" large active={tool.kind === 'drawTable'} onClick={() => store.set({ tool: tool.kind === 'drawTable' ? { kind: 'select' } : { kind: 'drawTable' } })} />
-        <RibbonButton icon={Eraser} label="Eraser" large active={tool.kind === 'eraseTable'} disabled={!t} onClick={() => store.set({ tool: tool.kind === 'eraseTable' ? { kind: 'select' } : { kind: 'eraseTable' } })} />
+        <RibbonButton icon={PenLine} label={t('Draw Table')} large active={tool.kind === 'drawTable'} onClick={() => store.set({ tool: tool.kind === 'drawTable' ? { kind: 'select' } : { kind: 'drawTable' } })} />
+        <RibbonButton icon={Eraser} label={t('Eraser')} large active={tool.kind === 'eraseTable'} disabled={!tbl} onClick={() => store.set({ tool: tool.kind === 'eraseTable' ? { kind: 'select' } : { kind: 'eraseTable' } })} />
       </RibbonGroup>
     </>
   )
@@ -363,141 +367,141 @@ function selectPart(kind: 'table' | 'row' | 'col' | 'cell') {
 }
 
 const MARGINS: { label: string; detail: string; m: [number, number, number, number] }[] = [
-  { label: 'Normal', detail: 'Top: 0.05" Bottom: 0.05" Left: 0.1" Right: 0.1"', m: [9.6, 4.8, 9.6, 4.8] },
-  { label: 'None', detail: 'All: 0"', m: [0, 0, 0, 0] },
-  { label: 'Narrow', detail: 'All: 0.05"', m: [4.8, 4.8, 4.8, 4.8] },
-  { label: 'Wide', detail: 'All: 0.15"', m: [14.4, 14.4, 14.4, 14.4] },
+  { label: tx('Normal'), detail: tx('Top: 0.05" Bottom: 0.05" Left: 0.1" Right: 0.1"'), m: [9.6, 4.8, 9.6, 4.8] },
+  { label: tx('None'), detail: tx('All: 0"'), m: [0, 0, 0, 0] },
+  { label: tx('Narrow'), detail: tx('All: 0.05"'), m: [4.8, 4.8, 4.8, 4.8] },
+  { label: tx('Wide'), detail: tx('All: 0.15"'), m: [14.4, 14.4, 14.4, 14.4] },
 ]
 
 export function TableLayoutTab({ ui }: TabProps) {
   const cur = useTable()
   const gridlines = useStore((s) => s.tableGridlines)
-  const t = cur?.t
+  const tbl = cur?.t
   const rg = cur?.range
-  const rowH = t && rg ? t.rows[rg.r0].h : null
-  const colW = t && rg ? t.cols[rg.c0] : null
+  const rowH = tbl && rg ? tbl.rows[rg.r0].h : null
+  const colW = tbl && rg ? tbl.cols[rg.c0] : null
   const lock = useStore((s) => s.lockTableRatio)
   const align = (a: TextAlign) => A.updateTable((tt, r) => setCellAlign(tt, r, a))
   const anchor = (a: 'top' | 'middle' | 'bottom') => A.updateTable((tt, r) => mapCells(tt, r, (c) => ({ ...c, anchor: a })))
   const vert = (v: 'horz' | 'vert' | 'vert270') => A.updateTable((tt, r) => mapCells(tt, r, (c) => ({ ...c, vert: v })))
   const margins = (m: [number, number, number, number]) => A.updateTable((tt, r) => mapCells(tt, r, (c) => ({ ...c, margins: m })))
   const deleteItems: MenuItem[] = [
-    { label: 'Delete Columns', icon: Columns2, onClick: () => A.updateTable((tt, r) => deleteCols(tt, r.c0, r.c1) ?? null) },
-    { label: 'Delete Rows', icon: Rows2, onClick: () => A.updateTable((tt, r) => deleteRows(tt, r.r0, r.r1) ?? null) },
-    { label: 'Delete Table', icon: Trash2, onClick: () => A.updateTable(() => null) },
+    { label: t('Delete Columns'), icon: Columns2, onClick: () => A.updateTable((tt, r) => deleteCols(tt, r.c0, r.c1) ?? null) },
+    { label: t('Delete Rows'), icon: Rows2, onClick: () => A.updateTable((tt, r) => deleteRows(tt, r.r0, r.r1) ?? null) },
+    { label: t('Delete Table'), icon: Trash2, onClick: () => A.updateTable(() => null) },
   ]
   return (
     <>
-      <RibbonGroup label="Table">
+      <RibbonGroup label={t('Table')}>
         <MenuButton
           icon={MousePointerClick}
-          label="Select"
+          label={t('Select')}
           large
-          disabled={!t}
+          disabled={!tbl}
           items={[
-            { label: 'Select Cell', onClick: () => selectPart('cell') },
-            { label: 'Select Column', onClick: () => selectPart('col') },
-            { label: 'Select Row', onClick: () => selectPart('row') },
-            { label: 'Select Table', onClick: () => selectPart('table') },
+            { label: t('Select Cell'), onClick: () => selectPart('cell') },
+            { label: t('Select Column'), onClick: () => selectPart('col') },
+            { label: t('Select Row'), onClick: () => selectPart('row') },
+            { label: t('Select Table'), onClick: () => selectPart('table') },
           ]}
         />
-        <RibbonButton icon={Grid3x3} label="View Gridlines" large active={gridlines} onClick={() => store.set({ tableGridlines: !gridlines })} />
+        <RibbonButton icon={Grid3x3} label={t('View Gridlines')} large active={gridlines} onClick={() => store.set({ tableGridlines: !gridlines })} />
       </RibbonGroup>
-      <RibbonGroup label="Rows & Columns">
-        <MenuButton icon={Trash2} label="Delete" large disabled={!t} items={deleteItems} />
-        <RibbonButton icon={ArrowUpToLine} label="Insert Above" large disabled={!t} onClick={() => A.updateTable((tt, r) => insertRow(tt, r.r0, r.r0))} />
-        <RibbonButton icon={ArrowDownToLine} label="Insert Below" large disabled={!t} onClick={() => A.updateTable((tt, r) => insertRow(tt, r.r1 + 1, r.r1))} />
+      <RibbonGroup label={t('Rows & Columns')}>
+        <MenuButton icon={Trash2} label={t('Delete')} large disabled={!tbl} items={deleteItems} />
+        <RibbonButton icon={ArrowUpToLine} label={t('Insert Above')} large disabled={!tbl} onClick={() => A.updateTable((tt, r) => insertRow(tt, r.r0, r.r0))} />
+        <RibbonButton icon={ArrowDownToLine} label={t('Insert Below')} large disabled={!tbl} onClick={() => A.updateTable((tt, r) => insertRow(tt, r.r1 + 1, r.r1))} />
         <div className="col">
-          <RibbonButton icon={ArrowLeftToLine} label="Insert Left" showLabel disabled={!t} onClick={() => A.updateTable((tt, r) => insertCol(tt, r.c0, r.c0))} />
-          <RibbonButton icon={ArrowRightToLine} label="Insert Right" showLabel disabled={!t} onClick={() => A.updateTable((tt, r) => insertCol(tt, r.c1 + 1, r.c1))} />
+          <RibbonButton icon={ArrowLeftToLine} label={t('Insert Left')} showLabel disabled={!tbl} onClick={() => A.updateTable((tt, r) => insertCol(tt, r.c0, r.c0))} />
+          <RibbonButton icon={ArrowRightToLine} label={t('Insert Right')} showLabel disabled={!tbl} onClick={() => A.updateTable((tt, r) => insertCol(tt, r.c1 + 1, r.c1))} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Merge">
-        <RibbonButton icon={TableCellsMerge} label="Merge Cells" large disabled={!cur?.hasCellSel || (rg!.r0 === rg!.r1 && rg!.c0 === rg!.c1)} onClick={() => A.updateTable((tt, r) => mergeCells(tt, r))} />
-        <RibbonButton icon={SquareSplitHorizontal} label="Split Cells" large disabled={!t} onClick={() => ui.openDialog('splitCells')} />
+      <RibbonGroup label={t('Merge')}>
+        <RibbonButton icon={TableCellsMerge} label={t('Merge Cells')} large disabled={!cur?.hasCellSel || (rg!.r0 === rg!.r1 && rg!.c0 === rg!.c1)} onClick={() => A.updateTable((tt, r) => mergeCells(tt, r))} />
+        <RibbonButton icon={SquareSplitHorizontal} label={t('Split Cells')} large disabled={!tbl} onClick={() => ui.openDialog('splitCells')} />
       </RibbonGroup>
-      <RibbonGroup label="Cell Size">
+      <RibbonGroup label={t('Cell Size')}>
         <div className="col">
           <label className="field-row">
-            <span>Height:</span>
+            <span>{t('Height:')}</span>
             <NumberField
-              label="Table Row Height"
+              label={t('Table Row Height')}
               value={rowH !== null ? rowH / IN : null}
               step={0.1}
               min={0.1}
               max={20}
               suffix='"'
-              disabled={!t}
+              disabled={!tbl}
               onChange={(v) => A.updateTable((tt, r) => syncSize({ ...tt, rows: tt.rows.map((row, i) => (i >= r.r0 && i <= r.r1 ? { ...row, h: v * IN } : row)) }))}
             />
           </label>
           <label className="field-row">
-            <span>Width:</span>
+            <span>{t('Width:')}</span>
             <NumberField
-              label="Table Column Width"
+              label={t('Table Column Width')}
               value={colW !== null ? colW / IN : null}
               step={0.1}
               min={0.1}
               max={50}
               suffix='"'
-              disabled={!t}
+              disabled={!tbl}
               onChange={(v) => A.updateTable((tt, r) => syncSize({ ...tt, cols: tt.cols.map((w, i) => (i >= r.c0 && i <= r.c1 ? v * IN : w)) }))}
             />
           </label>
         </div>
         <div className="col">
-          <RibbonButton icon={Rows2} label="Distribute Rows" showLabel disabled={!t} onClick={() => A.updateTable((tt, r) => (r.r0 === r.r1 ? distributeRows(tt, 0, tt.rows.length - 1) : distributeRows(tt, r.r0, r.r1)))} />
-          <RibbonButton icon={Columns2} label="Distribute Columns" showLabel disabled={!t} onClick={() => A.updateTable((tt, r) => (r.c0 === r.c1 ? distributeCols(tt, 0, tt.cols.length - 1) : distributeCols(tt, r.c0, r.c1)))} />
+          <RibbonButton icon={Rows2} label={t('Distribute Rows')} showLabel disabled={!tbl} onClick={() => A.updateTable((tt, r) => (r.r0 === r.r1 ? distributeRows(tt, 0, tt.rows.length - 1) : distributeRows(tt, r.r0, r.r1)))} />
+          <RibbonButton icon={Columns2} label={t('Distribute Columns')} showLabel disabled={!tbl} onClick={() => A.updateTable((tt, r) => (r.c0 === r.c1 ? distributeCols(tt, 0, tt.cols.length - 1) : distributeCols(tt, r.c0, r.c1)))} />
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Alignment">
+      <RibbonGroup label={t('Alignment')}>
         <div className="col">
           <div className="row">
-            <RibbonButton icon={AlignLeft} label="Align Left" disabled={!t} onClick={() => align('left')} />
-            <RibbonButton icon={AlignCenter} label="Center" disabled={!t} onClick={() => align('center')} />
-            <RibbonButton icon={AlignRight} label="Align Right" disabled={!t} onClick={() => align('right')} />
+            <RibbonButton icon={AlignLeft} label={t('Align Left')} disabled={!tbl} onClick={() => align('left')} />
+            <RibbonButton icon={AlignCenter} label={t('Center')} disabled={!tbl} onClick={() => align('center')} />
+            <RibbonButton icon={AlignRight} label={t('Align Right')} disabled={!tbl} onClick={() => align('right')} />
           </div>
           <div className="row">
-            <RibbonButton icon={AlignVerticalJustifyStart} label="Align Top" disabled={!t} onClick={() => anchor('top')} />
-            <RibbonButton icon={AlignVerticalJustifyCenter} label="Center Vertically" disabled={!t} onClick={() => anchor('middle')} />
-            <RibbonButton icon={AlignVerticalJustifyEnd} label="Align Bottom" disabled={!t} onClick={() => anchor('bottom')} />
+            <RibbonButton icon={AlignVerticalJustifyStart} label={t('Align Top')} disabled={!tbl} onClick={() => anchor('top')} />
+            <RibbonButton icon={AlignVerticalJustifyCenter} label={t('Center Vertically')} disabled={!tbl} onClick={() => anchor('middle')} />
+            <RibbonButton icon={AlignVerticalJustifyEnd} label={t('Align Bottom')} disabled={!tbl} onClick={() => anchor('bottom')} />
           </div>
         </div>
         <MenuButton
           icon={Type}
-          label="Text Direction"
+          label={t('Text Direction')}
           large
-          disabled={!t}
+          disabled={!tbl}
           items={[
-            { label: 'Horizontal', onClick: () => vert('horz') },
-            { label: 'Rotate all text 90°', onClick: () => vert('vert') },
-            { label: 'Rotate all text 270°', onClick: () => vert('vert270') },
+            { label: t('Horizontal'), onClick: () => vert('horz') },
+            { label: t('Rotate all text 90°'), onClick: () => vert('vert') },
+            { label: t('Rotate all text 270°'), onClick: () => vert('vert270') },
           ]}
         />
         <MenuButton
           icon={Square}
-          label="Cell Margins"
+          label={t('Cell Margins')}
           large
-          disabled={!t}
-          items={[...MARGINS.map((m) => ({ label: m.label, detail: m.detail, onClick: () => margins(m.m) })), 'separator', { label: 'Custom Margins…', onClick: () => ui.openDialog('cellMargins') }]}
+          disabled={!tbl}
+          items={[...MARGINS.map((m) => ({ label: t(m.label), detail: t(m.detail), onClick: () => margins(m.m) })), 'separator', { label: t('Custom Margins…'), onClick: () => ui.openDialog('cellMargins') }]}
         />
       </RibbonGroup>
-      <RibbonGroup label="Table Size">
+      <RibbonGroup label={t('Table Size')}>
         <div className="col">
           <label className="field-row">
-            <span>Height:</span>
-            <NumberField label="Table Height" value={t ? t.h / IN : null} step={0.1} min={0.1} max={56} suffix='"' disabled={!t} onChange={(v) => A.setSelectionSize(null, v * IN, lock)} />
+            <span>{t('Height:')}</span>
+            <NumberField label={t('Table Height')} value={tbl ? tbl.h / IN : null} step={0.1} min={0.1} max={56} suffix='"' disabled={!tbl} onChange={(v) => A.setSelectionSize(null, v * IN, lock)} />
           </label>
           <label className="field-row">
-            <span>Width:</span>
-            <NumberField label="Table Width" value={t ? t.w / IN : null} step={0.1} min={0.1} max={56} suffix='"' disabled={!t} onChange={(v) => A.setSelectionSize(v * IN, null, lock)} />
+            <span>{t('Width:')}</span>
+            <NumberField label={t('Table Width')} value={tbl ? tbl.w / IN : null} step={0.1} min={0.1} max={56} suffix='"' disabled={!tbl} onChange={(v) => A.setSelectionSize(v * IN, null, lock)} />
           </label>
           <label className="check">
-            <input type="checkbox" checked={lock} onChange={(e) => store.set({ lockTableRatio: e.target.checked })} /> Lock Aspect Ratio
+            <input type="checkbox" checked={lock} onChange={(e) => store.set({ lockTableRatio: e.target.checked })} /> {t('Lock Aspect Ratio')}
           </label>
         </div>
       </RibbonGroup>
-      <RibbonGroup label="Arrange">
+      <RibbonGroup label={t('Arrange')}>
         <ArrangeButtons ui={ui} />
         <ArrangeExtraButtons />
       </RibbonGroup>

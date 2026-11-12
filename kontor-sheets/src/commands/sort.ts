@@ -6,6 +6,7 @@ import { shiftFormula } from '../engine/refs'
 import { compareValues } from '../engine/values'
 import type { Doc } from './doc'
 import { blocked } from './review'
+import { tx } from '../i18n'
 
 /** The block of non-empty cells around `cell` (Ctrl+A / Ctrl+Shift+*). */
 export function currentRegion(doc: Doc, cell: Cell): Range {
@@ -122,7 +123,7 @@ export function sortRange(doc: Doc, rg0: Range, keys: SortKey[], opts: { header:
     }
     return a.from - b.from
   })
-  doc.transact('Sort', () => {
+  doc.transact(tx('Sort'), () => {
     lines.forEach((line, idx) => {
       const to = start + idx
       line.cells.forEach((d, j) => {
@@ -166,7 +167,7 @@ export function removeDuplicates(doc: Doc, rg0: Range, cols: number[], header: b
   }
   const removed = rg.r2 - start + 1 - keep.length
   if (!removed) return { removed: 0, remaining: keep.length }
-  doc.transact('Remove Duplicates', () => {
+  doc.transact(tx('Remove Duplicates'), () => {
     const rows = keep.map((r) => {
       const cells: (CellData | undefined)[] = []
       for (let c = rg.c1; c <= rg.c2; c++) cells.push(sheet.get(r, c))

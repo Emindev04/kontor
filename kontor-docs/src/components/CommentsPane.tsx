@@ -3,17 +3,20 @@ import { Check, MessageSquare, MoreHorizontal, RotateCcw, Send, Trash2, X } from
 import type { Editor } from '@tiptap/react'
 import { authorColor, commentRanges, newId, type CommentReply, type Comments, type CommentThread } from '../editor/Review'
 import { MenuList, Popup, cls, usePopover } from './ui'
+import { formatDate, t } from '../i18n'
 
 /** "A few seconds ago", "5 minutes ago", "Yesterday", then a date – like the original's comment cards. */
 export function relativeDate(iso: string) {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return ''
   const s = (Date.now() - d.getTime()) / 1000
-  if (s < 60) return 'A few seconds ago'
-  if (s < 3600) return `${Math.floor(s / 60)} minute${s < 120 ? '' : 's'} ago`
-  if (s < 86400) return `${Math.floor(s / 3600)} hour${s < 7200 ? '' : 's'} ago`
-  if (s < 172800) return 'Yesterday'
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  if (s < 60) return t('A few seconds ago')
+  if (s < 120) return t('1 minute ago')
+  if (s < 3600) return t('{n} minutes ago', { n: Math.floor(s / 60) })
+  if (s < 7200) return t('1 hour ago')
+  if (s < 86400) return t('{n} hours ago', { n: Math.floor(s / 3600) })
+  if (s < 172800) return t('Yesterday')
+  return formatDate(d, { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
 type Props = {
@@ -129,7 +132,7 @@ function Card({
       className={cls('cmt-card', isActive && 'is-active', thread.resolved && 'is-resolved')}
       style={{ top }}
       role="article"
-      aria-label={`Comment by ${thread.author}`}
+      aria-label={t('Comment by {author}', { author: thread.author })}
       onMouseDown={(e) => {
         e.stopPropagation()
         onActivate()
@@ -139,10 +142,10 @@ function Card({
         <Avatar name={thread.author} initials={thread.initials} />
         <div className="cmt-who">
           <strong>{thread.author}</strong>
-          <small>{thread.resolved ? 'Resolved' : relativeDate(thread.date)}</small>
+          <small>{thread.resolved ? t('Resolved') : relativeDate(thread.date)}</small>
         </div>
         <div className="popover-anchor" ref={menu.ref}>
-          <button type="button" className="cmt-icon" aria-label="More thread actions" onClick={() => menu.setOpen(!menu.open)}>
+          <button type="button" className="cmt-icon" aria-label={t('More thread actions')} onClick={() => menu.setOpen(!menu.open)}>
             <MoreHorizontal size={14} />
           </button>
           {menu.open && (
@@ -150,11 +153,11 @@ function Card({
               <MenuList
                 close={() => menu.setOpen(false)}
                 items={[
-                  { label: 'Edit comment', onClick: onEdit, disabled: thread.resolved },
-                  { label: 'Delete thread', icon: Trash2, onClick: onDelete },
+                  { label: t('Edit comment'), onClick: onEdit, disabled: thread.resolved },
+                  { label: t('Delete thread'), icon: Trash2, onClick: onDelete },
                   thread.resolved
-                    ? { label: 'Reopen thread', icon: RotateCcw, onClick: () => onUpdate({ ...thread, resolved: false }) }
-                    : { label: 'Resolve thread', icon: Check, onClick: () => onUpdate({ ...thread, resolved: true }) },
+                    ? { label: t('Reopen thread'), icon: RotateCcw, onClick: () => onUpdate({ ...thread, resolved: false }) }
+                    : { label: t('Resolve thread'), icon: Check, onClick: () => onUpdate({ ...thread, resolved: true }) },
                 ]}
               />
             </Popup>
@@ -163,12 +166,12 @@ function Card({
       </div>
       {isEditing ? (
         <div className="cmt-edit">
-          <AutoText autoFocus value={draft} onChange={setDraft} onSubmit={post} onCancel={() => onStopEditing(true)} placeholder="Start a conversation" />
+          <AutoText autoFocus value={draft} onChange={setDraft} onSubmit={post} onCancel={() => onStopEditing(true)} placeholder={t('Start a conversation')} />
           <div className="cmt-actions">
-            <button type="button" className="cmt-icon is-primary" aria-label="Post comment (Ctrl+Enter)" title="Post comment (Ctrl+Enter)" disabled={!draft.trim()} onClick={post}>
+            <button type="button" className="cmt-icon is-primary" aria-label={t('Post comment (Ctrl+Enter)')} title={t('Post comment (Ctrl+Enter)')} disabled={!draft.trim()} onClick={post}>
               <Send size={14} />
             </button>
-            <button type="button" className="cmt-icon" aria-label="Cancel" title="Cancel" onClick={() => onStopEditing(true)}>
+            <button type="button" className="cmt-icon" aria-label={t('Cancel')} title={t('Cancel')} onClick={() => onStopEditing(true)}>
               <X size={14} />
             </button>
           </div>
@@ -188,8 +191,8 @@ function Card({
               <button
                 type="button"
                 className="cmt-icon cmt-hover"
-                aria-label="Delete reply"
-                title="Delete reply"
+                aria-label={t('Delete reply')}
+                title={t('Delete reply')}
                 onClick={() => onUpdate({ ...thread, replies: thread.replies.filter((x) => x.id !== r.id) })}
               >
                 <Trash2 size={12} />
@@ -198,22 +201,21 @@ function Card({
             <div className="cmt-text">{r.text}</div>
           </div>
         ))}
-      {thread.resolved && thread.replies.length > 0 && !isActive && <div className="cmt-more">{thread.replies.length} more</div>}
+      {thread.resolved && thread.replies.length > 0 && !isActive && <div className="cmt-more">{t('{n} more', { n: thread.replies.length })}</div>}
       {isActive && !isEditing && thread.text && (
         <div className="cmt-reply">
           {thread.resolved ? (
             <button type="button" className="btn" onClick={() => onUpdate({ ...thread, resolved: false })}>
-              <RotateCcw size={13} /> Reopen
-            </button>
+              <RotateCcw size={13} /> {t('Reopen')}</button>
           ) : (
             <>
-              <AutoText value={reply} onChange={setReply} onSubmit={postReply} onCancel={() => setReply('')} placeholder="Reply" />
+              <AutoText value={reply} onChange={setReply} onSubmit={postReply} onCancel={() => setReply('')} placeholder={t('Reply')} />
               {reply.trim() ? (
-                <button type="button" className="cmt-icon is-primary" aria-label="Post reply (Ctrl+Enter)" title="Post reply (Ctrl+Enter)" onClick={postReply}>
+                <button type="button" className="cmt-icon is-primary" aria-label={t('Post reply (Ctrl+Enter)')} title={t('Post reply (Ctrl+Enter)')} onClick={postReply}>
                   <Send size={14} />
                 </button>
               ) : (
-                <button type="button" className="cmt-icon" aria-label="Resolve thread" title="Resolve thread" onClick={() => onUpdate({ ...thread, resolved: true })}>
+                <button type="button" className="cmt-icon" aria-label={t('Resolve thread')} title={t('Resolve thread')} onClick={() => onUpdate({ ...thread, resolved: true })}>
                   <Check size={14} />
                 </button>
               )}
@@ -335,7 +337,7 @@ export function CommentsPane(props: Props) {
             className={cls('cmt-badge', active === thread.id && 'is-active')}
             style={{ top: layout.anchors[thread.id] ?? 0 }}
             title={`${thread.author}: ${thread.text}`}
-            aria-label={`Comment by ${thread.author}`}
+            aria-label={t('Comment by {author}', { author: thread.author })}
             onClick={() => {
               setActive(thread.id)
               onShowCards()

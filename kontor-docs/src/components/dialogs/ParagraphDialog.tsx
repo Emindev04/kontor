@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { DialogTabs, Modal, OkCancel } from '../ui'
 import { formatLength, parseLength, type Unit } from '../../units'
+import { t } from '../../i18n'
 
 type Tab = 'indents' | 'breaks'
 type Special = 'none' | 'firstLine' | 'hanging'
@@ -38,6 +39,12 @@ export function ParagraphDialog({ editor, unit, onClose }: { editor: Editor; uni
   const [keepNext, setKeepNext] = useState(p.keepNext ?? editor.isActive('heading'))
   const [keepLines, setKeepLines] = useState(!!p.keepLines)
   const [breakBefore, setBreakBefore] = useState(!!p.pageBreakBefore)
+  const isHeading = editor.isActive('heading')
+  const [outlineLevel, setOutlineLevel] = useState<number>(isHeading ? ((p.level as number) ?? 1) : ((p.outlineLevel as number) ?? 0))
+  const [mirror, setMirror] = useState(!!p.mirrorIndents)
+  const [contextual, setContextual] = useState(!!p.contextualSpacing)
+  const [noLineNumbers, setNoLineNumbers] = useState(!!p.suppressLineNumbers)
+  const [noHyphenate, setNoHyphenate] = useState(!!p.noHyphenate)
 
   const apply = () => {
     const len = (s: string, fallback: number) => parseLength(s, unit) ?? fallback
@@ -63,6 +70,11 @@ export function ParagraphDialog({ editor, unit, onClose }: { editor: Editor; uni
         keepNext,
         keepLines,
         pageBreakBefore: breakBefore,
+        mirrorIndents: mirror || null,
+        contextualSpacing: contextual || null,
+        suppressLineNumbers: noLineNumbers || null,
+        noHyphenate: noHyphenate || null,
+        ...(isHeading ? {} : { outlineLevel: outlineLevel || null }),
       })
       .run()
     onClose()
@@ -71,7 +83,7 @@ export function ParagraphDialog({ editor, unit, onClose }: { editor: Editor; uni
   const lineHeightPreview = rule === 'single' ? 1.22 : rule === '1.5' ? 1.83 : rule === 'double' ? 2.44 : rule === 'multiple' ? 1.22 * (parseFloat(at) || 1.08) : 1.4
 
   return (
-    <Modal title="Paragraph" onClose={onClose} width={500} footer={
+    <Modal title={t('Paragraph')} onClose={onClose} width={500} footer={
         <OkCancel
           onOk={apply}
           onCancel={onClose}
@@ -84,16 +96,15 @@ export function ParagraphDialog({ editor, unit, onClose }: { editor: Editor; uni
                 window.dispatchEvent(new CustomEvent('kontor:open-dialog', { detail: 'tabs' }))
               }}
             >
-              Tabs…
-            </button>
+              {t('Tabs…')}</button>
           }
         />
       }
     >
       <DialogTabs
         tabs={[
-          { id: 'indents', label: 'Indents and Spacing' },
-          { id: 'breaks', label: 'Line and Page Breaks' },
+          { id: 'indents', label: t('Indents and Spacing') },
+          { id: 'breaks', label: t('Line and Page Breaks') },
         ]}
         active={tab}
         onChange={setTab}
@@ -101,79 +112,89 @@ export function ParagraphDialog({ editor, unit, onClose }: { editor: Editor; uni
       {tab === 'indents' ? (
         <div className="dlg-stack">
           <fieldset className="dlg-fieldset">
-            <legend>General</legend>
+            <legend>{t('General')}</legend>
             <label className="dlg-inline">
-              Alignment:
-              <select value={align} onChange={(e) => setAlign(e.target.value)}>
-                <option value="left">Left</option>
-                <option value="center">Centered</option>
-                <option value="right">Right</option>
-                <option value="justify">Justified</option>
+              {t('Alignment:')}<select value={align} onChange={(e) => setAlign(e.target.value)}>
+                <option value="left">{t('Left')}</option>
+                <option value="center">{t('Centered')}</option>
+                <option value="right">{t('Right')}</option>
+                <option value="justify">{t('Justified')}</option>
+              </select>
+            </label>
+            <label className="dlg-inline">
+              {t('Outline level:')}
+              <select value={outlineLevel} disabled={isHeading} onChange={(e) => setOutlineLevel(Number(e.target.value))}>
+                <option value={0}>{t('Body Text')}</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((l) => (
+                  <option key={l} value={l}>{t('Level {n}', { n: l })}</option>
+                ))}
               </select>
             </label>
           </fieldset>
           <fieldset className="dlg-fieldset dlg-two">
-            <legend>Indentation</legend>
+            <legend>{t('Indentation')}</legend>
             <label className="dlg-inline">
-              Left: <input value={left} onChange={(e) => setLeft(e.target.value)} />
+              {mirror ? t('Inside:') : t('Left:')} <input value={left} onChange={(e) => setLeft(e.target.value)} />
             </label>
             <label className="dlg-inline">
-              Special:
-              <select value={special} onChange={(e) => setSpecial(e.target.value as Special)}>
-                <option value="none">(none)</option>
-                <option value="firstLine">First line</option>
-                <option value="hanging">Hanging</option>
+              {t('Special:')}<select value={special} onChange={(e) => setSpecial(e.target.value as Special)}>
+                <option value="none">{t('(none)')}</option>
+                <option value="firstLine">{t('First line')}</option>
+                <option value="hanging">{t('Hanging')}</option>
               </select>
             </label>
             <label className="dlg-inline">
-              Right: <input value={right} onChange={(e) => setRight(e.target.value)} />
+              {mirror ? t('Outside:') : t('Right:')} <input value={right} onChange={(e) => setRight(e.target.value)} />
             </label>
             <label className="dlg-inline">
-              By: <input value={by} disabled={special === 'none'} onChange={(e) => setBy(e.target.value)} />
+              {t('By:')}{' '}<input value={by} disabled={special === 'none'} onChange={(e) => setBy(e.target.value)} />
             </label>
+            <label><input type="checkbox" checked={mirror} onChange={(e) => setMirror(e.target.checked)} /> {t('Mirror indents')}</label>
           </fieldset>
           <fieldset className="dlg-fieldset dlg-two">
-            <legend>Spacing</legend>
+            <legend>{t('Spacing')}</legend>
             <label className="dlg-inline">
-              Before: <input value={before} onChange={(e) => setBefore(e.target.value)} /> pt
-            </label>
+              {t('Before:')}{' '}<input value={before} onChange={(e) => setBefore(e.target.value)} /> {t('pt')}</label>
             <label className="dlg-inline">
-              Line spacing:
-              <select value={rule} onChange={(e) => setRule(e.target.value as LineRule)}>
-                <option value="single">Single</option>
-                <option value="1.5">1.5 lines</option>
-                <option value="double">Double</option>
-                <option value="atLeast">At least</option>
-                <option value="exact">Exactly</option>
-                <option value="multiple">Multiple</option>
+              {t('Line spacing:')}<select value={rule} onChange={(e) => setRule(e.target.value as LineRule)}>
+                <option value="single">{t('Single')}</option>
+                <option value="1.5">{t('1.5 lines')}</option>
+                <option value="double">{t('Double')}</option>
+                <option value="atLeast">{t('At least')}</option>
+                <option value="exact">{t('Exactly')}</option>
+                <option value="multiple">{t('Multiple')}</option>
               </select>
             </label>
             <label className="dlg-inline">
-              After: <input value={after} onChange={(e) => setAfter(e.target.value)} /> pt
-            </label>
+              {t('After:')}{' '}<input value={after} onChange={(e) => setAfter(e.target.value)} /> {t('pt')}</label>
             <label className="dlg-inline">
-              At: <input value={at} disabled={rule === 'single' || rule === '1.5' || rule === 'double'} onChange={(e) => setAt(e.target.value)} />
+              {t('At:')}{' '}<input value={at} disabled={rule === 'single' || rule === '1.5' || rule === 'double'} onChange={(e) => setAt(e.target.value)} />
             </label>
+            <label><input type="checkbox" checked={contextual} onChange={(e) => setContextual(e.target.checked)} /> {t("Don't add space between paragraphs of the same style")}</label>
           </fieldset>
           <fieldset className="dlg-fieldset">
-            <legend>Preview</legend>
+            <legend>{t('Preview')}</legend>
             <div className="para-preview">
-              <p className="pp-gray">Previous paragraph previous paragraph previous paragraph previous paragraph.</p>
+              <p className="pp-gray">{t('Previous paragraph previous paragraph previous paragraph previous paragraph.')}</p>
               <p style={{ textAlign: align as React.CSSProperties['textAlign'], lineHeight: lineHeightPreview, marginLeft: `${(parseLength(left, unit) ?? 0) * 12}px`, marginRight: `${(parseLength(right, unit) ?? 0) * 12}px`, textIndent: special === 'none' ? 0 : `${(special === 'hanging' ? -1 : 1) * (parseLength(by, unit) ?? 0.5) * 12}px`, marginTop: `${parseFloat(before) / 3 || 0}px`, marginBottom: `${parseFloat(after) / 3 || 0}px` }}>
-                Sample text sample text sample text sample text sample text sample text sample text sample text sample text sample text.
-              </p>
-              <p className="pp-gray">Following paragraph following paragraph following paragraph following paragraph.</p>
+                {t('Sample text sample text sample text sample text sample text sample text sample text sample text sample text sample text.')}</p>
+              <p className="pp-gray">{t('Following paragraph following paragraph following paragraph following paragraph.')}</p>
             </div>
           </fieldset>
         </div>
       ) : (
         <div className="dlg-stack">
           <fieldset className="dlg-fieldset">
-            <legend>Pagination</legend>
-            <label><input type="checkbox" checked={widow} onChange={(e) => setWidow(e.target.checked)} /> Widow/Orphan control</label>
-            <label><input type="checkbox" checked={!!keepNext} onChange={(e) => setKeepNext(e.target.checked)} /> Keep with next</label>
-            <label><input type="checkbox" checked={keepLines} onChange={(e) => setKeepLines(e.target.checked)} /> Keep lines together</label>
-            <label><input type="checkbox" checked={breakBefore} onChange={(e) => setBreakBefore(e.target.checked)} /> Page break before</label>
+            <legend>{t('Pagination')}</legend>
+            <label><input type="checkbox" checked={widow} onChange={(e) => setWidow(e.target.checked)} /> {t('Widow/Orphan control')}</label>
+            <label><input type="checkbox" checked={!!keepNext} onChange={(e) => setKeepNext(e.target.checked)} /> {t('Keep with next')}</label>
+            <label><input type="checkbox" checked={keepLines} onChange={(e) => setKeepLines(e.target.checked)} /> {t('Keep lines together')}</label>
+            <label><input type="checkbox" checked={breakBefore} onChange={(e) => setBreakBefore(e.target.checked)} /> {t('Page break before')}</label>
+          </fieldset>
+          <fieldset className="dlg-fieldset">
+            <legend>{t('Formatting exceptions')}</legend>
+            <label><input type="checkbox" checked={noLineNumbers} onChange={(e) => setNoLineNumbers(e.target.checked)} /> {t('Suppress line numbers')}</label>
+            <label><input type="checkbox" checked={noHyphenate} onChange={(e) => setNoHyphenate(e.target.checked)} /> {t("Don't hyphenate")}</label>
           </fieldset>
         </div>
       )}

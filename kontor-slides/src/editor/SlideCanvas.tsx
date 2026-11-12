@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { ImageElement, RichDoc, ShapeElement, SlideElement, TableElement } from '../model/types'
 import { cloneElement, createShape, createTextBox, findElement, parentOffset, topLevelOf, uid } from '../model/factory'
+import { connectionSites, canGlueTo, nearestSite } from '../model/connectors'
+import { recognizeInk } from '../model/inkShapes'
 import { angleTo, bounds, center, frameFrom, frameFromEnds, HANDLE_DIR, HANDLES, isLineElement, lineEnds, normAngle, resizeTo, scaleGroup, scaleInk, snapBox, union, type Guide, type Handle, type Pt } from '../model/geometry'
 import { beginTransaction, commit, currentIndex, currentSlide, endTransaction, silent, store, updateElements, updateSlide, useStore } from '../store/store'
 import * as A from '../store/actions'
@@ -26,9 +28,10 @@ import { paintElement, paintSelection } from './formatPainter'
 import { pathEnd, retargetPath } from '../model/effects'
 import * as AA from '../store/animActions'
 import { ClipboardPaste, Copy, Group, Scissors, SendToBack, BringToFront, Paintbrush, Type, RotateCcw, Ungroup, Crop, MessageSquarePlus, Spline, Trash2 } from 'lucide-react'
-import { DRAW_TOOLS } from '../model/shapes'
+import { DRAW_TOOLS, SHAPE_PRESETS } from '../model/shapes'
 import { shapeOutline } from '../render/ElementView'
 import { isCurved, moveHandle, moveVertex, nearestOnOutline, outlinePath, scaleOutline, smoothThrough } from '../model/outline'
+import { t } from '../i18n'
 
 type Drag =
   | { kind: 'move'; start: Pt; orig: Map<string, { x: number; y: number }>; moved: boolean; clickedId: string; wasSelected: boolean; client: Pt }
@@ -51,6 +54,17 @@ type Drag =
 
 const PAD = 28
 
+/** Point-in-polygon test (even-odd rule). */
+function insidePolygon(p: Pt, poly: [number, number][]) {
+  let inside = false
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i]
+    const [xj, yj] = poly[j]
+    if (yi > p.y !== yj > p.y && p.x < ((xj - xi) * (p.y - yi)) / (yj - yi || 1e-9) + xi) inside = !inside
+  }
+  return inside
+}
+
 /** Space around the slide: shrinks in small windows so the slide keeps most of the room. */
 function padFor(el: HTMLElement | null) {
   if (!el) return PAD
@@ -67,6 +81,12 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
   const dragRef = useRef<Drag | null>(null)
   const [, setTick] = useState(0)
   const [guides, setGuides] = useState<Guide[]>([])
+  /** Connection sites shown while a connector end is dragged near objects. */
+  const [sites, setSites] = useState<Pt[] | null>(null)
+  const sitesNear = (p: Pt, excludeId?: string) => {
+    const els = currentSlide().elements.filter((el) => el.id !== excludeId && canGlueTo(el) && connectionSites(el).some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 80 / z))
+    return els.length ? els.flatMap((el) => connectionSites(el)) : null
+  }
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
   const [cropId, setCropId] = useState<string | null>(null)
   const [guideTip, setGuideTip] = useState<{ axis: 'x' | 'y'; pos: number } | null>(null)
@@ -366,7 +386,7 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
       capture(e)
       return
     }
-    if (st.tool.kind === 'pen' || st.tool.kind === 'motionPath') {
+    if (st.tool.kind === 'pen' || st.tool.kind === 'motionPath' || st.tool.kind === 'lasso') {
       dragRef.current = { kind: 'pen', points: [p] }
       capture(e)
       return
@@ -570,7 +590,19 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
           if (store.get().snapToGrid && !snap.dy) dy += Math.round(box.y / gs) * gs - box.y
         }
         setGuides(g)
-        commit((pr) => updateElements(pr, sid, ids, (el) => ({ ...el, x: d.orig.get(el.id)!.x + dx, y: d.orig.get(el.id)!.y + dy })))
+        const movingIds = new Set(ids)
+        commit((pr) =>
+          updateElements(pr, sid, ids, (el) => {
+            const moved = { ...el, x: d.orig.get(el.id)!.x + dx, y: d.orig.get(el.id)!.y + dy }
+            // A connector dragged on its own comes loose from objects that stay in place.
+            if (moved.type === 'shape' && moved.conn) {
+              const keep = (g: { id: string; site: number } | null | undefined) => (g && movingIds.has(g.id) ? g : null)
+              const conn = { start: keep(moved.conn.start), end: keep(moved.conn.end) }
+              return { ...moved, conn: conn.start || conn.end ? conn : undefined }
+            }
+            return moved
+          }),
+        )
         break
       }
       case 'resize': {
@@ -623,8 +655,19 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
           const len = Math.hypot(q.x - fixed.x, q.y - fixed.y)
           q = { x: fixed.x + Math.cos(snapA) * len, y: fixed.y + Math.sin(snapA) * len }
         }
+        // Ends dropped on a connection site of another object stay glued to it.
+        const glue = e.altKey ? null : nearestSite(currentSlide().elements, q, threshold * 1.5, d.id)
+        if (glue) q = glue.pt
+        setSites(e.altKey ? null : sitesNear(q, d.id))
         const frame = d.end === 0 ? frameFromEnds(q, b) : frameFromEnds(a, q)
-        commit((pr) => updateElements(pr, sid, [d.id], (el) => ({ ...el, ...frame })))
+        const key = d.end === 0 ? 'start' : 'end'
+        commit((pr) =>
+          updateElements(pr, sid, [d.id], (el) => {
+            if (el.type !== 'shape') return { ...el, ...frame }
+            const conn = { ...el.conn, [key]: glue ? { id: glue.id, site: glue.site } : null }
+            return { ...el, ...frame, conn: conn.start || conn.end ? conn : undefined }
+          }),
+        )
         break
       }
       case 'rotate': {
@@ -639,10 +682,13 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
         break
       }
       case 'marquee':
-      case 'create':
+      case 'create': {
         d.cur = p
+        const tl = store.get().tool
+        if (tl.kind === 'shape' && tl.preset.open && (tl.preset.prst === 'line' || tl.preset.prst.includes('Connector'))) setSites(sitesNear(p))
         setTick((t) => t + 1)
         break
+      }
       case 'pen':
         d.points.push(p)
         setTick((t) => t + 1)
@@ -742,9 +788,12 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
         endTransaction()
         return
       }
+      case 'lineEnd':
+        setSites(null)
+        endTransaction()
+        return
       case 'resize':
       case 'crop':
-      case 'lineEnd':
       case 'rotate':
         endTransaction()
         return
@@ -808,8 +857,26 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
           store.set({ tool: { kind: 'select' } })
           return
         }
+        if (st.tool.kind === 'lasso') {
+          // Objects whose center lies inside the drawn loop are selected.
+          const poly = d.points.map((q) => [q.x, q.y] as [number, number])
+          const hits = sl.elements.filter((el) => !el.hidden && !el.locked && insidePolygon(center(bounds(el)), poly)).map((el) => el.id)
+          A.select(e.shiftKey ? [...new Set([...st.selection, ...hits])] : hits)
+          return
+        }
         const tool = st.tool.kind === 'pen' ? st.tool : null
         if (!tool) return
+        if (st.inkToShape && !tool.highlighter) {
+          const found = recognizeInk(d.points.map((q) => [q.x, q.y]))
+          if (found) {
+            const preset = SHAPE_PRESETS.find((sp) => sp.prst === found.prst) ?? { id: found.prst, prst: found.prst, label: found.prst, category: 'Basic Shapes' as const }
+            const shape = createShape(preset, { x: found.x, y: found.y, w: found.w, h: found.h, flipH: found.flipH, flipV: found.flipV }, sl.elements)
+            const line = { color: tool.color, width: Math.max(0.75, Math.round(tool.width * 0.75 * 4) / 4), dash: 'solid' as const }
+            const el = { ...shape, fill: { type: 'none' as const }, line }
+            commit((pr) => updateSlide(pr, st.slideId, (x2) => ({ ...x2, elements: [...x2.elements, el] })))
+            return
+          }
+        }
         const xs = d.points.map((q) => q.x)
         const ys = d.points.map((q) => q.y)
         const x = Math.min(...xs)
@@ -865,8 +932,14 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
         const len = Math.hypot(end.x - a.x, end.y - a.y)
         end = { x: a.x + Math.cos(snapA) * len, y: a.y + Math.sin(snapA) * len }
       }
-      const f = frameFromEnds(a, end)
-      A.addElements([createShape(preset, f, sl.elements)])
+      // Connector ends that start or end on a connection site are glued to that object.
+      const g0 = nearestSite(sl.elements, a, 9 / z)
+      const g1 = nearestSite(sl.elements, end, 9 / z)
+      const f = frameFromEnds(g0?.pt ?? a, g1?.pt ?? end)
+      const shape = createShape(preset, f, sl.elements)
+      if (g0 || g1) shape.conn = { start: g0 ? { id: g0.id, site: g0.site } : null, end: g1 ? { id: g1.id, site: g1.site } : null }
+      setSites(null)
+      A.addElements([shape])
       return
     }
     if (tiny) r = { x: a.x - 48, y: a.y - 48, w: 96, h: 96 }
@@ -925,59 +998,59 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
         items: [
           ...(vtx
             ? ([
-                { label: 'Delete Point', icon: Trash2, onClick: () => A.deleteVertex(pe.id, ring, index) },
+                { label: t('Delete Point'), icon: Trash2, onClick: () => A.deleteVertex(pe.id, ring, index) },
                 'separator',
-                { label: 'Smooth Point', active: type === 'smooth', onClick: () => A.setVertexType(pe.id, ring, index, 'smooth') },
-                { label: 'Straight Point', active: type === 'straight', onClick: () => A.setVertexType(pe.id, ring, index, 'straight') },
-                { label: 'Corner Point', active: type === 'corner' || type === null, onClick: () => A.setVertexType(pe.id, ring, index, 'corner') },
+                { label: t('Smooth Point'), active: type === 'smooth', onClick: () => A.setVertexType(pe.id, ring, index, 'smooth') },
+                { label: t('Straight Point'), active: type === 'straight', onClick: () => A.setVertexType(pe.id, ring, index, 'straight') },
+                { label: t('Corner Point'), active: type === 'corner' || type === null, onClick: () => A.setVertexType(pe.id, ring, index, 'corner') },
               ] as MenuItem[])
             : ([
-                { label: 'Add Point', onClick: () => insertPointAt(pe, at) },
-                ...(seg ? [{ label: curved ? 'Straight Segment' : 'Curved Segment', onClick: () => A.setSegmentType(pe.id, seg.ring, seg.seg, !curved) }] : []),
+                { label: t('Add Point'), onClick: () => insertPointAt(pe, at) },
+                ...(seg ? [{ label: curved ? t('Straight Segment') : t('Curved Segment'), onClick: () => A.setSegmentType(pe.id, seg.ring, seg.seg, !curved) }] : []),
               ] as MenuItem[])),
           'separator',
-          { label: pe.open ? 'Close Path' : 'Open Path', onClick: () => A.togglePathOpen(pe.id) },
+          { label: pe.open ? t('Close Path') : t('Open Path'), onClick: () => A.togglePathOpen(pe.id) },
           'separator',
-          { label: 'Exit Edit Points', onClick: () => A.exitEditPoints() },
+          { label: t('Exit Edit Points'), onClick: () => A.exitEditPoints() },
         ],
       })
       return
     }
-    const paste: MenuItem = { label: 'Paste', icon: ClipboardPaste, shortcut: 'Ctrl+V', onClick: () => A.pasteClipboard(), disabled: !A.getClipboard() }
+    const paste: MenuItem = { label: t('Paste'), icon: ClipboardPaste, shortcut: 'Ctrl+V', onClick: () => A.pasteClipboard(), disabled: !A.getClipboard() }
     const items: MenuItem[] = sel.length
       ? [
-          { label: 'Cut', icon: Scissors, shortcut: 'Ctrl+X', onClick: A.cutSelection },
-          { label: 'Copy', icon: Copy, shortcut: 'Ctrl+C', onClick: () => A.copySelection() },
+          { label: t('Cut'), icon: Scissors, shortcut: 'Ctrl+X', onClick: A.cutSelection },
+          { label: t('Copy'), icon: Copy, shortcut: 'Ctrl+C', onClick: () => A.copySelection() },
           paste,
           'separator',
-          ...(one?.type === 'shape' && !isLineElement(one) ? [{ label: 'Edit Text', icon: Type, onClick: () => A.enterEditing(one.id, { kind: 'end' }) } as MenuItem] : []),
-          ...(A.canEditPoints(one) ? [{ label: 'Edit Points', icon: Spline, onClick: () => A.startEditPoints(one!.id) } as MenuItem] : []),
-          ...(one?.type === 'image' && !one.rot ? [{ label: 'Crop', icon: Crop, onClick: () => setCropId(one.id) } as MenuItem] : []),
+          ...(one?.type === 'shape' && !isLineElement(one) ? [{ label: t('Edit Text'), icon: Type, onClick: () => A.enterEditing(one.id, { kind: 'end' }) } as MenuItem] : []),
+          ...(A.canEditPoints(one) ? [{ label: t('Edit Points'), icon: Spline, onClick: () => A.startEditPoints(one!.id) } as MenuItem] : []),
+          ...(one?.type === 'image' && !one.rot ? [{ label: t('Crop'), icon: Crop, onClick: () => setCropId(one.id) } as MenuItem] : []),
           ...(one?.type === 'table' ? tableMenu() : []),
-          sel.length > 1 ? { label: 'Group', icon: Group, shortcut: 'Ctrl+G', onClick: A.groupSelection } : one?.type === 'group' ? { label: 'Ungroup', icon: Ungroup, shortcut: 'Ctrl+Shift+G', onClick: A.ungroupSelection } : 'separator',
-          { label: 'Bring to Front', icon: BringToFront, onClick: A.bringToFront },
-          { label: 'Send to Back', icon: SendToBack, onClick: A.sendToBack },
+          sel.length > 1 ? { label: t('Group'), icon: Group, shortcut: 'Ctrl+G', onClick: A.groupSelection } : one?.type === 'group' ? { label: t('Ungroup'), icon: Ungroup, shortcut: 'Ctrl+Shift+G', onClick: A.ungroupSelection } : 'separator',
+          { label: t('Bring to Front'), icon: BringToFront, onClick: A.bringToFront },
+          { label: t('Send to Back'), icon: SendToBack, onClick: A.sendToBack },
           'separator',
-          { label: one?.type === 'image' ? 'Format Picture…' : 'Format Shape…', icon: Paintbrush, onClick: onFormatShape },
-          ...(one ? [{ label: 'Edit Alt Text…', onClick: () => window.dispatchEvent(new CustomEvent('kontor:dialog', { detail: 'altText' })) } as MenuItem] : []),
+          { label: one?.type === 'image' ? t('Format Picture…') : t('Format Shape…'), icon: Paintbrush, onClick: onFormatShape },
+          ...(one ? [{ label: t('Edit Alt Text…'), onClick: () => window.dispatchEvent(new CustomEvent('kontor:dialog', { detail: 'altText' })) } as MenuItem] : []),
         ]
       : [
           paste,
           'separator',
-          { heading: 'Layout' },
+          { heading: t('Layout') },
           ...LAYOUTS.map((l) => ({ label: l.name, active: slide.layout === l.id, onClick: () => A.setLayout(l.id) })),
           'separator',
-          { label: 'Reset Slide', icon: RotateCcw, onClick: () => A.resetSlides() },
-          { label: 'Format Background…', icon: Paintbrush, onClick: onFormatBackground },
-          { label: st.showGrid ? 'Hide Gridlines' : 'Show Gridlines', onClick: () => store.set({ showGrid: !st.showGrid }) },
-          { label: st.showGuides ? 'Hide Guides' : 'Show Guides', onClick: () => store.set({ showGuides: !st.showGuides }) },
+          { label: t('Reset Slide'), icon: RotateCcw, onClick: () => A.resetSlides() },
+          { label: t('Format Background…'), icon: Paintbrush, onClick: onFormatBackground },
+          { label: st.showGrid ? t('Hide Gridlines') : t('Show Gridlines'), onClick: () => store.set({ showGrid: !st.showGrid }) },
+          { label: st.showGuides ? t('Hide Guides') : t('Show Guides'), onClick: () => store.set({ showGuides: !st.showGuides }) },
           ...(st.showGuides
             ? ([
-                { label: 'Add Vertical Guide', onClick: () => store.set({ guides: { ...guideLines(), x: [...guideLines().x, Math.round(toSlide(e.clientX, e.clientY).x)] } }) },
-                { label: 'Add Horizontal Guide', onClick: () => store.set({ guides: { ...guideLines(), y: [...guideLines().y, Math.round(toSlide(e.clientX, e.clientY).y)] } }) },
+                { label: t('Add Vertical Guide'), onClick: () => store.set({ guides: { ...guideLines(), x: [...guideLines().x, Math.round(toSlide(e.clientX, e.clientY).x)] } }) },
+                { label: t('Add Horizontal Guide'), onClick: () => store.set({ guides: { ...guideLines(), y: [...guideLines().y, Math.round(toSlide(e.clientX, e.clientY).y)] } }) },
               ] as MenuItem[])
             : []),
-          { label: 'New Comment', icon: MessageSquarePlus, onClick: () => window.dispatchEvent(new CustomEvent('kontor:new-comment')) },
+          { label: t('New Comment'), icon: MessageSquarePlus, onClick: () => window.dispatchEvent(new CustomEvent('kontor:new-comment')) },
         ]
     setMenu({ x: e.clientX, y: e.clientY, items: items.filter((it, i, arr) => !(it === 'separator' && (i === 0 || arr[i - 1] === 'separator'))) })
   }
@@ -1007,7 +1080,7 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
   const filter = s.colorMode === 'grayscale' ? 'grayscale(1)' : s.colorMode === 'bw' ? 'grayscale(1) contrast(4)' : undefined
 
   return (
-    <div className="canvas-scroll" ref={scrollRef} tabIndex={-1} aria-label="Slide" onFocus={() => store.get().focus !== 'canvas' && store.set({ focus: 'canvas' })} onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+    <div className="canvas-scroll" ref={scrollRef} tabIndex={-1} aria-label={t('Slide')} onFocus={() => store.get().focus !== 'canvas' && store.set({ focus: 'canvas' })} onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <div className="canvas-inner" style={{ padding: padFor(scrollRef.current) }}>
         <div
           className="slide-frame"
@@ -1041,10 +1114,10 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
             {s.showGuides && (
               <>
                 {(s.guides ?? { x: [size.w / 2], y: [size.h / 2] }).x.map((x, i) => (
-                  <div key={`gx${i}`} className="static-guide sg-x" data-guide={`x:${i}`} title="Drag to move the guide; drag it off the slide to remove it" style={{ left: x, height: size.h }} />
+                  <div key={`gx${i}`} className="static-guide sg-x" data-guide={`x:${i}`} title={t('Drag to move the guide; drag it off the slide to remove it')} style={{ left: x, height: size.h }} />
                 ))}
                 {(s.guides ?? { x: [size.w / 2], y: [size.h / 2] }).y.map((y, i) => (
-                  <div key={`gy${i}`} className="static-guide sg-y" data-guide={`y:${i}`} title="Drag to move the guide; drag it off the slide to remove it" style={{ top: y, width: size.w }} />
+                  <div key={`gy${i}`} className="static-guide sg-y" data-guide={`y:${i}`} title={t('Drag to move the guide; drag it off the slide to remove it')} style={{ top: y, width: size.w }} />
                 ))}
                 {guideTip && (
                   <div className="guide-tip" style={guideTip.axis === 'x' ? { left: guideTip.pos + 4, top: 4 } : { top: guideTip.pos + 4, left: 4 }}>
@@ -1075,7 +1148,7 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
                   d={d.points.map((q, i) => `${i ? 'L' : 'M'}${q.x} ${q.y}`).join(' ')}
                   fill="none"
                   stroke={s.tool.kind === 'pen' ? s.tool.color : '#7a7a7a'}
-                  strokeDasharray={s.tool.kind === 'motionPath' ? '6 4' : undefined}
+                  strokeDasharray={s.tool.kind === 'motionPath' || s.tool.kind === 'lasso' ? '6 4' : undefined}
                   strokeOpacity={s.tool.kind === 'pen' && s.tool.highlighter ? 0.45 : 1}
                   strokeWidth={s.tool.kind === 'pen' ? s.tool.width : 2}
                   strokeLinecap="round"
@@ -1102,6 +1175,7 @@ export function SlideCanvas({ onFormatShape, onFormatBackground }: { onFormatSha
               const left = d.x * z - 232
               return <DiagramTextPane d={d} style={{ left: left < 0 ? d.x * z + 12 : left, top: Math.max(0, d.y * z) }} />
             })()}
+          {sites?.map((q, i) => <div key={`cs${i}`} className="conn-site" style={{ left: q.x * z, top: q.y * z }} />)}
           {guides.map((g, i) => (
             <div key={i} className={`smart-guide sg-${g.axis}`} style={g.axis === 'x' ? { left: g.pos * z, top: g.from * z, height: (g.to - g.from) * z } : { top: g.pos * z, left: g.from * z, width: (g.to - g.from) * z }} />
           ))}
@@ -1203,14 +1277,14 @@ function adjFromPoint(el: ShapeElement, lx: number): number | null {
 function tableMenu(): MenuItem[] {
   const upd = (fn: Parameters<typeof A.updateTable>[0]) => () => A.updateTable(fn)
   return [
-    { label: 'Insert Rows Above', onClick: upd((t, rg) => insertRow(t, rg.r0, rg.r0)) },
-    { label: 'Insert Rows Below', onClick: upd((t, rg) => insertRow(t, rg.r1 + 1, rg.r1)) },
-    { label: 'Insert Columns Left', onClick: upd((t, rg) => insertCol(t, rg.c0, rg.c0)) },
-    { label: 'Insert Columns Right', onClick: upd((t, rg) => insertCol(t, rg.c1 + 1, rg.c1)) },
-    { label: 'Delete Rows', onClick: upd((t, rg) => deleteRows(t, rg.r0, rg.r1)) },
-    { label: 'Delete Columns', onClick: upd((t, rg) => deleteCols(t, rg.c0, rg.c1)) },
-    { label: 'Merge Cells', disabled: !A.currentTable()?.hasCellSel, onClick: upd((t, rg) => mergeCells(t, rg)) },
-    { label: 'Split Cells…', onClick: () => window.dispatchEvent(new CustomEvent('kontor:dialog', { detail: 'splitCells' })) },
+    { label: t('Insert Rows Above'), onClick: upd((t, rg) => insertRow(t, rg.r0, rg.r0)) },
+    { label: t('Insert Rows Below'), onClick: upd((t, rg) => insertRow(t, rg.r1 + 1, rg.r1)) },
+    { label: t('Insert Columns Left'), onClick: upd((t, rg) => insertCol(t, rg.c0, rg.c0)) },
+    { label: t('Insert Columns Right'), onClick: upd((t, rg) => insertCol(t, rg.c1 + 1, rg.c1)) },
+    { label: t('Delete Rows'), onClick: upd((t, rg) => deleteRows(t, rg.r0, rg.r1)) },
+    { label: t('Delete Columns'), onClick: upd((t, rg) => deleteCols(t, rg.c0, rg.c1)) },
+    { label: t('Merge Cells'), disabled: !A.currentTable()?.hasCellSel, onClick: upd((t, rg) => mergeCells(t, rg)) },
+    { label: t('Split Cells…'), onClick: () => window.dispatchEvent(new CustomEvent('kontor:dialog', { detail: 'splitCells' })) },
     'separator',
   ]
 }
@@ -1242,12 +1316,12 @@ function SelectionFrame({ el, z, editing, cropping, showRotate }: { el: SlideEle
       className={`sel-frame${editing ? ' is-editing' : ''}${cropping ? ' is-cropping' : ''}${el.locked ? ' is-locked' : ''}`}
       style={{ left: el.x * z, top: el.y * z, width: el.w * z, height: el.h * z, transform: el.rot ? `rotate(${el.rot}deg)` : undefined }}
     >
-      {el.type === 'table' && !el.locked && ['t', 'r', 'b', 'l'].map((side) => <div key={side} className={`table-grab tg-${side}`} data-grab={el.id} title="Drag to move the table" />)}
+      {el.type === 'table' && !el.locked && ['t', 'r', 'b', 'l'].map((side) => <div key={side} className={`table-grab tg-${side}`} data-grab={el.id} title={t('Drag to move the table')} />)}
       {!el.locked &&
         HANDLES.map((h) => <div key={h} className={`handle h-${h}${cropping ? ' crop-handle' : ''}`} data-handle={h} data-id={el.id} />)}
-      {!el.locked && !cropping && el.type === 'shape' && adjHandleX(el) !== null && <div className="adj-handle" data-handle="adj" data-id={el.id} style={{ left: adjHandleX(el)! * z }} title="Drag to adjust the shape" />}
+      {!el.locked && !cropping && el.type === 'shape' && adjHandleX(el) !== null && <div className="adj-handle" data-handle="adj" data-id={el.id} style={{ left: adjHandleX(el)! * z }} title={t('Drag to adjust the shape')} />}
       {showRotate && !el.locked && (
-        <div className="rotate-handle" data-handle="rotate" data-id={el.id} title="Rotate">
+        <div className="rotate-handle" data-handle="rotate" data-id={el.id} title={t('Rotate')}>
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
             <path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v2.5h-2.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
           </svg>
@@ -1275,9 +1349,9 @@ function PointsOverlay({ el, z }: { el: ShapeElement; z: number }) {
           (['i', 'o'] as const).map((k) => h?.[k] && <line key={k} x1={sel[0]} y1={sel[1]} x2={h[k]![0]} y2={h[k]![1]} stroke="#555" strokeWidth={1} pointerEvents="none" />)}
       </svg>
       {outline.rings.flatMap((r, ri) =>
-        r.map(([x, y], i) => <div key={`${ri}:${i}`} className={`pts-handle${ri === sr && i === si ? ' is-selected' : ''}`} data-vertex={`${ri}:${i}`} style={{ left: x, top: y }} title="Drag to move the point; right-click for point types; Ctrl+click to delete it" />),
+        r.map(([x, y], i) => <div key={`${ri}:${i}`} className={`pts-handle${ri === sr && i === si ? ' is-selected' : ''}`} data-vertex={`${ri}:${i}`} style={{ left: x, top: y }} title={t('Drag to move the point; right-click for point types; Ctrl+click to delete it')} />),
       )}
-      {sel && (['i', 'o'] as const).map((k) => h?.[k] && <div key={k} className="bez-handle" data-bez={`${sr}:${si}:${k}`} style={{ left: h[k]![0], top: h[k]![1] }} title="Drag to change the curve" />)}
+      {sel && (['i', 'o'] as const).map((k) => h?.[k] && <div key={k} className="bez-handle" data-bez={`${sr}:${si}:${k}`} style={{ left: h[k]![0], top: h[k]![1] }} title={t('Drag to change the curve')} />)}
     </div>
   )
 }

@@ -24,6 +24,12 @@ export type TextEffectAttrs = {
   numForms: 'lining' | 'oldstyle' | null
   numSpacing: 'proportional' | 'tabular' | null
   textEffect: TextEffect | null
+  /** Glow around the letters (color). */
+  glow: string | null
+  /** Reflection below the text. */
+  reflection: boolean | null
+  /** Gradient text fill: "from,to" colors. */
+  gradient: string | null
 }
 
 declare module '@tiptap/core' {
@@ -86,6 +92,12 @@ export const TextEffects = Extension.create({
           ...attr('numForms', () => null, (v: string) => `font-variant-numeric: ${v === 'oldstyle' ? 'oldstyle-nums' : 'lining-nums'}`),
           ...attr('numSpacing', () => null, (v: string) => `font-feature-settings: '${v === 'tabular' ? 'tnum' : 'pnum'}'`),
           ...attr('textEffect', () => null, (v: TextEffect) => `text-shadow: ${SHADOWS[v]}${v === 'outline' ? '; color: #fff' : ''}`),
+          ...attr('glow', () => null, (v: string) => `filter: drop-shadow(0 0 2px ${v}) drop-shadow(0 0 3px ${v})`),
+          ...attr('reflection', () => null, () => 'display: inline-block; -webkit-box-reflect: below -0.15em linear-gradient(transparent 45%, rgba(255, 255, 255, 0.45))'),
+          ...attr('gradient', () => null, (v: string) => {
+            const [from, to] = String(v).split(',')
+            return `background-image: linear-gradient(90deg, ${from}, ${to ?? from}); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent`
+          }),
         },
       },
       {

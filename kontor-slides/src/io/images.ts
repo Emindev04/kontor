@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 // Reading and compressing pictures. Like the original program, pictures larger than needed for the
 // slide are scaled down when they are inserted (default 220 ppi), which keeps files and AutoSave small.
 
@@ -17,7 +18,7 @@ export function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const i = new Image()
     i.onload = () => resolve(i)
-    i.onerror = () => reject(new Error('The picture could not be read.'))
+    i.onerror = () => reject(new Error(t('The picture could not be read.')))
     i.src = src
   })
 }

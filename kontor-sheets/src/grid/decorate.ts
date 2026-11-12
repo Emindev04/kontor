@@ -61,10 +61,10 @@ export function makeDecorator(doc: Doc, sheet: Sheet): Decorator {
       const res = evalCf ? cf(r, c) : null
       if (!t && !res?.style && !res?.scale) return base
       const out: Style = { ...((t ?? {}) as Style), ...base }
-      if (res?.scale) out.fill = res.scale
+      if (res?.scale) Object.assign(out, { fill: res.scale, pattern: undefined, gradient: undefined })
       const s = res?.style
       if (s) {
-        if (s.fill) out.fill = s.fill
+        if (s.fill) Object.assign(out, { fill: s.fill, pattern: undefined, gradient: undefined })
         if (s.color) out.color = s.color
         if (s.bold) out.bold = true
         if (s.italic) out.italic = true
@@ -103,6 +103,18 @@ export function drawDataBar(ctx: CanvasRenderingContext2D, bar: NonNullable<CFRe
     ctx.strokeStyle = bar.color
     ctx.lineWidth = 1
     ctx.strokeRect(Math.round(bx) + 0.5, Math.round(by) + 0.5, Math.round(bw) - 1, Math.round(bh) - 1)
+  }
+  if (bar.axis !== undefined) {
+    // dashed axis at zero
+    const ax = Math.round(x + pad + (w - pad * 2) * bar.axis) + 0.5
+    ctx.save()
+    ctx.strokeStyle = bar.axisColor ?? '#000000'
+    ctx.setLineDash([2, 2])
+    ctx.beginPath()
+    ctx.moveTo(ax, y + 1)
+    ctx.lineTo(ax, y + h - 1)
+    ctx.stroke()
+    ctx.restore()
   }
 }
 

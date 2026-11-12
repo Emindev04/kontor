@@ -427,27 +427,7 @@ function trendLike(name: string, exp: boolean) {
 trendLike('TREND', false)
 trendLike('GROWTH', true)
 
-fn('LINEST', 1, 4, (args, ctx) => {
-  const ym = argMatrix(args, 0, ctx)
-  if (isErr(ym)) return ym
-  const ys = ym.data.map(Number)
-  const xm = args.length > 1 ? argMatrix(args, 1, ctx) : null
-  const xs = xm && !isErr(xm) ? xm.data.map(Number) : ys.map((_, i) => i + 1)
-  const r = linreg(ys, xs)
-  if (isErr(r)) return r
-  return Matrix.from([[r.slope, r.intercept]])
-})
-
-fn('LOGEST', 1, 4, (args, ctx) => {
-  const ym = argMatrix(args, 0, ctx)
-  if (isErr(ym)) return ym
-  const ys = ym.data.map((v) => Math.log(Number(v)))
-  const xm = args.length > 1 ? argMatrix(args, 1, ctx) : null
-  const xs = xm && !isErr(xm) ? xm.data.map(Number) : ys.map((_, i) => i + 1)
-  const r = linreg(ys, xs)
-  if (isErr(r)) return r
-  return Matrix.from([[Math.exp(r.slope), Math.exp(r.intercept)]])
-})
+// LINEST and LOGEST are in extra.ts (several x variables and the statistics block).
 
 fn('FREQUENCY', 2, 2, (args, ctx) => {
   const data = collectNumbers([args[0]], ctx)

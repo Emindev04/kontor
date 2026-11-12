@@ -2,6 +2,7 @@ import { useId, type ReactNode } from 'react'
 import type { ChartElement, ChartSeriesType } from '../model/types'
 import { adjustLum, resolveColor, type ThemeColors } from '../model/color'
 import { chartStyle, errorAmount, fitTrend, formatTick, niceScale, seriesColor } from '../model/chart'
+import { t } from '../i18n'
 
 const PX = 96 / 72
 
@@ -44,7 +45,7 @@ export function ChartSvg({ chart, colors, font }: Props) {
   if (chart.title.show) {
     out.push(
       <text key="title" x={W / 2} y={top + titleSize * 0.9} textAnchor="middle" fontSize={titleSize} fill={textColor}>
-        {chart.title.text || 'Chart Title'}
+        {chart.title.text || t('Chart Title')}
       </text>,
     )
     top += titleSize * 1.4

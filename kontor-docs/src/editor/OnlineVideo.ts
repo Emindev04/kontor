@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { DrawingView, drawingAttributes, wrapStyle, type DrawingRenderer } from './Drawing'
+import { t } from '../i18n'
 
 // Insert › Online Video: a YouTube or Vimeo video embedded in the page. It plays in Read Mode and
 // opens in a new tab on double-click; .docx files get a link to it.
@@ -31,11 +32,11 @@ const renderVideo: DrawingRenderer = (node, box, { width, height }) => {
     frame = document.createElement('iframe')
     frame.allow = 'encrypted-media; picture-in-picture; fullscreen'
     frame.setAttribute('allowfullscreen', '')
-    frame.title = 'Online video'
+    frame.title = t('Online video')
     box.appendChild(frame)
     const badge = document.createElement('span')
     badge.className = 'video-badge'
-    badge.textContent = '▶ Online video — double-click to open'
+    badge.textContent = '▶ ' + t('Online video — double-click to open')
     box.appendChild(badge)
   }
   if (frame.src !== node.attrs.src) frame.src = node.attrs.src
