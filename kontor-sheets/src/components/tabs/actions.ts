@@ -1,4 +1,5 @@
 // Command helpers shared by ribbon tabs, context menus and keyboard shortcuts.
+import { localFunctionName } from '../../engine/localize'
 import { MAX_COLS, MAX_ROWS, cellName, rangeName } from '../../model/address'
 import { BUILTIN_FORMATS, adjustDecimals } from '../../model/numfmt'
 import { DEFAULT_SIZE, type Style } from '../../model/style'
@@ -99,9 +100,11 @@ export function autoSum(doc: Doc, fn: string): 'edit' | 'done' {
       while (left > 0 && isNum(r, left - 1)) left--
       range = `${cellName(r, left)}:${cellName(r, c - 1)}`
     }
-    const text = `=${fn}(${range ?? ''})`
+    // the edit box shows the function in the interface language
+    const name = localFunctionName(fn)
+    const text = `=${name}(${range ?? ''})`
     doc.beginEdit('enter', text)
-    if (range) doc.updateEdit({ caret: text.length - 1, point: { start: fn.length + 2, end: fn.length + 2 + range.length } })
+    if (range) doc.updateEdit({ caret: text.length - 1, point: { start: name.length + 2, end: name.length + 2 + range.length } })
     else doc.updateEdit({ caret: text.length - 1 })
     return 'edit'
   }

@@ -9,9 +9,10 @@ import { cellName } from '../../model/address'
 import { useApp } from '../appContext'
 import { Modal, OkCancel } from '../ui'
 import { t } from '../../i18n'
+import { argSeparator, localFunctionName, toCanonicalFormula } from '../../engine/localize'
 
-/** Splits the top-level arguments of "NAME(a, b(c, d), "x,y")". */
-export function splitCall(formula: string, name: string): string[] | null {
+/** Splits the top-level arguments of "NAME(a, b(c, d), "x,y")" (`sep` is the argument separator). */
+export function splitCall(formula: string, name: string, sep = ','): string[] | null {
   const m = new RegExp(`^=\\s*${name.replace(/\./g, '\\.')}\\s*\\(([\\s\\S]*)\\)\\s*$`, 'i').exec(formula.trim())
   if (!m) return null
   const out: string[] = []
@@ -22,7 +23,7 @@ export function splitCall(formula: string, name: string): string[] | null {
     if (ch === '"') inStr = !inStr
     if (!inStr && (ch === '(' || ch === '{')) depth++
     if (!inStr && (ch === ')' || ch === '}')) depth--
-    if (!inStr && depth === 0 && ch === ',') {
+    if (!inStr && depth === 0 && ch === sep) {
       out.push(cur.trim())
       cur = ''
     } else cur += ch
@@ -48,12 +49,15 @@ export function FunctionArgsDialog({ fn, onClose }: { fn: string; onClose: () =>
   const app = useApp()
   const doc = app.doc
   const meta = FN_META.get(fn.toUpperCase())
+  // the dialog shows and builds the formula in the interface language
+  const local = localFunctionName(fn)
+  const sep = argSeparator()
   const { r, c } = doc.sel.active
   const sheet = doc.sheet
   const existing = useMemo(() => {
-    const f = doc.edit ? doc.edit.text : sheet.get(r, c)?.f !== undefined ? `=${sheet.get(r, c)!.f}` : ''
-    return splitCall(f, fn) ?? []
-  }, [doc, fn, sheet, r, c])
+    const f = doc.edit ? doc.edit.text : sheet.get(r, c)?.f !== undefined ? doc.inputText(r, c, sheet) : ''
+    return splitCall(f, local, sep) ?? splitCall(f, fn, sep) ?? []
+  }, [doc, fn, local, sep, sheet, r, c])
   const specs = meta?.args ?? []
   const variadic = specs.some((a) => a.includes('...'))
   const named = specs.filter((a) => !a.includes('...'))
@@ -70,13 +74,13 @@ export function FunctionArgsDialog({ fn, onClose }: { fn: string; onClose: () =>
   const evalText = (t: string) => {
     if (!t.trim()) return ''
     try {
-      return show(doc.engine.evalFormula(t, sheet, r, c))
+      return show(doc.engine.evalFormula(toCanonicalFormula(t), sheet, r, c))
     } catch {
       return '#VALUE!'
     }
   }
   const trimmed = values.slice(0, values.reduce((last, v, i) => (v.trim() ? i + 1 : last), 0))
-  const formula = `=${fn}(${trimmed.join(',')})`
+  const formula = `=${local}(${trimmed.join(sep)})`
   const result = evalText(formula.slice(1))
   const set = (i: number, v: string) => {
     const next = values.map((x, j) => (j === i ? v : x))
@@ -93,7 +97,7 @@ export function FunctionArgsDialog({ fn, onClose }: { fn: string; onClose: () =>
   return (
     <Modal title={t('Function Arguments')} onClose={onClose} width={520} footer={<OkCancel onOk={ok} onCancel={onClose} />}>
       <div className="fa">
-        <div className="fa-name">{fn}</div>
+        <div className="fa-name">{local}</div>
         <div className="fa-args">
           {values.map((v, i) => (
             <label key={i} className="fa-row">
@@ -106,7 +110,7 @@ export function FunctionArgsDialog({ fn, onClose }: { fn: string; onClose: () =>
         <div className="fa-result">= {result}</div>
         <p className="fa-desc">{meta ? t(meta.description) : t('No description is available for this function.')}</p>
         <p className="fa-help">
-          <strong>{label(focus)}</strong> {optional(focus) ? t('(optional)') : t('(required)')} {t('— argument {n} of {function}.', { n: focus + 1, function: meta ? `${fn}(${specs.join(', ')})` : fn })}
+          <strong>{label(focus)}</strong> {optional(focus) ? t('(optional)') : t('(required)')} {t('— argument {n} of {function}.', { n: focus + 1, function: meta ? `${local}(${specs.join(sep + ' ')})` : local })}
         </p>
         <p className="fa-foot">{t('Formula result = {result} · Cell {cell}', { result, cell: cellName(r, c) })}</p>
       </div>

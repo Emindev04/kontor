@@ -9,6 +9,7 @@ import { goTo } from '../commands/find'
 import type { Doc } from '../commands/doc'
 import { FormulaAssist, FormulaMirror } from '../grid/CellEditor'
 import { handleEditKey } from '../grid/editKeys'
+import { canonicalFunctionName } from '../engine/localize'
 import { useApp, useDocVersion } from './appContext'
 import { usePopover, Popup, keepFocus } from './ui'
 import { t } from '../i18n'
@@ -150,9 +151,9 @@ export function FormulaBar() {
         <button type="button" className="fx-btn fx-insert" title={t('Insert Function (Shift+F3)')} aria-label={t('Insert Function')} onMouseDown={keepFocus} onClick={() => {
           // a formula that is one function call opens its arguments directly
           const a = doc.sel.active
-          const f = doc.edit?.text ?? (doc.sheet.get(a.r, a.c)?.f !== undefined ? `=${doc.sheet.get(a.r, a.c)!.f}` : '')
-          const m = /^=\s*([A-Z][A-Z0-9.]*)\s*\(/i.exec(f)
-          app.dialog(m ? { kind: 'functionArgs', fn: m[1].toUpperCase() } : { kind: 'insertFunction' })
+          const f = doc.edit?.text ?? (doc.sheet.get(a.r, a.c)?.f !== undefined ? doc.inputText(a.r, a.c) : '')
+          const m = /^=\s*([A-Za-zÀ-￿_][A-Za-z0-9_.À-￿]*)\s*\(/.exec(f)
+          app.dialog(m ? { kind: 'functionArgs', fn: canonicalFunctionName(m[1]) } : { kind: 'insertFunction' })
         }}>
           <i>fx</i>
         </button>

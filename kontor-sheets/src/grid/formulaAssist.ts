@@ -5,6 +5,7 @@ import { FUNCTIONS } from '../engine/registry'
 import { FN_META } from '../engine/functions/meta'
 import { tokenize } from '../engine/tokenizer'
 import { tx } from '../i18n'
+import { localFunctionName, toCanonicalFormula } from '../engine/localize'
 
 export const REF_COLORS = ['#1f6fd0', '#d4373a', '#7e3fb2', '#1d8a4a', '#b8620b', '#0f8b8d', '#c2378b', '#5d6b00']
 
@@ -45,38 +46,46 @@ function inString(text: string, caret: number) {
   return n % 2 === 1
 }
 
-export type Suggestion = { name: string; kind: 'function' | 'name'; description: string }
+/** `name` is what is inserted (the localized function name); `fn` is the English function name. */
+export type Suggestion = { name: string; kind: 'function' | 'name'; description: string; fn?: string }
 
-/** Function/name suggestions for the identifier being typed before the caret. */
+/** Function/name suggestions for the identifier being typed before the caret (function names in the interface language). */
 export function suggestions(text: string, caret: number, names: string[]): { start: number; items: Suggestion[] } | null {
   if (!text.startsWith('=') || inString(text, caret)) return null
   const before = text.slice(0, caret)
-  const m = /[A-Za-z_][A-Za-z0-9_.]*$/.exec(before)
+  const m = /[A-Za-z_À-￿][A-Za-z0-9_.À-￿]*$/.exec(before)
   if (!m) return null
   const start = caret - m[0].length
   const prev = text[start - 1] ?? ''
-  if (/[A-Za-z0-9_$'!.]/.test(prev)) return null
+  if (/[A-Za-z0-9_$'!.À-￿]/.test(prev)) return null
   const next = text[caret] ?? ''
   if (next === '(') return null
   const prefix = m[0].toUpperCase()
   const items: Suggestion[] = []
-  for (const name of [...FUNCTIONS.keys()].sort()) if (name.startsWith(prefix)) items.push({ name, kind: 'function', description: FN_META.get(name)?.description ?? '' })
+  const fns = [...FUNCTIONS.keys()].map((fn) => ({ fn, name: localFunctionName(fn) })).sort((a, b) => a.name.localeCompare(b.name))
+  for (const { fn, name } of fns) if (name.startsWith(prefix)) items.push({ name, fn, kind: 'function', description: FN_META.get(fn)?.description ?? '' })
+  // English names typed in another interface language still find their function
+  for (const { fn, name } of fns) if (name !== fn && fn.startsWith(prefix) && !name.startsWith(prefix)) items.push({ name, fn, kind: 'function', description: FN_META.get(fn)?.description ?? '' })
   for (const n of names.sort()) if (n.toUpperCase().startsWith(prefix)) items.push({ name: n, kind: 'name', description: tx('Defined name') })
   if (!items.length) return null
   return { start, items }
 }
 
-/** The innermost function call around the caret and which argument the caret is in. */
+/**
+ * The innermost function call around the caret (English name) and which argument the caret is in.
+ * The text is in the interface language.
+ */
 export function functionContext(text: string, caret: number): { name: string; arg: number } | null {
   if (!text.startsWith('=')) return null
   const stack: { name: string | null; arg: number }[] = []
   let pending: string | null = null
-  for (const t of tokenize(text.slice(1, caret))) {
+  for (const t of tokenize(toCanonicalFormula(text.slice(1, caret)))) {
     if (t.type === 'func') pending = t.id!
-    else if (t.type === 'lparen') {
-      stack.push({ name: pending, arg: 0 })
+    else if (t.type === 'lparen' || t.type === 'lbrace') {
+      // an array constant's commas separate its columns, not arguments
+      stack.push({ name: t.type === 'lparen' ? pending : null, arg: 0 })
       pending = null
-    } else if (t.type === 'rparen') stack.pop()
+    } else if (t.type === 'rparen' || t.type === 'rbrace') stack.pop()
     else if (t.type === 'comma' && stack.length) stack[stack.length - 1].arg++
     else if (t.type !== 'ws') pending = null
   }

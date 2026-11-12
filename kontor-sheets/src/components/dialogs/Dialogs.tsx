@@ -11,7 +11,8 @@ import {
   autofitRows, createNamesFromSelection, defineName, deleteCells, deleteName, duplicateSheet, insertCells, insertDelete, moveSheet, selectedIndexes, setDefaultColWidth, setSizes, unhideSheet, validateName,
 } from '../../commands/ops'
 import { currentRegion, detectHeader, removeDuplicates, sortRange, type SortKey } from '../../commands/sort'
-import { CATEGORY_ORDER, FN_META, functionsIn, signature, type FnCategory } from '../../engine/functions/meta'
+import { CATEGORY_ORDER, FN_META, functionsIn, type FnCategory } from '../../engine/functions/meta'
+import { localFunctionName, localSignature, toCanonicalFormula, toLocalFormula } from '../../engine/localize'
 import { recentFunctions } from '../tabs/recent'
 import { Modal, OkCancel, DialogTabs, cls } from '../ui'
 import { useApp } from '../appContext'
@@ -368,11 +369,11 @@ export function InsertFunctionDialog({ onClose, onInsert }: P & { onInsert: (nam
   const list = useMemo(() => {
     if (query.trim()) {
       const q = query.trim().toLowerCase()
-      return [...FN_META.values()].filter((m) => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t(m.description).toLowerCase().includes(q)).map((m) => m.name)
+      return [...FN_META.values()].filter((m) => m.name.toLowerCase().includes(q) || localFunctionName(m.name).toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t(m.description).toLowerCase().includes(q)).map((m) => m.name)
     }
     if (cat === 'Most Recently Used') return recentFunctions()
-    if (cat === 'All') return [...FN_META.keys()].sort()
-    return functionsIn(cat).map((m) => m.name)
+    if (cat === 'All') return [...FN_META.keys()].sort((a, b) => localFunctionName(a).localeCompare(localFunctionName(b)))
+    return functionsIn(cat).map((m) => m.name).sort((a, b) => localFunctionName(a).localeCompare(localFunctionName(b)))
   }, [query, cat])
   const [sel, setSel] = useState<string>('SUM')
   const current = list.includes(sel) ? sel : list[0]
@@ -412,12 +413,12 @@ export function InsertFunctionDialog({ onClose, onInsert }: P & { onInsert: (nam
         {t('Select a function:')}
         <select size={9} value={current} onChange={(e) => setSel(e.target.value)} onDoubleClick={() => { if (current) { onClose(); onInsert(current) } }}>
           {list.map((n) => (
-            <option key={n}>{n}</option>
+            <option key={n} value={n}>{localFunctionName(n)}</option>
           ))}
         </select>
         {meta && (
           <div className="fn-help">
-            <strong>{signature(meta.name)}</strong>
+            <strong>{localSignature(meta.name)}</strong>
             <p>{t(meta.description)}</p>
           </div>
         )}
@@ -449,7 +450,7 @@ export function NameManagerDialog({ onClose }: P) {
         <button type="button" className="btn" onClick={() => app.dialog({ kind: 'defineName' })}>
           {t('New…')}
         </button>
-        <button type="button" className="btn" disabled={!current} onClick={() => current && setEdit({ name: current.name, ref: current.ref, comment: current.comment ?? '' })}>
+        <button type="button" className="btn" disabled={!current} onClick={() => current && setEdit({ name: current.name, ref: toLocalFormula(current.ref), comment: current.comment ?? '' })}>
           {t('Edit…')}
         </button>
         <button
@@ -482,7 +483,7 @@ export function NameManagerDialog({ onClose }: P) {
               <tr key={`${n.scope}-${n.name}`} className={cls(selName === `${n.scope ?? ''}!${n.name}` && 'is-active')} onClick={() => setSelName(`${n.scope ?? ''}!${n.name}`)}>
                 <td>{n.name}</td>
                 <td>{valueOf(n.ref)}</td>
-                <td>={n.ref}</td>
+                <td>={toLocalFormula(n.ref)}</td>
                 <td>{n.scope !== undefined ? doc.wb.sheetById(n.scope)?.name : t('Workbook')}</td>
                 <td>{n.comment}</td>
               </tr>
@@ -509,7 +510,7 @@ export function NameManagerDialog({ onClose }: P) {
               onClick={() => {
                 const err = validateName(doc, edit.name, current.scope, current.name)
                 if (err) return app.alert(err)
-                defineName(doc, edit.name, edit.ref, current.scope, edit.comment, { name: current.name, scope: current.scope })
+                defineName(doc, edit.name, toCanonicalFormula(edit.ref.replace(/^=/, '')), current.scope, edit.comment, { name: current.name, scope: current.scope })
                 setEdit(null)
                 setSelName(`${current.scope ?? ''}!${edit.name}`)
               }}
@@ -540,7 +541,7 @@ export function DefineNameDialog({ onClose }: P) {
     const sc = scope === 'wb' ? undefined : scope
     const err = validateName(doc, name, sc)
     if (err) return app.alert(err)
-    defineName(doc, name, ref, sc, comment || undefined)
+    defineName(doc, name, toCanonicalFormula(ref.replace(/^=/, '')), sc, comment || undefined)
     onClose()
   }
   return (

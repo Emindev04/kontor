@@ -1,5 +1,6 @@
 // Task panes on the right: Format (chart/shape/picture), PivotTable Fields, Watch Window,
 // Selection pane and Comments.
+import { toLocalFormula } from '../../engine/localize'
 import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Eye, Plus, Trash2, X, Check, RotateCcw } from 'lucide-react'
 import { cellName, keyCol, keyRow } from '../../model/address'
@@ -593,7 +594,7 @@ function WatchWindow() {
                 <td>{sheet.name}</td>
                 <td>{cellName(w.r, w.c)}</td>
                 <td>{cellView(doc, sheet, w.r, w.c, st).text}</td>
-                <td className="mono">{sheet.get(w.r, w.c)?.f !== undefined ? '=' + sheet.get(w.r, w.c)!.f : ''}</td>
+                <td className="mono">{sheet.get(w.r, w.c)?.f !== undefined ? '=' + toLocalFormula(sheet.get(w.r, w.c)!.f!) : ''}</td>
                 <td>
                   <button type="button" className="icon-btn" aria-label={t('Delete watch')} onClick={() => app.setWatches(app.watches.filter((_, j) => j !== i))}>
                     <X size={12} />

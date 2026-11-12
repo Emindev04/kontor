@@ -5,9 +5,13 @@ import { useApp, useDocVersion } from '../appContext'
 import { Engine } from '../../engine/engine'
 import { recentFunctions } from './recent'
 import { t } from '../../i18n'
+import { localFunctionName } from '../../engine/localize'
 
 function fnItems(cat: FnCategory, insert: (n: string) => void): MenuItem[] {
-  return functionsIn(cat).map((m) => ({ label: m.name, onClick: () => insert(m.name) }))
+  return functionsIn(cat)
+    .map((m) => ({ name: m.name, local: localFunctionName(m.name) }))
+    .sort((a, b) => a.local.localeCompare(b.local))
+    .map((m) => ({ label: m.local, onClick: () => insert(m.name) }))
 }
 
 export function FormulasTab() {
@@ -54,7 +58,7 @@ export function FormulasTab() {
             { label: t('More Functions…'), onClick: () => app.dialog({ kind: 'insertFunction' }) },
           ]}
         />
-        <MenuButton icon={Clock} label={t('Recently Used')} large items={recentFunctions().map((n) => ({ label: n, onClick: () => ins(n) }))} />
+        <MenuButton icon={Clock} label={t('Recently Used')} large items={recentFunctions().map((n) => ({ label: localFunctionName(n), onClick: () => ins(n) }))} />
         <MenuButton icon={DollarSign} label={t('Financial')} large items={fnItems('Financial', ins)} />
         <MenuButton icon={ToggleLeft} label={t('Logical')} large items={fnItems('Logical', ins)} />
         <MenuButton icon={Type} label={t('Text')} large items={fnItems('Text', ins)} />

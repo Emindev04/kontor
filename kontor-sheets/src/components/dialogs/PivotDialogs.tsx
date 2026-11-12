@@ -1,4 +1,5 @@
 // PivotTable dialogs: Grouping (dates by period, numbers by ranges) and Calculated Field.
+import { canonicalInput, localInput } from '../../engine/localize'
 import { useMemo, useState } from 'react'
 import type { DateUnit, PivotDef } from '../../model/extras'
 import { groupPivotField, readSource, setCalcField } from '../../commands/pivot'
@@ -110,7 +111,7 @@ export function CalcFieldDialog({ onClose, data }: P) {
   const save = (close: boolean) => {
     const n = name.trim()
     if (!n) return app.alert(t('Enter a name for the calculated field.'))
-    const err = setCalcField(doc, p.id, n, formula)
+    const err = setCalcField(doc, p.id, n, canonicalInput(formula))
     if (err) return app.alert(err)
     if (close) onClose()
   }
@@ -138,7 +139,7 @@ export function CalcFieldDialog({ onClose, data }: P) {
           <input list="calc-fields" value={name} onChange={(e) => {
             setName(e.target.value)
             const hit = list.find((c) => c.name === e.target.value)
-            if (hit) setFormula(hit.formula)
+            if (hit) setFormula(localInput(hit.formula))
           }} />
           <datalist id="calc-fields">{list.map((c) => <option key={c.name} value={c.name} />)}</datalist>
         </label>

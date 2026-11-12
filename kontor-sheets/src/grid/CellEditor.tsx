@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { Doc } from '../commands/doc'
 import { FN_META } from '../engine/functions/meta'
 import { coloredRefs, functionContext, suggestions } from './formulaAssist'
+import { argSeparator, localFunctionName } from '../engine/localize'
 import { acceptSuggestion, definedNames, handleEditKey } from './editKeys'
 import { runStyle, type RichRun } from '../commands/richText'
 import type { Style } from '../model/style'
@@ -96,10 +97,10 @@ export function FormulaAssist({ doc, anchor }: { doc: Doc; anchor: HTMLElement |
     <div className="fx-assist" style={{ top, left }}>
       {meta && !sug && (
         <div className="fx-tip">
-          {ctx!.name}(
+          {localFunctionName(ctx!.name)}(
           {meta.args.map((a, i) => (
             <span key={i}>
-              {i > 0 && ', '}
+              {i > 0 && argSeparator() + ' '}
               <span className={i === Math.min(ctx!.arg, meta.args.length - 1) || (a.includes('…') && ctx!.arg >= i) ? 'fx-tip-cur' : undefined}>{a}</span>
             </span>
           ))}
@@ -110,7 +111,7 @@ export function FormulaAssist({ doc, anchor }: { doc: Doc; anchor: HTMLElement |
         <div className="fx-list" role="listbox">
           {sug.items.slice(0, 200).map((s, i) => (
             <button
-              key={s.name}
+              key={`${s.kind}:${s.name}`}
               type="button"
               role="option"
               aria-selected={i === index}
@@ -155,7 +156,12 @@ export function CellEditor({ doc, rect, font, color, background, wrap, zoom, ale
 
   const pendingSelection = useRef<[number, number] | null>(null)
   useEffect(() => {
-    if (e.source === 'cell') ref.current?.focus()
+    const el = ref.current
+    if (e.source !== 'cell' || !el) return
+    el.focus()
+    // A fresh textarea puts the caret at the start; the first typed character must stay in front.
+    const caret = doc.edit?.caret ?? el.value.length
+    el.setSelectionRange(caret, caret)
   }, [e.source])
 
   // keep the DOM caret in sync with the model (after pointing / autocomplete)

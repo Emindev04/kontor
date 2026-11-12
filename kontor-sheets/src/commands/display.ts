@@ -1,4 +1,5 @@
 import type { Sheet } from '../model/sheet'
+import { toLocalFormula } from '../engine/localize'
 import { formatValue, generalNumber, isDateFormat } from '../model/numfmt'
 import type { Style } from '../model/style'
 import { CellError, type Scalar } from '../model/types'
@@ -18,7 +19,7 @@ export type CellView = {
  */
 export function cellView(doc: Doc, sheet: Sheet, r: number, c: number, style: Style, width?: number, value?: Scalar): CellView {
   const d = sheet.get(r, c)
-  if (sheet.showFormulas && d?.f !== undefined) return { text: '=' + d.f, align: style.h === 'center' ? 'center' : style.h === 'right' ? 'right' : 'left', numeric: false }
+  if (sheet.showFormulas && d?.f !== undefined) return { text: '=' + toLocalFormula(d.f), align: style.h === 'center' ? 'center' : style.h === 'right' ? 'right' : 'left', numeric: false }
   const v = value !== undefined ? value : doc.engine.display(sheet, r, c)
   if (v === null || v === undefined) return { text: '', align: 'left', numeric: false }
   const h = style.h ?? 'general'

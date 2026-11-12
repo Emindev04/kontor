@@ -1,5 +1,6 @@
 // Dialogs for protection, outlines, subtotals, what-if analysis, advanced filter, formula
 // evaluation, headers/footers, sparklines, notes, alt text and icons.
+import { toLocalFormula } from '../../engine/localize'
 import { useMemo, useRef, useState } from 'react'
 import {
   Heart, Star, Home, User, Users, Mail, Phone, Calendar, Clock, Camera, Car, Cloud, Coffee, DollarSign, Euro, Flag, Gift, Globe, Key, Lightbulb, Lock, MapPin,
@@ -586,7 +587,7 @@ export function EvaluateFormulaDialog({ onClose }: P) {
       }
     >
       <p className="dlg-hint">{t('Reference:')} {doc.sheet.name}!{cellName(a.r, a.c)}</p>
-      {start === undefined ? <p>{t('The active cell does not contain a formula.')}</p> : <div className="eval-box mono">={cur}</div>}
+      {start === undefined ? <p>{t('The active cell does not contain a formula.')}</p> : <div className="eval-box mono">={toLocalFormula(cur)}</div>}
       <p className="dlg-hint">{t('To show the result of the next part of the formula, click Evaluate.')}</p>
     </Modal>
   )

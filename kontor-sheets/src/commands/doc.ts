@@ -17,6 +17,7 @@ import { ParseError, parseFormula } from '../engine/parser'
 import { tokenize } from '../engine/tokenizer'
 import { refText, shiftFormula } from '../engine/refs'
 import { fromR1C1, toR1C1 } from '../engine/r1c1'
+import { toCanonicalFormula, toLocalFormula } from '../engine/localize'
 import { prefs } from '../model/prefs'
 import { Tx, captureAfter, restoreFull, restoreProps, restoreWb, type HistoryEntry } from './history'
 import { afterTyping } from './tables'
@@ -486,11 +487,11 @@ export class Doc {
       const anchor = sheet.spillOwner.get(cellKey(r, c))
       if (anchor !== undefined) {
         const f = sheet.cells.get(anchor)?.f
-        return f !== undefined ? '=' + (prefs().r1c1 ? toR1C1(f, keyRow(anchor), keyCol(anchor)) : f) : ''
+        return f !== undefined ? '=' + toLocalFormula(prefs().r1c1 ? toR1C1(f, keyRow(anchor), keyCol(anchor)) : f) : ''
       }
       return ''
     }
-    if (d.f !== undefined) return '=' + (prefs().r1c1 ? toR1C1(d.f, r, c) : d.f)
+    if (d.f !== undefined) return '=' + toLocalFormula(prefs().r1c1 ? toR1C1(d.f, r, c) : d.f)
     const v = d.v
     if (v === undefined || v === null) return ''
     if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE'
@@ -673,11 +674,14 @@ export class Doc {
 
   // ---------- cell input ----------
 
-  /** Validates and normalizes typed input. Throws FormulaError for broken formulas. */
+  /**
+   * Validates and normalizes typed input. Throws FormulaError for broken formulas. Formulas are typed
+   * in the interface language (function names, ';' and decimal commas) and stored in English.
+   */
   prepareInput(text: string): { data: Pick<CellData, 'v' | 'f'>; fmt?: string } {
     const p = parseInput(text)
     if (p.kind === 'formula') {
-      const body = normalizeFormula(p.f)
+      const body = normalizeFormula(toCanonicalFormula(p.f))
       try {
         parseFormula(body)
       } catch (e) {

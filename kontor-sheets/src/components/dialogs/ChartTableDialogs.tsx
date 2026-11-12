@@ -1,4 +1,5 @@
 // Dialogs for charts, tables, PivotTables, custom filters, conditional formatting and data validation.
+import { canonicalInput, localInput, toCanonicalFormula, toLocalFormula } from '../../engine/localize'
 import { t, tx } from '../../i18n'
 import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
@@ -513,7 +514,7 @@ export function CFQuickDialog({ onClose, data }: P & { data?: unknown }) {
   const [dup, setDup] = useState<'duplicate' | 'unique'>('duplicate')
   const [preset, setPreset] = useState(0)
   const ranges = app.doc.sel.ranges.map((r) => app.doc.boundToUsed(r))
-  const lit = (s: string) => (s.startsWith('=') ? s.slice(1) : s.trim() !== '' && Number.isFinite(Number(s)) ? s : `"${s.replace(/"/g, '""')}"`)
+  const lit = (s: string) => (s.startsWith('=') ? toCanonicalFormula(s.slice(1)) : s.trim() !== '' && Number.isFinite(Number(s)) ? s : `"${s.replace(/"/g, '""')}"`)
   const ok = () => {
     const style: CFStyle = CF_PRESETS[preset].style
     const base = { ranges, stop: false, style }
@@ -641,8 +642,9 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
     editing?.type === 'text' ? 'text' : editing?.type === 'date' ? 'date' : editing?.type === 'blanks' || editing?.type === 'noBlanks' || editing?.type === 'errors' || editing?.type === 'noErrors' ? editing.type : 'value',
   )
   const [op, setOp] = useState<CellOp>(editing?.type === 'cellIs' ? editing.op : 'between')
-  const [f1, setF1] = useState(editing?.type === 'cellIs' ? '=' + editing.f1 : '')
-  const [f2, setF2] = useState(editing?.type === 'cellIs' ? '=' + (editing.f2 ?? '') : '')
+  // formulas are shown and typed in the interface language and stored in English
+  const [f1, setF1] = useState(editing?.type === 'cellIs' ? '=' + toLocalFormula(editing.f1) : '')
+  const [f2, setF2] = useState(editing?.type === 'cellIs' ? '=' + toLocalFormula(editing.f2 ?? '') : '')
   const [textOp, setTextOp] = useState<'contains' | 'notContains' | 'beginsWith' | 'endsWith'>(editing?.type === 'text' ? editing.op : 'contains')
   const [text, setText] = useState(editing?.type === 'text' ? editing.text : '')
   const [period, setPeriod] = useState<DatePeriod>(editing?.type === 'date' ? editing.period : 'yesterday')
@@ -651,8 +653,8 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
   const [pct, setPct] = useState(editing?.type === 'top' ? editing.percent : false)
   const [above, setAbove] = useState(editing?.type === 'average' ? editing.above : true)
   const [uniq, setUniq] = useState<'duplicate' | 'unique'>(editing?.type === 'unique' ? 'unique' : 'duplicate')
-  const [formula, setFormula] = useState(editing?.type === 'expression' ? '=' + editing.formula : '=')
-  const strip = (s: string) => (s.startsWith('=') ? s.slice(1) : s.trim() !== '' && Number.isFinite(Number(s)) ? s : `"${s.replace(/"/g, '""')}"`)
+  const [formula, setFormula] = useState(editing?.type === 'expression' ? '=' + toLocalFormula(editing.formula) : '=')
+  const strip = (s: string) => (s.startsWith('=') ? toCanonicalFormula(s.slice(1)) : s.trim() !== '' && Number.isFinite(Number(s)) ? s : `"${s.replace(/"/g, '""')}"`)
   const build = (): NewCFRule | null => {
     const ranges = editing?.ranges ?? doc.sel.ranges.map((r) => doc.boundToUsed(r))
     const base = { ranges, stop: editing?.stop ?? false }
@@ -672,7 +674,7 @@ export function CFRuleDialog({ onClose, data }: P & { data?: unknown }) {
       case 'top': return { ...base, style, type: 'top', bottom, rank: Math.max(1, rank), percent: pct }
       case 'avg': return { ...base, style, type: 'average', above, equal: false }
       case 'unique': return { ...base, style, type: uniq }
-      case 'formula': return formula.length > 1 ? { ...base, style, type: 'expression', formula: formula.replace(/^=/, '') } : null
+      case 'formula': return formula.length > 1 ? { ...base, style, type: 'expression', formula: toCanonicalFormula(formula.replace(/^=/, '')) } : null
     }
   }
   const ok = () => {
@@ -937,8 +939,8 @@ export function ValidationDialog({ onClose }: P) {
   const [tab, setTab] = useState<'settings' | 'input' | 'error'>('settings')
   const [type, setType] = useState<ValidationType>(existing?.type ?? 'any')
   const [op, setOp] = useState<CellOp>(existing?.op ?? 'between')
-  const [f1, setF1] = useState(existing?.f1 ?? '')
-  const [f2, setF2] = useState(existing?.f2 ?? '')
+  const [f1, setF1] = useState(localInput(existing?.f1 ?? ''))
+  const [f2, setF2] = useState(localInput(existing?.f2 ?? ''))
   const [blank, setBlank] = useState(existing?.allowBlank ?? true)
   const [dropdown, setDropdown] = useState(existing?.dropdown ?? true)
   const [showInput, setShowInput] = useState(existing?.showInput ?? true)
@@ -954,7 +956,7 @@ export function ValidationDialog({ onClose }: P) {
     if (type === 'list' && !f1.trim()) return app.alert(t('You must enter a value for Source.'))
     if ((type === 'whole' || type === 'decimal' || type === 'date' || type === 'time' || type === 'textLength') && !f1.trim()) return app.alert(t('You must enter a value.'))
     if (type === 'custom' && !f1.trim()) return app.alert(t('You must enter a formula.'))
-    setValidation(doc, ranges, { type, op, f1: f1.trim() || undefined, f2: needs2 ? f2.trim() || undefined : undefined, allowBlank: blank, dropdown, showInput, inputTitle, inputMessage, showError, errorStyle, errorTitle, errorMessage })
+    setValidation(doc, ranges, { type, op, f1: canonicalInput(f1.trim()) || undefined, f2: needs2 ? canonicalInput(f2.trim()) || undefined : undefined, allowBlank: blank, dropdown, showInput, inputTitle, inputMessage, showError, errorStyle, errorTitle, errorMessage })
     onClose()
   }
   const label1 = type === 'list' ? t('Source:') : type === 'custom' ? t('Formula:') : needs2 ? t('Minimum:') : op.includes('greater') ? t('Minimum:') : op.includes('less') ? t('Maximum:') : t('Value:')

@@ -1,5 +1,6 @@
 // Conditional formatting: evaluating rules for a cell (highlight rules, top/bottom, averages,
 // duplicates, formulas, data bars, color scales and icon sets) and managing the rule list.
+import { toLocalFormula } from '../engine/localize'
 import { MAX_COLS, MAX_ROWS, type Range } from '../model/address'
 import type { CFRule, CFStyle, CFValue, IconSetId, NewCFRule } from '../model/extras'
 import type { Sheet } from '../model/sheet'
@@ -361,7 +362,7 @@ export function describeRule(rule: CFRule): string {
     case 'noBlanks': return t('No Blanks')
     case 'errors': return t('Errors')
     case 'noErrors': return t('No Errors')
-    case 'expression': return t('Formula: ={formula}', { formula: rule.formula })
+    case 'expression': return t('Formula: ={formula}', { formula: toLocalFormula(rule.formula) })
     case 'dataBar': return t('Data Bar')
     case 'colorScale': return rule.stops.length === 2 ? t('2-Color Scale') : t('3-Color Scale')
     case 'iconSet': return t('Icon Set: {name}', { name: t(ICON_SETS.find((s) => s.id === rule.set)?.label ?? rule.set) })
