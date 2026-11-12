@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="docs-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4fa8"/>
+    </linearGradient>
+    <linearGradient id="docs-shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".22"/>
+      <stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="docs-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity=".28"/>
+    </filter>
+    <filter id="docs-soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <g filter="url(#docs-shadow)">
+    <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#docs-bg)"/>
+    <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#docs-shine)"/>
+  </g>
+  <g filter="url(#docs-soft)"><path d="M318 240h290l118 118v386a40 40 0 0 1-40 40H318a40 40 0 0 1-40-40V280a40 40 0 0 1 40-40z" fill="#fff"/>
+   <path d="M608 240v86a32 32 0 0 0 32 32h86z" fill="#c9dafc"/>
+   <g stroke="#2563eb" stroke-width="34" stroke-linecap="round">
+     <path d="M360 440h284"/><path d="M360 520h284"/><path d="M360 600h284"/><path d="M360 680h170"/>
+   </g></g>
+</svg>

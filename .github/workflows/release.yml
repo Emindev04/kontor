@@ -1,0 +1,60 @@
+# Builds the desktop apps for macOS, Windows and Linux and attaches them to a GitHub release.
+# Start it by pushing a version tag, for example:  git tag v1.0.0 && git push origin v1.0.0
+name: Release desktop apps
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        app: [docs, sheets, slides]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: kontor-${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kontor-${{ matrix.app }}/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Build installers
+        run: npm run desktop:dist
+        env:
+          # No paid signing certificate yet: the apps are signed ad hoc on macOS and unsigned on Windows.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-${{ matrix.os }}
+          path: |
+            kontor-${{ matrix.app }}/release/*.dmg
+            kontor-${{ matrix.app }}/release/*.exe
+            kontor-${{ matrix.app }}/release/*.AppImage
+            kontor-${{ matrix.app }}/release/*.deb
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true

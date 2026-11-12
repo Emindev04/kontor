@@ -1,0 +1,1324 @@
+/*
+ * Document typography: what the page shows. Values follow the original's default template
+ * (Calibri 11 pt, 8 pt after, 1.08 line spacing, blue headings). Theme fonts, colors and paragraph
+ * spacing come in as CSS variables from the page view.
+ */
+
+.pages {
+  --single-line: 1.22;
+  --doc-font: Calibri, Carlito, Arial, sans-serif;
+  --doc-heading-font: 'Calibri Light', Calibri, Carlito, Arial, sans-serif;
+  --doc-heading-color: #2f5496;
+  --doc-heading-dark: #1f3763;
+  --doc-accent: #4472c4;
+  --doc-space-after: 8pt;
+  --doc-line: 1.08;
+  --doc-hyphens: manual;
+}
+
+.ProseMirror {
+  min-height: 1em;
+  outline: none;
+  color: #000;
+  font-family: var(--doc-font);
+  font-size: 11pt;
+  line-height: calc(var(--single-line) * var(--doc-line));
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  tab-size: 0.5in;
+  hyphens: var(--doc-hyphens);
+  font-kerning: normal;
+}
+
+.hf-area .ProseMirror,
+.hf-static {
+  line-height: var(--single-line);
+}
+
+.ProseMirror p {
+  margin: 0 0 var(--doc-space-after);
+}
+
+.hf-area .ProseMirror p,
+.hf-static p {
+  margin: 0;
+}
+
+.ProseMirror :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--doc-heading-font);
+  font-weight: normal;
+  color: var(--doc-heading-color);
+  margin: 2pt 0 0;
+}
+
+.ProseMirror h1 {
+  margin-top: 12pt;
+  font-size: 16pt;
+}
+
+.ProseMirror h2 {
+  font-size: 13pt;
+}
+
+.ProseMirror h3 {
+  font-size: 12pt;
+  color: var(--doc-heading-dark);
+}
+
+.ProseMirror h4 {
+  font-size: 11pt;
+  font-style: italic;
+}
+
+.ProseMirror h5 {
+  font-size: 11pt;
+}
+
+.ProseMirror h6 {
+  font-size: 11pt;
+  color: var(--doc-heading-dark);
+}
+
+.pg-host .ProseMirror > :first-child {
+  margin-top: 0;
+}
+
+/* Paragraph styles */
+
+.ProseMirror p.ps-noSpacing {
+  margin: 0;
+  line-height: var(--single-line);
+}
+
+.ProseMirror p.ps-title {
+  margin: 0;
+  font-family: var(--doc-heading-font);
+  font-size: 28pt;
+  letter-spacing: -0.5pt;
+  line-height: var(--single-line);
+}
+
+.ProseMirror p.ps-subtitle {
+  color: #5a5a5a;
+  letter-spacing: 0.75pt;
+}
+
+.ProseMirror p.ps-quote {
+  margin: 10pt 0.6in 8pt;
+  color: #404040;
+  font-style: italic;
+  text-align: center;
+}
+
+.ProseMirror p.ps-intenseQuote {
+  margin: 18pt 0.6in;
+  padding: 10pt 0;
+  border-top: 1px solid var(--doc-accent);
+  border-bottom: 1px solid var(--doc-accent);
+  color: var(--doc-accent);
+  font-style: italic;
+  text-align: center;
+}
+
+.ProseMirror p.ps-listParagraph {
+  margin-left: 0.5in;
+}
+
+.ProseMirror p.ps-caption {
+  margin-bottom: 10pt;
+  color: #44546a;
+  font-size: 9pt;
+  font-style: italic;
+  line-height: var(--single-line);
+}
+
+/* Character styles */
+
+.cs-strong { font-weight: 700; }
+.cs-emphasis { font-style: italic; }
+.cs-subtleEmphasis { font-style: italic; color: #404040; }
+.cs-intenseEmphasis { font-style: italic; color: var(--doc-accent); }
+.cs-subtleReference { font-variant: small-caps; color: #5a5a5a; }
+.cs-intenseReference { font-variant: small-caps; font-weight: 700; color: var(--doc-accent); letter-spacing: 0.25pt; }
+.cs-bookTitle { font-style: italic; font-weight: 700; letter-spacing: 0.25pt; }
+
+/* Paragraph shading, borders and drop caps */
+
+.ProseMirror [data-borders] {
+  padding: 1pt 4pt;
+}
+
+.ProseMirror [data-borders*='t'] { border-top: 0.5pt solid #000; }
+.ProseMirror [data-borders*='b'] { border-bottom: 0.5pt solid #000; }
+.ProseMirror [data-borders*='l'] { border-left: 0.5pt solid #000; }
+.ProseMirror [data-borders*='r'] { border-right: 0.5pt solid #000; }
+
+.ProseMirror p[data-drop-cap]::first-letter {
+  float: left;
+  margin: 0.05em 0.08em 0 0;
+  font-size: 3.6em;
+  line-height: 0.82;
+}
+
+.ProseMirror p[data-drop-cap='margin']::first-letter {
+  margin-left: -0.75em;
+}
+
+/* Lists */
+
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 0 0 var(--doc-space-after);
+  padding-left: 0.5in;
+}
+
+.ProseMirror li p {
+  margin: 0;
+}
+
+.ProseMirror li > ul,
+.ProseMirror li > ol {
+  margin: 0;
+}
+
+.ProseMirror ul ul { list-style-type: circle; }
+.ProseMirror ul ul ul { list-style-type: square; }
+.ProseMirror ol ol { list-style-type: lower-alpha; }
+.ProseMirror ol ol ol { list-style-type: lower-roman; }
+
+.ProseMirror ul[data-list-style='circle'] { list-style-type: circle; }
+.ProseMirror ul[data-list-style='square'] { list-style-type: square; }
+.ProseMirror ul[data-list-style='diamond'] { list-style-type: '◆  '; }
+.ProseMirror ul[data-list-style='arrow'] { list-style-type: '➢  '; }
+.ProseMirror ul[data-list-style='check'] { list-style-type: '✓  '; }
+.ProseMirror ul[data-list-style='dash'] { list-style-type: '–  '; }
+.ProseMirror ul[data-list-style='star'] { list-style-type: '★  '; }
+
+@counter-style decimal-paren {
+  system: extends decimal;
+  suffix: ') ';
+}
+
+@counter-style lower-alpha-paren {
+  system: extends lower-alpha;
+  suffix: ') ';
+}
+
+.ProseMirror ol[data-list-style='decimal-paren'] { list-style-type: decimal-paren; }
+.ProseMirror ol[data-list-style='upper-roman'] { list-style-type: upper-roman; }
+.ProseMirror ol[data-list-style='upper-alpha'] { list-style-type: upper-alpha; }
+.ProseMirror ol[data-list-style='lower-alpha'] { list-style-type: lower-alpha; }
+.ProseMirror ol[data-list-style='lower-alpha-paren'] { list-style-type: lower-alpha-paren; }
+.ProseMirror ol[data-list-style='lower-roman'] { list-style-type: lower-roman; }
+.ProseMirror ol[data-list-style='outline'] { list-style-type: upper-roman; }
+.ProseMirror ol[data-list-style='outline'] ol { list-style-type: upper-alpha; }
+.ProseMirror ol[data-list-style='outline'] ol ol { list-style-type: decimal; }
+
+/* Legal numbering: 1. 1.1. 1.1.1. */
+.ProseMirror ol[data-list-style='legal'],
+.ProseMirror ol[data-list-style='legal'] ol {
+  counter-reset: legal;
+  list-style: none;
+}
+
+.ProseMirror ol[data-list-style='legal'] > li,
+.ProseMirror ol[data-list-style='legal'] ol > li {
+  position: relative;
+  counter-increment: legal;
+}
+
+.ProseMirror ol[data-list-style='legal'] > li::before,
+.ProseMirror ol[data-list-style='legal'] ol > li::before {
+  content: counters(legal, '.') '.';
+  position: absolute;
+  right: calc(100% + 0.12in);
+  white-space: nowrap;
+}
+
+/* Links, highlights, fields */
+
+.ProseMirror a {
+  color: #0563c1;
+  text-decoration: underline;
+  cursor: text;
+}
+
+.ProseMirror mark {
+  padding: 0;
+  color: inherit;
+  background-color: #ffff00;
+}
+
+.ProseMirror .field {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.hf-static .field,
+.print-page .field {
+  background: none;
+}
+
+.ProseMirror .merge-field {
+  color: inherit;
+}
+
+.ProseMirror .merge-field.is-highlighted {
+  background: #d9d9d9;
+}
+
+.ProseMirror .merge-field.is-preview.is-highlighted {
+  background: #fff4ce;
+}
+
+[data-hidden] {
+  --hidden-text: none;
+}
+
+.show-marks [data-hidden] {
+  display: inline !important;
+  text-decoration: underline dotted;
+}
+
+.ProseMirror hr {
+  margin: 6pt 0 8pt;
+  border: 0;
+  border-top: 1px solid #000;
+}
+
+.ProseMirror hr.ProseMirror-selectednode {
+  outline: 2px solid var(--brand);
+}
+
+/* Pictures */
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: bottom;
+}
+
+.ProseMirror img.ProseMirror-selectednode,
+.ProseMirror [data-resize-container].ProseMirror-selectednode img {
+  outline: 2px solid var(--brand);
+}
+
+.ProseMirror [data-resize-container] {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.ProseMirror [data-resize-handle] {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--brand);
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+}
+
+.ProseMirror [data-resize-container]:hover [data-resize-handle],
+.ProseMirror .ProseMirror-selectednode [data-resize-handle] {
+  opacity: 1;
+}
+
+.img-frame-thin { border: 1.5px solid #000; }
+.img-frame-white { border: 6px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+.img-frame-shadow { box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.4); }
+.img-frame-rounded { border-radius: 18px 0; }
+.img-frame-soft { box-shadow: 0 0 6px 6px #fff inset; filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.2)); border-radius: 6px; }
+.img-frame-oval { border-radius: 50%; }
+.img-frame-thick { border: 8px solid #222; }
+
+/* Tables and table styles */
+
+.ProseMirror .tableWrapper {
+  margin: 0 0 var(--doc-space-after);
+  overflow-x: auto;
+}
+
+.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ProseMirror table.ta-center {
+  margin-inline: auto;
+}
+
+.ProseMirror table.ta-right {
+  margin-left: auto;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  position: relative;
+  min-width: 1em;
+  padding: 0 var(--cell-pad, 0.08in);
+  border: 0.5pt solid #000;
+  vertical-align: top;
+  font-weight: normal;
+  text-align: left;
+}
+
+.ProseMirror td p,
+.ProseMirror th p {
+  margin: 0;
+}
+
+.ProseMirror .ts-plain :is(td, th) { border-color: transparent; }
+.show-table-gridlines .ProseMirror .ts-plain :is(td, th) { outline: 1px dashed #9bb3d6; outline-offset: -1px; }
+.ProseMirror .ts-outside :is(td, th) { border-color: transparent; }
+.ProseMirror table.ts-outside { outline: 0.5pt solid #000; }
+.ProseMirror .ts-light :is(td, th) { border-color: #bfbfbf; }
+.ProseMirror .ts-lightList :is(td, th) { border-width: 0.5pt 0; border-color: #7f7f7f; }
+.ProseMirror .ts-lightList.ts-header tr:first-child :is(td, th) { font-weight: 700; }
+
+.ProseMirror .ts-accent1 :is(td, th) { border-color: #8eaadb; }
+.ProseMirror .ts-accent1.ts-header tr:first-child :is(td, th) { background: #4472c4; color: #fff; font-weight: 700; }
+.ProseMirror .ts-accent1.ts-banded tr:nth-child(even) :is(td, th) { background: #d9e2f3; }
+.ProseMirror .ts-accent2 :is(td, th) { border-color: #f4b083; }
+.ProseMirror .ts-accent2.ts-header tr:first-child :is(td, th) { background: #ed7d31; color: #fff; font-weight: 700; }
+.ProseMirror .ts-accent2.ts-banded tr:nth-child(even) :is(td, th) { background: #fbe4d5; }
+.ProseMirror .ts-accent3 :is(td, th) { border-color: #a8d08d; }
+.ProseMirror .ts-accent3.ts-header tr:first-child :is(td, th) { background: #70ad47; color: #fff; font-weight: 700; }
+.ProseMirror .ts-accent3.ts-banded tr:nth-child(even) :is(td, th) { background: #e2efd9; }
+.ProseMirror .ts-accent4 :is(td, th) { border-color: #b4a7d6; }
+.ProseMirror .ts-accent4.ts-header tr:first-child :is(td, th) { background: #7f5fa8; color: #fff; font-weight: 700; }
+.ProseMirror .ts-accent4.ts-banded tr:nth-child(even) :is(td, th) { background: #e5dfec; }
+.ProseMirror .ts-dark :is(td, th) { border-color: #404040; }
+.ProseMirror .ts-dark.ts-header tr:first-child :is(td, th) { background: #262626; color: #fff; font-weight: 700; }
+.ProseMirror .ts-dark.ts-banded tr:nth-child(even) :is(td, th) { background: #f2f2f2; }
+.ProseMirror .ts-banded:not(.ts-header) tr:nth-child(odd) :is(td, th) { background: #f2f2f2; }
+.ProseMirror .ts-first-col tr :is(td, th):first-child { font-weight: 700; }
+.ProseMirror .ts-last-col tr :is(td, th):last-child { font-weight: 700; }
+.ProseMirror .ts-total tr:last-child :is(td, th) { border-top: 1.5pt solid currentColor; font-weight: 700; }
+
+.ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(31, 90, 166, 0.16);
+  pointer-events: none;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  background: var(--brand);
+  pointer-events: none;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+/* Table of contents */
+
+.ProseMirror .toc {
+  margin: 0 0 var(--doc-space-after);
+  cursor: default;
+}
+
+.ProseMirror .toc.ProseMirror-selectednode {
+  outline: 1px solid #9bb3d6;
+  background: rgba(68, 114, 196, 0.06);
+}
+
+.ProseMirror .toc-title {
+  margin: 12pt 0 4pt;
+  color: var(--doc-heading-color);
+  font-family: var(--doc-heading-font);
+  font-size: 16pt;
+}
+
+.ProseMirror .toc-entry {
+  display: flex;
+  align-items: baseline;
+  margin: 0 0 5pt;
+}
+
+.ProseMirror .toc-entry .toc-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ProseMirror .toc-entry .toc-text::after {
+  content: ' . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .';
+}
+
+.ProseMirror .toc-entry .toc-page {
+  flex-shrink: 0;
+  padding-left: 4px;
+}
+
+.ProseMirror .toc-l2 { padding-left: 0.15in; }
+.ProseMirror .toc-l3 { padding-left: 0.3in; }
+.ProseMirror .toc-l4 { padding-left: 0.45in; }
+.ProseMirror .toc-l5 { padding-left: 0.6in; }
+.ProseMirror .toc-l6 { padding-left: 0.75in; }
+
+.ProseMirror .toc-empty {
+  color: #666;
+  font-style: italic;
+}
+
+/* Page breaks and pagination spacers */
+
+.ProseMirror .page-break {
+  position: relative;
+  height: 0;
+  margin: 0;
+}
+
+.show-marks .ProseMirror .page-break::after {
+  content: 'Page Break';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -0.7em;
+  border-top: 1px dotted #7d7d7d;
+  color: #7d7d7d;
+  font: 9px 'Segoe UI', system-ui, sans-serif;
+  line-height: 0;
+  text-align: center;
+}
+
+.ProseMirror .page-break.ProseMirror-selectednode {
+  outline: 2px solid var(--brand);
+}
+
+.pg-spacer {
+  pointer-events: none;
+  user-select: none;
+}
+
+.pg-inline {
+  display: inline-block;
+  width: 100%;
+  vertical-align: top;
+}
+
+.pg-block {
+  display: block;
+}
+
+.ProseMirror tr.pg-row td {
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+/* While measuring the continuous text flow the spacers must take no room but stay measurable:
+   an empty inline box at a line start does not change wrapping, a zero-height block lets the
+   surrounding margins collapse exactly as without it. */
+.pg-measuring .pg-inline {
+  display: inline !important;
+}
+
+.pg-measuring .pg-block {
+  height: 0 !important;
+}
+
+.pg-measuring tr.pg-row {
+  display: none !important;
+}
+
+.pages.is-web .pg-spacer {
+  display: none;
+}
+
+/* Search, cursors, formatting marks */
+
+.ProseMirror .search-hit {
+  background: #fff1a6;
+}
+
+.ProseMirror .search-hit.is-current {
+  background: #f9b356;
+}
+
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.ProseMirror-gapcursor::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid black;
+  animation: gapcursor-blink 1.1s steps(2, start) infinite;
+}
+
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+@keyframes gapcursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.show-marks .ProseMirror :is(p, h1, h2, h3, h4, h5, h6) {
+  position: relative;
+}
+
+.show-marks .ProseMirror :is(p, h1, h2, h3, h4, h5, h6)::after {
+  content: '¶';
+  margin-left: 1px;
+  color: #6c8ebf;
+  font-style: normal;
+  font-weight: normal;
+}
+
+.show-marks .ProseMirror :is(p, h1, h2, h3, h4, h5, h6):has(> br.ProseMirror-trailingBreak:only-child)::after {
+  content: none;
+}
+
+.show-marks .ProseMirror :is(p, h1, h2, h3, h4, h5, h6):has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: '¶';
+  position: absolute;
+  left: 0;
+  color: #6c8ebf;
+}
+
+.pages.is-web .ProseMirror {
+  max-width: none;
+}
+
+/* ---------- Review: comment anchors and tracked changes ---------- */
+
+.ProseMirror .comment-anchor {
+  background: rgba(244, 196, 96, 0.28);
+  border-bottom: 1px solid rgba(214, 150, 30, 0.55);
+}
+
+.hide-comments .ProseMirror .comment-anchor {
+  background: none;
+  border-bottom: 0;
+}
+
+.ProseMirror ins.tc-ins {
+  color: var(--tc, #b4004e);
+  text-decoration: underline;
+  text-decoration-color: var(--tc, #b4004e);
+}
+
+.ProseMirror del.tc-del {
+  color: var(--tc, #b4004e);
+  text-decoration: line-through;
+  text-decoration-color: var(--tc, #b4004e);
+}
+
+/* Formatting changes: a faint dotted underline in All Markup, like a balloon's anchor. */
+.markup-all .ProseMirror .tc-fmt {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--tc, #b4004e);
+}
+
+/* Change bars in the left margin (All Markup) or a red bar (Simple Markup). */
+.markup-all .ProseMirror :is(p, h1, h2, h3, h4, h5, h6, li):has(ins.tc-ins, del.tc-del, .tc-fmt),
+.markup-simple .ProseMirror :is(p, h1, h2, h3, h4, h5, h6, li):has(ins.tc-ins, del.tc-del, .tc-fmt) {
+  position: relative;
+}
+
+.markup-all .ProseMirror :is(p, h1, h2, h3, h4, h5, h6):has(ins.tc-ins, del.tc-del, .tc-fmt)::before,
+.markup-simple .ProseMirror :is(p, h1, h2, h3, h4, h5, h6):has(ins.tc-ins, del.tc-del, .tc-fmt)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -0.3in;
+  border-left: 1px solid #4d4d4d;
+}
+
+.markup-simple .ProseMirror :is(p, h1, h2, h3, h4, h5, h6):has(ins.tc-ins, del.tc-del, .tc-fmt)::before {
+  border-left: 2px solid #d13438;
+}
+
+.markup-simple .ProseMirror del.tc-del,
+.markup-none .ProseMirror del.tc-del,
+.markup-original .ProseMirror ins.tc-ins {
+  display: none;
+}
+
+.markup-simple .ProseMirror ins.tc-ins,
+.markup-none .ProseMirror ins.tc-ins,
+.markup-original .ProseMirror del.tc-del,
+.hide-revisions .ProseMirror ins.tc-ins,
+.hide-revisions .ProseMirror del.tc-del {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+.markup-none .ProseMirror .comment-anchor,
+.markup-original .ProseMirror .comment-anchor {
+  background: none;
+  border-bottom: 0;
+}
+
+/* ---------- Footnotes and endnotes ---------- */
+
+.ProseMirror sup.note-ref {
+  font-size: 0.65em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.ProseMirror sup.note-ref::after {
+  content: attr(data-n);
+}
+
+.ProseMirror sup.note-ref.ProseMirror-selectednode {
+  outline: none;
+  background: #b4d5fe;
+}
+
+.notes-area,
+.endnote-slot,
+.endnote-sep {
+  position: absolute;
+  z-index: 2;
+}
+
+.notes-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.note-sep {
+  width: 2in;
+  height: 9pt;
+  border-top: 0.75pt solid #000;
+  margin-top: 6pt;
+}
+
+.notes-area .note-sep {
+  margin-top: 0;
+}
+
+.note {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  cursor: text;
+}
+
+.note-num {
+  flex: none;
+  font-family: var(--doc-font);
+  font-size: 6.5pt;
+  vertical-align: super;
+  position: relative;
+  top: -0.35em;
+}
+
+.note .ProseMirror {
+  flex: 1;
+  min-width: 0;
+  font-size: 10pt;
+  line-height: var(--single-line);
+}
+
+.note .ProseMirror p {
+  margin: 0;
+}
+
+.note:not(.note-live):hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* ---------- Sections and columns ---------- */
+
+.ProseMirror .col-section {
+  column-fill: balance;
+}
+
+.ProseMirror .col-section > .pg-spacer {
+  column-span: all;
+}
+
+.ProseMirror .col-section > :first-child {
+  margin-top: 0;
+}
+
+/* A scrolling wrapper cannot be split; in columns a table has to flow from column to column. */
+.ProseMirror .col-section .tableWrapper {
+  overflow: visible;
+}
+
+.pg-measuring .col-section {
+  column-count: 1 !important;
+  column-rule: none !important;
+  width: var(--col-w);
+}
+
+.ProseMirror .column-break {
+  break-after: column;
+  height: 0;
+}
+
+.ProseMirror .section-break {
+  height: 0;
+}
+
+.show-marks .ProseMirror .column-break,
+.show-marks .ProseMirror .section-break {
+  position: relative;
+  height: 14px;
+  margin: 2px 0;
+  border-top: 1px dotted #6c8ebf;
+}
+
+.show-marks .ProseMirror .section-break {
+  border-top-style: double;
+  border-top-width: 3px;
+}
+
+.show-marks .ProseMirror .column-break::after,
+.show-marks .ProseMirror .section-break::after {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 6px;
+  background: #fff;
+  color: #6c8ebf;
+  font: 9pt/1 'Segoe UI', system-ui, sans-serif;
+  content: 'Column Break';
+}
+
+.show-marks .ProseMirror .section-break::after {
+  content: attr(data-label);
+}
+
+.ProseMirror .section-break.ProseMirror-selectednode,
+.ProseMirror .column-break.ProseMirror-selectednode {
+  outline: 2px solid #68cef8;
+  height: 6px;
+}
+
+/* Don't add space between paragraphs of the same style. */
+.ProseMirror p[data-contextual]:has(+ p[data-contextual]) {
+  margin-bottom: 0;
+}
+
+/* ---------- Line numbers ---------- */
+
+.line-number {
+  position: absolute;
+  z-index: 2;
+  width: 0.3in;
+  color: #000;
+  font: 11pt/1 var(--doc-font);
+  text-align: right;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------- Drawing objects (pictures, shapes, charts, text boxes) ---------- */
+
+.ProseMirror .drawing {
+  position: relative;
+  display: inline-block;
+  vertical-align: bottom;
+  line-height: 0;
+  max-width: none;
+  cursor: default;
+}
+
+.ProseMirror .drawing[data-wrap='behind'],
+.ProseMirror .drawing[data-wrap='front'] {
+  cursor: move;
+}
+
+.ProseMirror .drawing-box {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  transform-origin: 50% 50%;
+}
+
+.ProseMirror .drawing-box.is-soft {
+  mask-image: radial-gradient(ellipse at center, #000 60%, transparent 100%);
+}
+
+.ProseMirror .drawing-box.is-reflection {
+  overflow: visible;
+  -webkit-box-reflect: below 2px linear-gradient(transparent 55%, rgba(255, 255, 255, 0.45));
+}
+
+.ProseMirror .drawing-frame {
+  position: absolute;
+  inset: 0;
+  display: none;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+
+.ProseMirror .drawing.is-selected .drawing-frame,
+.ProseMirror .drawing.ProseMirror-selectednode .drawing-frame {
+  display: block;
+  outline: 1px solid #6c8ebf;
+}
+
+.ProseMirror .drawing.ProseMirror-selectednode {
+  outline: none;
+}
+
+.ProseMirror .drawing-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -5px 0 0 -5px;
+  border: 1px solid #5b6b85;
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: auto;
+}
+
+.ProseMirror .h-nw { left: 0; top: 0; cursor: nwse-resize; }
+.ProseMirror .h-n { left: 50%; top: 0; cursor: ns-resize; }
+.ProseMirror .h-ne { left: 100%; top: 0; cursor: nesw-resize; }
+.ProseMirror .h-e { left: 100%; top: 50%; cursor: ew-resize; }
+.ProseMirror .h-se { left: 100%; top: 100%; cursor: nwse-resize; }
+.ProseMirror .h-s { left: 50%; top: 100%; cursor: ns-resize; }
+.ProseMirror .h-sw { left: 0; top: 100%; cursor: nesw-resize; }
+.ProseMirror .h-w { left: 0; top: 50%; cursor: ew-resize; }
+
+.ProseMirror .h-rotate {
+  left: 50%;
+  top: -22px;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 0;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b6b85' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M21 12a9 9 0 1 1-3-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3C/svg%3E") center/contain no-repeat;
+  cursor: grab;
+}
+
+.ProseMirror .drawing-box > img {
+  vertical-align: top;
+}
+
+.ProseMirror .drawing-box svg {
+  display: block;
+  overflow: visible;
+}
+
+.ProseMirror p:has(> .drawing[data-wrap='topBottom']) {
+  text-align: inherit;
+}
+
+/* Shapes */
+
+.ProseMirror .shape-svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.ProseMirror .shape-box {
+  overflow: visible;
+}
+
+.ProseMirror .shape-text {
+  position: absolute;
+  inset: 0.05in 0.1in;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--doc-font);
+  line-height: 1.2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  outline: none;
+}
+
+.ProseMirror .shape-text[contenteditable='true'] {
+  cursor: text;
+}
+
+/* Text boxes and WordArt */
+
+.ProseMirror .drawing.textbox {
+  line-height: calc(var(--single-line) * var(--doc-line));
+  cursor: auto;
+}
+
+.ProseMirror .drawing.textbox > .drawing-box {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.ProseMirror .drawing.is-auto-height > .drawing-box {
+  position: relative;
+  inset: auto;
+  min-height: 1.5em;
+}
+
+.ProseMirror .drawing-content {
+  outline: none;
+}
+
+.ProseMirror .drawing-content > :last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror .drawing-edge {
+  position: absolute;
+  pointer-events: auto;
+  cursor: move;
+}
+
+.ProseMirror .drawing.textbox:hover .drawing-frame,
+.ProseMirror .drawing.textbox:focus-within .drawing-frame {
+  display: block;
+}
+
+.ProseMirror .drawing.textbox:not(:focus-within):not(.is-selected) .drawing-handle {
+  display: none;
+}
+
+.ProseMirror .drawing.textbox:hover:not(:focus-within) .drawing-frame {
+  outline: 1px dashed #9aa7bd;
+}
+
+.ProseMirror .e-top { left: 0; right: 0; top: -4px; height: 7px; }
+.ProseMirror .e-bottom { left: 0; right: 0; bottom: -4px; height: 7px; }
+.ProseMirror .e-left { top: 0; bottom: 0; left: -4px; width: 7px; }
+.ProseMirror .e-right { top: 0; bottom: 0; right: -4px; width: 7px; }
+
+.wordart {
+  font-family: var(--doc-heading-font);
+}
+
+.wordart-fill-dark { color: #222; text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.35); }
+.wordart-fill-accent { color: #2f6fc4; text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3); }
+.wordart-outline-accent { color: #fff; -webkit-text-stroke: 1px #2f6fc4; }
+.wordart-gradient-gold { color: transparent; background-image: linear-gradient(#f9d976, #c88a1b); -webkit-background-clip: text; background-clip: text; -webkit-text-stroke: 0.5px #7a4f0a; }
+.wordart-gradient-blue { color: transparent; background-image: linear-gradient(#8ab6f0, #1f4e8c); -webkit-background-clip: text; background-clip: text; -webkit-box-reflect: below 0 linear-gradient(transparent 60%, rgba(255, 255, 255, 0.35)); }
+.wordart-fill-orange { color: #e3742f; -webkit-text-stroke: 0.6px #8a3c0f; }
+.wordart-glow-green { color: #4f9a3a; text-shadow: 0 0 6px #b9e6a8, 0 0 12px #b9e6a8; }
+.wordart-pattern-gray { color: transparent; background-image: repeating-linear-gradient(45deg, #555 0 2px, #999 2px 4px); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(3px 3px 0 #ccc); }
+
+/* Equations, bookmarks, cross-references */
+
+.ProseMirror .equation {
+  display: inline-block;
+  padding: 0 1px;
+  font-family: 'Cambria Math', 'STIX Two Math', 'Latin Modern Math', serif;
+  font-size: 1.05em;
+  cursor: default;
+}
+
+.ProseMirror .equation.is-display {
+  display: block;
+  margin: 4pt 0;
+  text-align: center;
+}
+
+.ProseMirror .equation.ProseMirror-selectednode {
+  outline: 1px solid #9aa7bd;
+  background: #eef3fb;
+}
+
+.ProseMirror .equation math {
+  font-size: inherit;
+}
+
+.ProseMirror .bookmark {
+  display: inline;
+}
+
+.show-marks .ProseMirror .bookmark::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 1em;
+  border-left: 1.5px solid #7f7f7f;
+  vertical-align: text-bottom;
+}
+
+.ProseMirror .crossref {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ProseMirror .crossref:hover {
+  background: rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+/* ---------- Outline and Draft views, dark page ---------- */
+
+.pages.is-outline .ProseMirror :is(h1, h2, h3, h4, h5, h6, p) {
+  position: relative;
+  margin-top: 2pt;
+  margin-bottom: 2pt;
+  padding-left: 22px;
+}
+
+.pages.is-outline .ProseMirror h1 { margin-left: 0; }
+.pages.is-outline .ProseMirror h2 { margin-left: 0.25in; }
+.pages.is-outline .ProseMirror h3 { margin-left: 0.5in; }
+.pages.is-outline .ProseMirror h4 { margin-left: 0.75in; }
+.pages.is-outline .ProseMirror h5 { margin-left: 1in; }
+.pages.is-outline .ProseMirror h6 { margin-left: 1.25in; }
+.pages.is-outline .ProseMirror p { margin-left: 1.5in; }
+
+.pages.is-outline .ProseMirror :is(h1, h2, h3, h4, h5, h6)::before,
+.pages.is-outline .ProseMirror p::before {
+  content: '⊕';
+  position: absolute;
+  left: 0;
+  color: #7f7f7f;
+  font: 12px/1.6 'Segoe UI', system-ui, sans-serif;
+}
+
+.pages.is-outline .ProseMirror p::before {
+  content: '•';
+}
+
+.pages.outline-plain .ProseMirror :is(h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+  font: inherit;
+  font-weight: bold;
+}
+
+.pages.outline-first-line .ProseMirror p {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pages.outline-level-1 .ProseMirror :is(h2, h3, h4, h5, h6, p, ul, ol, table),
+.pages.outline-level-2 .ProseMirror :is(h3, h4, h5, h6, p, ul, ol, table),
+.pages.outline-level-3 .ProseMirror :is(h4, h5, h6, p, ul, ol, table),
+.pages.outline-level-4 .ProseMirror :is(h5, h6, p, ul, ol, table),
+.pages.outline-level-5 .ProseMirror :is(h6, p, ul, ol, table),
+.pages.outline-level-6 .ProseMirror :is(p, ul, ol, table) {
+  display: none;
+}
+
+.pages.is-draft .ProseMirror {
+  max-width: 6.5in;
+}
+
+.pages.is-draft .ProseMirror .drawing:not([data-wrap='inline']):not(.textbox) {
+  display: none;
+}
+
+.pages.is-draft .ProseMirror .page-break,
+.pages.is-draft .ProseMirror .section-break {
+  height: 14px;
+  border-top: 1px dotted #7f7f7f;
+}
+
+.pages.dark-page .sheet {
+  background: #1f1f1f !important;
+}
+
+.pages.dark-page .ProseMirror,
+.pages.dark-page .hf-static,
+.pages.dark-page .note {
+  color: #e6e6e6;
+}
+
+.pages.dark-page .ProseMirror :is(h1, h2, h3, h4, h5, h6) {
+  color: #8fb3e6;
+}
+
+.ProseMirror .pg-header-copy {
+  width: 100%;
+  margin: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.ProseMirror .pg-header-copy .column-resize-handle {
+  display: none;
+}
+
+/* Custom tab stops */
+
+.ProseMirror .tab-char {
+  display: inline-block;
+  overflow: hidden;
+  white-space: pre;
+  tab-size: 1px;
+  vertical-align: baseline;
+}
+
+.ProseMirror .tab-dot {
+  background: linear-gradient(to right, currentColor 1.2px, transparent 1.2px) 0 calc(100% - 0.28em) / 4px 1.2px repeat-x;
+}
+
+.ProseMirror .tab-dash {
+  background: linear-gradient(to right, currentColor 3px, transparent 3px) 0 calc(100% - 0.35em) / 6px 1px repeat-x;
+}
+
+.ProseMirror .tab-underline {
+  background: linear-gradient(currentColor, currentColor) 0 calc(100% - 0.22em) / 100% 1px no-repeat;
+}
+
+.show-marks .ProseMirror .tab-char::before {
+  content: '→';
+  position: absolute;
+  color: #6c8ebf;
+}
+
+/* Selection Pane: hidden objects, several selected objects and the members of a selected group. */
+.ProseMirror .drawing.is-hidden {
+  visibility: hidden;
+}
+
+.ProseMirror .drawing.is-multi-selected,
+.ProseMirror .drawing.is-group-selected {
+  outline: 1.5px dashed #2b6cb0;
+  outline-offset: 2px;
+}
+
+/* Shapes with text: the outline is drawn behind the editable text (the box is already positioned). */
+.ProseMirror .textbox-box.is-shape > .shape-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ProseMirror .textbox-box.is-shape > .drawing-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Citations, bibliography and index */
+.ProseMirror .citation {
+  border-radius: 2px;
+}
+
+.ProseMirror .citation.ProseMirror-selectednode,
+.ProseMirror .bibliography.ProseMirror-selectednode,
+.ProseMirror .document-index.ProseMirror-selectednode {
+  background: #e6edf7;
+  outline: none;
+}
+
+.ProseMirror .bibliography,
+.ProseMirror .document-index {
+  margin: 0 0 var(--doc-space-after);
+  cursor: default;
+}
+
+.ProseMirror .bibliography:hover,
+.ProseMirror .document-index:hover {
+  background: #f3f6fb;
+}
+
+.ProseMirror .bib-entry {
+  margin: 0 0 var(--doc-space-after);
+  padding-left: 0.5in;
+  text-indent: -0.5in;
+}
+
+.ProseMirror .document-index {
+  column-count: 2;
+  column-gap: 0.5in;
+}
+
+.ProseMirror .index-letter {
+  margin: 6pt 0 2pt;
+  font-weight: bold;
+  break-after: avoid;
+}
+
+.ProseMirror .index-line {
+  margin: 0;
+}
+
+.ProseMirror .index-level-1 {
+  padding-left: 0.2in;
+}
+
+.ProseMirror .index-entry {
+  display: none;
+  color: #6c8ebf;
+  font-size: 9pt;
+}
+
+.show-marks .ProseMirror .index-entry {
+  display: inline;
+  border-bottom: 1px dotted #6c8ebf;
+}
+
+/* A spacer inside a table cell where a row continues on the next page (see maskCell). */
+.ProseMirror .pg-spacer.pg-in-cell {
+  position: relative;
+}
+
+.ProseMirror .pg-spacer.pg-in-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--pg-l, 0);
+  right: var(--pg-r, 0);
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    var(--pg-paper, #fff) 0 var(--pg-above),
+    var(--canvas, #e9e9e9) var(--pg-above) calc(var(--pg-above) + var(--pg-gap)),
+    var(--pg-paper, #fff) calc(var(--pg-above) + var(--pg-gap))
+  );
+}
+
+.ProseMirror .pg-spacer.pg-in-cell::after {
+  content: '';
+  position: absolute;
+  left: var(--pg-l, 0);
+  right: var(--pg-r, 0);
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  background:
+    linear-gradient(var(--pg-line), var(--pg-line)) 0 0 / 100% 1px no-repeat,
+    linear-gradient(var(--pg-line), var(--pg-line)) 0 100% / 100% 1px no-repeat;
+}
+
+.pg-measuring .pg-spacer.pg-in-cell::before,
+.pg-measuring .pg-spacer.pg-in-cell::after {
+  display: none;
+}
+
+/* Design › Effects: theme effects on shapes, diagrams and charts. */
+.pages[data-effects='subtle'] :is(.shape-box .shape-svg, .diagram-box svg, .chart-box svg) {
+  filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.28));
+}
+
+.pages[data-effects='moderate'] :is(.shape-box .shape-svg, .diagram-box svg, .chart-box svg) {
+  filter: drop-shadow(2px 4px 4px rgba(0, 0, 0, 0.35));
+}
+
+.pages[data-effects='intense'] :is(.shape-box .shape-svg, .diagram-box svg, .chart-box svg) {
+  filter: drop-shadow(3px 6px 6px rgba(0, 0, 0, 0.45)) contrast(1.05);
+}
+
+.pages[data-effects='glow'] :is(.shape-box .shape-svg, .diagram-box svg) {
+  filter: drop-shadow(0 0 5px rgba(80, 140, 230, 0.6));
+}

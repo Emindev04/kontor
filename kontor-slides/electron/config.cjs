@@ -1,0 +1,8 @@
+// What makes this desktop app different from its siblings.
+module.exports = {
+  id: 'slides',
+  name: 'Kontor Slides',
+  website: 'https://github.com/',
+  // Files the app opens when the system hands them over (double-click, Open With).
+  extensions: ['pptx'],
+}

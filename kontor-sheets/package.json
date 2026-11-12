@@ -1,0 +1,141 @@
+{
+  "name": "kontor-sheets",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Free spreadsheet program",
+  "author": {
+    "name": "Kontor contributors",
+    "email": "kontor@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "desktop": "vite build && electron .",
+    "desktop:dist": "tsc --noEmit && vite build && electron-builder --publish never"
+  },
+  "devDependencies": {
+    "@fontsource/carlito": "^5.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^45.3.1",
+    "electron-builder": "^26.0.12",
+    "exceljs": "^4.4.0",
+    "jsdom": "^29.1.1",
+    "jszip": "^3.10.1",
+    "lucide-react": "^1.61.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
+  "build": {
+    "appId": "io.github.kontor.sheets",
+    "productName": "Kontor Sheets",
+    "copyright": "Copyright © Kontor contributors",
+    "artifactName": "Kontor-Sheets-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "fileAssociations": [
+      {
+        "role": "Editor",
+        "ext": [
+          "xlsx",
+          "xlsm"
+        ],
+        "name": "XLSX Workbook",
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      },
+      {
+        "role": "Editor",
+        "ext": [
+          "ods"
+        ],
+        "name": "OpenDocument Spreadsheet",
+        "mimeType": "application/vnd.oasis.opendocument.spreadsheet"
+      },
+      {
+        "role": "Viewer",
+        "ext": [
+          "csv"
+        ],
+        "name": "CSV File",
+        "mimeType": "text/csv"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "artifactName": "Kontor-Sheets-mac-${arch}.${ext}"
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Kontor-Sheets-Setup-windows-x64.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Office",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "synopsis": "Free spreadsheet program"
+    },
+    "appImage": {
+      "artifactName": "Kontor-Sheets-linux-x64.${ext}"
+    },
+    "deb": {
+      "artifactName": "Kontor-Sheets-linux-x64.${ext}"
+    }
+  }
+}
