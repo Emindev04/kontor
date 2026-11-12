@@ -8,7 +8,7 @@
     "email": "kontor@users.noreply.github.com"
   },
   "license": "MIT",
-  "homepage": "https://github.com/",
+  "homepage": "https://github.com/Emindev04/kontor",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
