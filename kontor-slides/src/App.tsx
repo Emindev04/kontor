@@ -26,7 +26,7 @@ import { slideTitleText as slideTitle } from './model/accessibility'
 import { pickFile } from './components/ui'
 import type { DialogKind, UiApi } from './components/tabs/types'
 import { addRecent, clearLocal, downloadBlob, loadLocal, loadRecent, safeFilename, saveLocal } from './io/storage'
-import { forgetFile, onSystemOpenFile, openFilePicker, saveFile } from './io/fileAccess'
+import { desktop, forgetFile, onSystemOpenFile, openFilePicker, saveFile } from './io/fileAccess'
 import { extOf, FILE_TYPES, OPEN_TYPE, readPresentationFile, writePresentation, type SaveKind } from './io/formats'
 import { t } from './i18n'
 import { initWindowSync, windowNumber } from './io/windowSync'
@@ -577,7 +577,7 @@ export default function App() {
   const backstageRef = useRef(false)
   backstageRef.current = backstage
 
-  const status = saveState === 'saving' ? t('Saving…') : saveState === 'failed' ? t('Not saved') : autoSave ? t('Saved to this browser') : t('AutoSave off')
+  const status = saveState === 'saving' ? t('Saving…') : saveState === 'failed' ? t('Not saved') : autoSave ? (desktop ? t('Saved on this computer') : t('Saved to this browser')) : t('AutoSave off')
   const s = store.get()
 
   return (

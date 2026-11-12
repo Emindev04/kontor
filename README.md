@@ -1,17 +1,60 @@
-# Kontor
+<p align="center">
+  <img src="website/icons/docs.png" width="72" alt="" />
+  <img src="website/icons/sheets.png" width="72" alt="" />
+  <img src="website/icons/slides.png" width="72" alt="" />
+</p>
 
-Kontor is a free, open-source office suite for Mac, Windows, Linux and the browser. It has three
-programs. Their layout, behavior and keyboard shortcuts follow the classic desktop office programs,
-so they feel familiar from the first minute.
+<h1 align="center">Kontor</h1>
 
-**Download:** installers for every system are on the [Releases](../../releases/latest) page and on
-the project website (the `website/` folder, published with GitHub Pages).
+<p align="center">
+  <b>A free, open-source office suite: word processor, spreadsheets and presentations.</b><br />
+  Familiar ribbon interface · works offline · opens and saves .docx, .xlsx and .pptx<br />
+  Mac · Windows · Linux · browser
+</p>
+
+<p align="center">
+  <a href="../../releases/latest"><b>Download</b></a> ·
+  <a href="https://emindev04.github.io/kontor/"><b>Website</b></a> ·
+  <a href="https://emindev04.github.io/kontor/app/docs/">Try Docs</a> ·
+  <a href="https://emindev04.github.io/kontor/app/sheets/">Try Sheets</a> ·
+  <a href="https://emindev04.github.io/kontor/app/slides/">Try Slides</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20web-lightgrey" alt="Platforms" />
+  <img src="https://img.shields.io/badge/languages-EN%20%7C%20DE%20%7C%20FR%20%7C%20ES-green" alt="Interface languages" />
+</p>
+
+![Kontor Docs](docs/screenshots/docs.jpg)
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/sheets.jpg" alt="Kontor Sheets" /></td>
+    <td><img src="docs/screenshots/slides.jpg" alt="Kontor Slides" /></td>
+  </tr>
+</table>
+
+## Why Kontor
+
+- **Free for everyone, forever.** MIT license, no account, no subscription, no telemetry.
+- **Feels familiar.** Ribbon, menus, dialogs and keyboard shortcuts work the way office users
+  already know, so nobody needs training.
+- **Your files stay yours.** Everything runs on your computer. Save writes straight into the
+  .docx, .xlsx or .pptx file you opened.
+- **Complete.** Hundreds of features per program: styles, tables of contents, track changes and
+  mail merge; about 500 spreadsheet functions, pivot tables, charts and conditional formatting;
+  themes, animations, transitions and presenter view. See the `FEATURES.md` in each folder.
+- **Four interface languages:** English, German, French and Spanish, switchable in Options.
+- **Ready for companies.** `.msi` and `.pkg` installers for software deployment tools.
+
+## The programs
 
 | Folder | Program | What it does | Files | Dev port |
 |---|---|---|---|---|
-| [`kontor-docs`](kontor-docs) | Kontor Docs | Word processor | `.docx`, `.odt`, `.rtf`, `.md`, PDF via print | 5174 |
-| [`kontor-sheets`](kontor-sheets) | Kontor Sheets | Spreadsheet | `.xlsx`, `.ods`, `.csv`, PDF via print | 5175 |
-| [`kontor-slides`](kontor-slides) | Kontor Slides | Presentations | `.pptx`, PDF, PNG/JPEG, MP4/WebM video | 5176 |
+| [`kontor-docs`](kontor-docs) | Kontor Docs | Word processor | `.docx`, `.doc` (open), `.odt`, `.rtf`, `.md`, `.html`, `.txt`, PDF | 5174 |
+| [`kontor-sheets`](kontor-sheets) | Kontor Sheets | Spreadsheet | `.xlsx`, `.xls`/`.xlsb` (partly), `.ods`, `.csv`, PDF | 5175 |
+| [`kontor-slides`](kontor-slides) | Kontor Slides | Presentations | `.pptx`, `.ppsx`, `.potx`, `.odp`, PDF, PNG/JPEG, video | 5176 |
 
 Each program is self-contained. Its folder has its own `package.json`, dependencies, README and
 feature checklist, and nothing is shared between folders. You can copy one folder out and use it
@@ -97,8 +140,13 @@ React, TypeScript and Vite. The formula engine, the file readers and writers and
 are our own code. The libraries we use are under permissive licenses (MIT, Apache-2.0, BSD, ISC),
 and fonts are under the SIL Open Font License.
 
+## Contributing
+
+Bug reports, sample files that open wrongly, translations and pull requests are welcome. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Name and trademarks
 
-"Kontor" is a working title. Each program reads its name from `src/brand.ts`. Kontor is not
+Each program reads its name from `src/brand.ts`. Kontor is not
 affiliated with, endorsed by or connected to any maker of other office software. File-format names
 such as `.docx`, `.xlsx` and `.pptx` only describe compatibility.

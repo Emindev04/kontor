@@ -1,0 +1,30 @@
+name: Bug report
+description: Something does not work or a file looks wrong
+labels: [bug]
+body:
+  - type: dropdown
+    id: program
+    attributes:
+      label: Program
+      options: [Kontor Docs, Kontor Sheets, Kontor Slides, Website]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and system
+      placeholder: e.g. 1.0.0 on macOS 15, Windows 11, Ubuntu 24.04 or browser (Chrome 130)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Steps to reproduce help a lot. Screenshots are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: Sample file
+      description: If a document opens or saves wrongly, attach a small sample without private content.

@@ -1521,6 +1521,7 @@ const translations: Translations = {
   'Save as .pptx (Ctrl+S)': 'Als .pptx speichern (Strg+S)',
   'Save as type': 'Dateityp',
   'Save automatically in this browser': 'Automatisch in diesem Browser speichern',
+  'Saved on this computer': 'Auf diesem Computer gespeichert',
   'Saved to this browser': 'In diesem Browser gespeichert',
   'Saving…': 'Wird gespeichert…',
   'Scribble': 'Gekritzel',

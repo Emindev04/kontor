@@ -1,0 +1,18 @@
+name: Feature request
+description: Suggest a feature or something that is missing
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: program
+    attributes:
+      label: Program
+      options: [Kontor Docs, Kontor Sheets, Kontor Slides, All programs]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like to do?
+      description: Describe the task you want to get done and how you would expect it to work.
+    validations:
+      required: true
