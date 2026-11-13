@@ -192,5 +192,8 @@
       "identity": null,
       "installLocation": "/Applications"
     }
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.8.0"
   }
 }
