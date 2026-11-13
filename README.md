@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="website/icons/docs.png" width="72" alt="" />
-  <img src="website/icons/sheets.png" width="72" alt="" />
-  <img src="website/icons/slides.png" width="72" alt="" />
+  <img src="docs/icons/docs.png" width="72" alt="" />
+  <img src="docs/icons/sheets.png" width="72" alt="" />
+  <img src="docs/icons/slides.png" width="72" alt="" />
 </p>
 
 <h1 align="center">Kontor</h1>
@@ -9,20 +9,19 @@
 <p align="center">
   <b>A free, open-source office suite: word processor, spreadsheets and presentations.</b><br />
   Familiar ribbon interface · works offline · opens and saves .docx, .xlsx and .pptx<br />
-  Mac · Windows · Linux · browser
+  Mac · Windows · Linux
 </p>
 
 <p align="center">
   <a href="../../releases/latest"><b>Download</b></a> ·
-  <a href="https://emindev04.github.io/kontor/"><b>Website</b></a> ·
-  <a href="https://emindev04.github.io/kontor/app/docs/">Try Docs</a> ·
-  <a href="https://emindev04.github.io/kontor/app/sheets/">Try Sheets</a> ·
-  <a href="https://emindev04.github.io/kontor/app/slides/">Try Slides</a>
+  <a href="#install">Install</a> ·
+  <a href="#run-a-program">Run from source</a> ·
+  <a href="CONTRIBUTING.md">Contribute</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
-  <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20web-lightgrey" alt="Platforms" />
+  <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platforms" />
   <img src="https://img.shields.io/badge/languages-EN%20%7C%20DE%20%7C%20FR%20%7C%20ES-green" alt="Interface languages" />
 </p>
 
@@ -48,6 +47,27 @@
 - **Four interface languages:** English, German, French and Spanish, switchable in Options.
 - **Ready for companies.** `.msi` and `.pkg` installers for software deployment tools.
 
+## Install
+
+Download the installers from the [latest release](../../releases/latest). Each program has its own:
+
+| System | File |
+|---|---|
+| Mac with Apple Silicon (M1 or newer) | `Kontor-<Program>-mac-arm64.dmg` |
+| Mac with an Intel processor | `Kontor-<Program>-mac-x64.dmg` |
+| Windows | `Kontor-<Program>-Setup-windows-x64.exe` |
+| Linux | `Kontor-<Program>-linux-x64.AppImage` or `.deb` |
+| IT departments | `Kontor-<Program>-windows-x64.msi` (all users) and `Kontor-<Program>-mac-<arch>.pkg` |
+
+You can check which Mac you have under Apple menu › About This Mac.
+
+The apps are not signed with paid certificates yet, so the system asks you to confirm the first
+start once:
+
+- **macOS:** open the app, click **Done** in the warning, then open **System Settings › Privacy &
+  Security**, scroll down and click **Open Anyway** next to the app's name.
+- **Windows** ("Windows protected your PC"): click **More info**, then **Run anyway**.
+
 ## The programs
 
 | Folder | Program | What it does | Files | Dev port |
@@ -71,7 +91,8 @@ npm run dev
 ```
 
 `npm run build` type-checks the program and writes a static production build to `dist/`.
-You can host that folder on any static web host.
+You can host that folder on any static web host, for example on your company's intranet, and use
+the program in the browser without installing anything.
 
 ## Desktop apps
 
@@ -101,17 +122,11 @@ and `.msi` (the `.msi` installs for all users, for software deployment tools), L
 1. Raise `version` in the three `package.json` files.
 2. Push a tag: `git tag v1.0.0 && git push origin v1.0.0`.
 3. The **Release desktop apps** workflow builds the installers on macOS, Windows and Linux and
-   attaches them to a GitHub release. The website's download buttons always point to the latest
+   attaches them to a GitHub release. The README's download link always points to the latest
    release, so it needs no change.
-4. The **Website** workflow publishes `website/` and the browser versions (`/app/docs/`,
-   `/app/sheets/`, `/app/slides/`) to GitHub Pages on every push to `main`. Turn on Pages once
-   under Settings › Pages › Source: GitHub Actions.
 
-The repository name lives in `website/index.html` (`<meta name="kontor-repo">`), in each
-`electron/config.cjs` (`website`) and in each `package.json` (`homepage`).
-
-The apps are not signed with paid certificates yet, so macOS and Windows ask users to confirm the
-first start; the website's FAQ explains how.
+The repository name lives in each `electron/config.cjs` (`website`) and in each `package.json`
+(`homepage`).
 
 ## Feature coverage
 
